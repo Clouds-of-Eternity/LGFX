@@ -16,6 +16,8 @@ Makefile
 *.make
 *.DS_STORE
 *.sln
+zig-cache
+.zig-cache
 Astral.Shaderc/dependencies/**.lib
 Astral.Shaderc/dependencies/**.dylib
 Astral.Shaderc/dependencies/**.so
