@@ -1,3 +1,9 @@
-[submodule "GLFW"]
-    path = dependencies/GLFW
-    url = https://github.com/glfw/glfw.git
+[submodule "dependencies/glfw"]
+	path = dependencies/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "dependencies/volk"]
+	path = dependencies/volk
+	url = https://github.com/zeux/volk.git
+[submodule "Astral.Core"]
+	path = Astral.Core
+	url = https://github.com/Linx145/Astral.Core.git
