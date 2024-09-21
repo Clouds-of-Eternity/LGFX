@@ -6,6 +6,280 @@
 #include "sync.h"
 #include <string.h>
 
+// VULKAN-SPECIFIC HELPER STRUCTS
+inline VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationMode mode)
+{
+	switch (mode)
+	{
+		case LGFXSwapchainPresentationMode_Fifo:
+			return VK_PRESENT_MODE_FIFO_KHR;
+		case LGFXSwapchainPresentationMode_Immediate:
+			return VK_PRESENT_MODE_IMMEDIATE_KHR;
+		case LGFXSwapchainPresentationMode_Mailbox:
+			return VK_PRESENT_MODE_MAILBOX_KHR;
+	}
+}
+inline VkImageUsageFlags LGFXTextureUsage2Vulkan(LGFXTextureUsage usage)
+{
+	//these map 1:1
+	return (VkImageUsageFlags)usage;
+}
+inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
+{
+	switch (layout)
+	{
+		LGFXTextureLayout_Undefined:
+			return VK_IMAGE_LAYOUT_UNDEFINED;
+		LGFXTextureLayout_General:
+			return VK_IMAGE_LAYOUT_GENERAL;
+		LGFXTextureLayout_ColorAttachmentOptimal:
+			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		LGFXTextureLayout_DepthStencilAttachmentOptimal:
+			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		LGFXTextureLayout_DepthStencilReadOptimal:
+			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		LGFXTextureLayout_ShaderReadOptimal:
+			return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		LGFXTextureLayout_TransferSrcOptimal:
+			return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		LGFXTextureLayout_TransferDstOptimal:
+			return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		LGFXTextureLayout_Preinitialized:
+			return VK_IMAGE_LAYOUT_PREINITIALIZED;
+		LGFXTextureLayout_PresentSource:
+			return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		LGFXTextureLayout_SharedPresentSrc:
+			return VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
+		LGFXTextureLayout_FragmentDensityMap:
+			return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+		LGFXTextureLayout_FragmentShadingRateAttachmentOptima:
+			return VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+	}
+}
+VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
+{
+	switch (format)
+	{
+		LGFXTextureFormat_Undefined:
+			return VK_FORMAT_UNDEFINED;
+		LGFXTextureFormat_R8Unorm:
+			return VK_FORMAT_R8_UNORM;
+		LGFXTextureFormat_R8Snorm:
+			return VK_FORMAT_R8_SNORM;
+		LGFXTextureFormat_R8Uint:
+			return VK_FORMAT_R8_UINT;
+		LGFXTextureFormat_R8Sint:
+			return VK_FORMAT_R8_SINT;
+		LGFXTextureFormat_R16Uint:
+			return VK_FORMAT_R16_UINT;
+		LGFXTextureFormat_R16Sint:
+			return VK_FORMAT_R16_SINT;
+		LGFXTextureFormat_R16Float:
+			return VK_FORMAT_R16_SFLOAT;
+		LGFXTextureFormat_RG8Unorm:
+			return VK_FORMAT_R8G8_UNORM;
+		LGFXTextureFormat_RG8Snorm:
+			return VK_FORMAT_R8G8_SNORM;
+		LGFXTextureFormat_RG8Uint:
+			return VK_FORMAT_R8G8_UINT;
+		LGFXTextureFormat_RG8Sint:
+			return VK_FORMAT_R8G8_SINT;
+		LGFXTextureFormat_R32Float:
+			return VK_FORMAT_R32_SFLOAT;
+		LGFXTextureFormat_R32Uint:
+			return VK_FORMAT_R32_UINT;
+		LGFXTextureFormat_R32Sint:
+			return VK_FORMAT_R32_SINT;
+		LGFXTextureFormat_RG16Uint:
+			return VK_FORMAT_R16G16_UINT;
+		LGFXTextureFormat_RG16Sint:
+			return VK_FORMAT_R16G16_SINT;
+		LGFXTextureFormat_RG16Float:
+			return VK_FORMAT_R16G16_SFLOAT;
+		LGFXTextureFormat_RGBA8Unorm:
+			return VK_FORMAT_R8G8B8A8_UNORM;
+		LGFXTextureFormat_RGBA8UnormSrgb:
+			return VK_FORMAT_R8G8B8A8_SRGB;
+		LGFXTextureFormat_RGBA8Snorm:
+			return VK_FORMAT_R8G8B8A8_SNORM;
+		LGFXTextureFormat_RGBA8Uint:
+			return VK_FORMAT_R8G8B8A8_UINT;
+		LGFXTextureFormat_RGBA8Sint:
+			return VK_FORMAT_R8G8B8A8_SINT;
+		LGFXTextureFormat_BGRA8Unorm:
+			return VK_FORMAT_B8G8R8A8_UNORM;
+		LGFXTextureFormat_BGRA8UnormSrgb:
+			return VK_FORMAT_B8G8R8A8_SRGB;
+		LGFXTextureFormat_RGB10A2Uint:
+			return VK_FORMAT_A2R10G10B10_UINT_PACK32;
+		LGFXTextureFormat_RGB10A2Unorm:
+			return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+		LGFXTextureFormat_RG11B10Ufloat:
+			return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+		LGFXTextureFormat_RGB9E5Ufloat:
+			return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+		LGFXTextureFormat_RG32Float:
+			return VK_FORMAT_R32G32_SFLOAT;
+		LGFXTextureFormat_RG32Uint:
+			return VK_FORMAT_R32G32_UINT;
+		LGFXTextureFormat_RG32Sint:
+			return VK_FORMAT_R32G32_SINT;
+		LGFXTextureFormat_RGBA16Uint:
+			return VK_FORMAT_R16G16B16A16_UINT;
+		LGFXTextureFormat_RGBA16Sint:
+			return VK_FORMAT_R16G16B16A16_SINT;
+		LGFXTextureFormat_RGBA16Float:
+			return VK_FORMAT_R16G16B16A16_SFLOAT;
+		LGFXTextureFormat_RGBA32Float:
+			return VK_FORMAT_R32G32B32A32_SFLOAT;
+		LGFXTextureFormat_RGBA32Uint:
+			return VK_FORMAT_R32G32B32A32_UINT;
+		LGFXTextureFormat_RGBA32Sint:
+			return VK_FORMAT_R32G32B32A32_SINT;
+		LGFXTextureFormat_Stencil8:
+			return VK_FORMAT_S8_UINT;
+		LGFXTextureFormat_Depth16Unorm:
+			return VK_FORMAT_D16_UNORM;
+		LGFXTextureFormat_Depth24Plus:
+			return VK_FORMAT_X8_D24_UNORM_PACK32;
+		LGFXTextureFormat_Depth24PlusStencil8:
+			return VK_FORMAT_D24_UNORM_S8_UINT;
+		LGFXTextureFormat_Depth32Float:
+			return VK_FORMAT_D32_SFLOAT;
+		LGFXTextureFormat_Depth32FloatStencil8:
+			return VK_FORMAT_D32_SFLOAT_S8_UINT;
+		LGFXTextureFormat_BC1RGBAUnorm:
+			return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		LGFXTextureFormat_BC1RGBAUnormSrgb:
+			return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+		LGFXTextureFormat_BC2RGBAUnorm:
+			return VK_FORMAT_BC2_UNORM_BLOCK;
+		LGFXTextureFormat_BC2RGBAUnormSrgb:
+			return VK_FORMAT_BC2_SRGB_BLOCK;
+		LGFXTextureFormat_BC3RGBAUnorm:
+			return VK_FORMAT_BC3_UNORM_BLOCK;
+		LGFXTextureFormat_BC3RGBAUnormSrgb:
+			return VK_FORMAT_BC3_SRGB_BLOCK;
+		LGFXTextureFormat_BC4RUnorm:
+			return VK_FORMAT_BC4_UNORM_BLOCK;
+		LGFXTextureFormat_BC4RSnorm:
+			return VK_FORMAT_BC4_SNORM_BLOCK;
+		LGFXTextureFormat_BC5RGUnorm:
+			return VK_FORMAT_BC5_UNORM_BLOCK;
+		LGFXTextureFormat_BC5RGSnorm:
+			return VK_FORMAT_BC5_SNORM_BLOCK;
+		LGFXTextureFormat_BC6HRGBUfloat:
+			return VK_FORMAT_BC6H_UFLOAT_BLOCK;
+		LGFXTextureFormat_BC6HRGBFloat:
+			return VK_FORMAT_BC6H_SFLOAT_BLOCK;
+		LGFXTextureFormat_BC7RGBAUnorm:
+			return VK_FORMAT_BC7_SRGB_BLOCK;
+		LGFXTextureFormat_BC7RGBAUnormSrgb:
+			return VK_FORMAT_BC7_UNORM_BLOCK;
+		LGFXTextureFormat_ETC2RGB8Unorm:
+			return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+		LGFXTextureFormat_ETC2RGB8UnormSrgb:
+			return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
+		LGFXTextureFormat_ETC2RGB8A1Unorm:
+			return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+		LGFXTextureFormat_ETC2RGB8A1UnormSrg:
+			return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
+		LGFXTextureFormat_ETC2RGBA8Unorm:
+			return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		LGFXTextureFormat_ETC2RGBA8UnormSrgb:
+			return VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
+		LGFXTextureFormat_EACR11Unorm:
+			return VK_FORMAT_EAC_R11_UNORM_BLOCK;
+		LGFXTextureFormat_EACR11Snorm:
+			return VK_FORMAT_EAC_R11_SNORM_BLOCK;
+		LGFXTextureFormat_EACRG11Unorm:
+			return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+		LGFXTextureFormat_EACRG11Snorm:
+			return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC4x4Unorm:
+			return VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC4x4UnormSrgb:
+			return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC5x4Unorm:
+			return VK_FORMAT_ASTC_5x4_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC5x4UnormSrgb:
+			return VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC5x5Unorm:
+			return VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC5x5UnormSrgb:
+			return VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC6x5Unorm:
+			return VK_FORMAT_ASTC_6x5_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC6x5UnormSrgb:
+			return VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC6x6Unorm:
+			return VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC6x6UnormSrgb:
+			return VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC8x5Unorm:
+			return VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC8x5UnormSrgb:
+			return VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC8x6Unorm:
+			return VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC8x6UnormSrgb:
+			return VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC8x8Unorm:
+			return VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC8x8UnormSrgb:
+			return VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC10x5Unorm:
+			return VK_FORMAT_ASTC_10x5_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC10x5UnormSrgb:
+			return VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC10x6Unorm:
+			return VK_FORMAT_ASTC_10x6_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC10x6UnormSrgb:
+			return VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC10x8Unorm:
+			return VK_FORMAT_ASTC_10x8_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC10x8UnormSrgb:
+			return VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC10x10Unorm:
+			return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC10x10UnormSrgb:
+			return VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC12x10Unorm:
+			return VK_FORMAT_ASTC_12x10_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC12x10UnormSrgb:
+			return VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
+		LGFXTextureFormat_ASTC12x12Unorm:
+			return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
+		LGFXTextureFormat_ASTC12x12UnormSrgb:
+			return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
+	}
+}
+
+typedef struct VkLGFXSwapchainSupport
+{
+    VkSurfaceCapabilitiesKHR capabilities;
+
+	u32 supportedSurfaceFormatsCount;
+	VkSurfaceFormatKHR * supportedSurfaceFormats;
+
+	u32 supportedPresentModesCount;
+	VkPresentModeKHR * presentModes;
+} VkLGFXSwapchainSupport;
+
+VkSurfaceFormatKHR VkLGFXFindSurface(VkColorSpaceKHR colorSpace, VkFormat format, VkLGFXSwapchainSupport *supported)
+{
+    for (int i = 0; i < supported->supportedSurfaceFormatsCount; i++)
+    {
+        if (supported->supportedSurfaceFormats[i].colorSpace == colorSpace && supported->supportedSurfaceFormats[i].format == format)
+        {
+            return supported->supportedSurfaceFormats[i];
+        }
+    }
+	return supported->supportedSurfaceFormats[0];
+}
+// END
+
+// HELPER FUNCTIONS
 LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 {
 	VkFenceCreateInfo fenceCreateInfo = {0};
@@ -166,22 +440,28 @@ u32 VkLGFXDefaultIsValidDevice(VkPhysicalDevice device, LGFXDeviceFeatures requi
 	}
 
 	return totalScore;
-	// u32 propertiesCount = 0;
-	// vkGetPhysicalDeviceQueueFamilyProperties(device, &propertiesCount, NULL);
-
-	// VkQueueFamilyProperties *allQueueFamilyProperties = Allocate(VkQueueFamilyProperties, propertiesCount);
-	// vkGetPhysicalDeviceQueueFamilyProperties(device, &propertiesCount, allQueueFamilyProperties);
-
-	// for (u32 i = 0; i < propertiesCount; i++)
-	// {
-	// 	if (allQueueFamilyProperties[i].queueFlags & VK_PRESENT_GRAVITY_MAX_BIT_EXT)
-	// 	{
-	// 		free(allQueueFamilyProperties);
-	// 		return false;
-	// 	}
-	// }
 }
+VkLGFXSwapchainSupport VkLGFXQuerySwapchainSupportDetails(VkPhysicalDevice physicalDevice, VkSurfaceKHR windowSurface)
+{
+	VkLGFXSwapchainSupport details = {0};
 
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, windowSurface, &details.capabilities);
+
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, windowSurface, &details.supportedSurfaceFormatsCount, NULL);
+
+	details.supportedSurfaceFormats = Allocate(VkSurfaceFormatKHR, details.supportedSurfaceFormatsCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, windowSurface, &details.supportedSurfaceFormatsCount, details.supportedSurfaceFormats);
+
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, windowSurface, &details.supportedPresentModesCount, NULL);
+
+	details.presentModes = Allocate(VkPresentModeKHR, details.supportedPresentModesCount);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, windowSurface, &details.supportedPresentModesCount, details.presentModes);
+
+    return details;
+}
+// END
+
+// MAIN IMPLEMENTATIONS
 VkBool32 VkLGFXErrorFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -427,7 +707,77 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	return result;
 }
 
+LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info)
+{
+	VkLGFXSwapchainSupport details = VkLGFXQuerySwapchainSupportDetails((VkPhysicalDevice)device->physicalDevice, (VkSurfaceKHR)info->windowSurface);
+	VkSurfaceFormatKHR surfaceFormat = VkLGFXFindSurface(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_FORMAT_B8G8R8A8_UNORM, details.supportedSurfaceFormats);
 
+	LGFXSwapchain result = Allocate(LGFXSwapchainImpl, 1);
+	result->presentMode = info->presentationMode;
+	result->swapchain = NULL;
+	result->currentImageIndex = 0;
+	result->width = info->width;
+	result->height = info->height;
+	result->windowSurface = info->windowSurface;
+	result->device = device;
+
+	vkDeviceWaitIdle((VkDevice)device->logicalDevice);
+
+    VkSwapchainCreateInfoKHR createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = (VkSurfaceKHR)result->windowSurface;
+	createInfo.minImageCount = details.capabilities.minImageCount;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = NULL;
+
+    createInfo.preTransform = details.capabilities.currentTransform; // VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = result->presentMode;
+    createInfo.clipped = true;
+    //createInfo.oldSwapchain = swapchain->handle;
+	if (info->oldSwapchain != NULL)
+	{
+		createInfo.oldSwapchain = info->oldSwapchain->swapchain;
+	}
+	createInfo.imageExtent.width = result->width;
+	createInfo.imageExtent.height = result->height;
+
+    if (vkCreateSwapchainKHR((VkDevice)device->logicalDevice, &createInfo, NULL, &result->swapchain) != VK_SUCCESS)
+    {
+		VkLGFXDestroySwapcahin(result);
+		return NULL;
+    }
+
+	if (vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->imageCount, NULL)!= VK_SUCCESS)
+    {
+		VkLGFXDestroySwapcahin(result);
+		return NULL;
+    }
+	result->images = Allocate(void *, result->imageCount);
+	vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->imageCount, (VkImage *)result->images);
+
+	return result;
+}
+// END
+
+// DESTROY FUNCTIONS
+void VkLGFXDestroyFence(LGFXFence fence)
+{
+	vkDestroyFence((VkDevice)fence->device->logicalDevice, fence->fence, NULL);
+}
+void VkLGFXDestroyDevice(LGFXDevice device)
+{
+	if (device->logicalDevice != NULL)
+	{
+		vkDestroyDevice((VkDevice)device->logicalDevice, NULL);
+	}
+}
 void VkLGFXDestroyInstance(LGFXInstance instance)
 {
 	if (instance->instance != NULL)
@@ -445,3 +795,4 @@ void VkLGFXDestroyInstance(LGFXInstance instance)
 	}
 	free(instance);
 }
+// END

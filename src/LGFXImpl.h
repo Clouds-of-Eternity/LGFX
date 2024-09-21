@@ -35,6 +35,14 @@ typedef struct LGFXCommandQueueImpl
 typedef struct LGFXSwapchainImpl
 {
     void *swapchain;
+    void **images;
+    void *windowSurface;
+    LGFXDevice device;
+    u32 currentImageIndex;
+    LGFXSwapchainPresentationMode presentMode;
+    u32 width;
+    u32 height;
+    u32 imageCount;
 } LGFXSwapchainImpl;
 
 typedef struct LGFXFenceImpl

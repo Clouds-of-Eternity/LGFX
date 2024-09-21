@@ -23,5 +23,9 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled);
 void VkLGFXDestroyFence(LGFXFence fence);
 
 LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
+void VkLGFXDestroyDevice(LGFXDevice device);
+
+LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
+void VkLGFXDestroySwapcahin(LGFXSwapchain swapchain);
 
 #endif
