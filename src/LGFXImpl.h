@@ -18,6 +18,7 @@ typedef struct LGFXDeviceImpl
 {
     void *physicalDevice;
     void *logicalDevice;
+    void *memoryAllocator;
     LGFXCommandQueue graphicsQueue;
     LGFXCommandQueue computeQueue;
     LGFXCommandQueue transferQueue;
@@ -27,6 +28,10 @@ typedef struct LGFXCommandQueueImpl
 {
     void *queue;
     Mutex *queueMutex;
+    u32 queueFamilyID;
+
+    void *transientCommandPool;
+    Mutex *commandPoolMutex;
 
     LGFXDevice inDevice;
     LGFXFence fence;
@@ -50,5 +55,12 @@ typedef struct LGFXFenceImpl
     void *fence;
     LGFXDevice device;
 } LGFXFenceImpl;
+
+typedef struct LGFXCommandBufferImpl
+{
+    void *cmdBuffer;
+    LGFXCommandQueue queue;
+    bool begun;
+} LGFXCommandBufferImpl;
 
 #endif

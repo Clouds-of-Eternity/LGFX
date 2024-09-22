@@ -28,4 +28,14 @@ void VkLGFXDestroyDevice(LGFXDevice device);
 LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
 void VkLGFXDestroySwapcahin(LGFXSwapchain swapchain);
 
+LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
+void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture *texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
+void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture *texture, u8* bytes, usize length);
+
+LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
+void VkLGFXDestroyBuffer(LGFXBuffer buffer);
+
+LGFXMemoryBlockImpl VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage);
+LGFXMemoryBlockImpl VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage);
+
 #endif

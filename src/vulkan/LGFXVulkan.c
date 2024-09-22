@@ -5,8 +5,22 @@
 #include "memory.h"
 #include "sync.h"
 #include <string.h>
+#include "vulkan/vk_mem_alloc.h"
 
 // VULKAN-SPECIFIC HELPER STRUCTS
+typedef struct LGFXMemoryBlockImpl
+{
+	VmaAllocation vkAllocation;
+	VmaAllocationInfo vkAllocationInfo;
+} LGFXMemoryBlockImpl;
+// END
+
+// HELPER FUNCTIONS
+inline VkBufferUsageFlags LGFXBufferUsage2Vulkan(LGFXBufferUsage usage)
+{
+	return (VkBufferUsageFlags)usage;
+}
+
 inline VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationMode mode)
 {
 	switch (mode)
@@ -277,9 +291,91 @@ VkSurfaceFormatKHR VkLGFXFindSurface(VkColorSpaceKHR colorSpace, VkFormat format
     }
 	return supported->supportedSurfaceFormats[0];
 }
-// END
+LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXCommandQueue queueToUse, bool alsoBeginBuffer)
+{
+	LGFXCommandBuffer result = Allocate(LGFXCommandBufferImpl, 1);
+	result->queue = queueToUse;
 
-// HELPER FUNCTIONS
+	VkCommandBufferAllocateInfo allocInfo = {0};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+    allocInfo.commandPool = queueToUse->transientCommandPool;
+    allocInfo.pNext = NULL;
+
+	EnterMutex(queueToUse->queueMutex);
+
+    if (vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &allocInfo, &result) != VK_SUCCESS)
+    {
+        result = NULL;
+    }
+
+	ExitMutex(queueToUse->queueMutex);
+
+    if (alsoBeginBuffer && result != NULL)
+    {
+        VkCommandBufferBeginInfo beginInfo = {0};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.pInheritanceInfo = NULL;
+        beginInfo.pNext = NULL;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		result->begun = true;
+
+		vkBeginCommandBuffer(result, &beginInfo);
+    }
+    return result;
+}
+void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer)
+{
+    vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer);
+
+	VkSubmitInfo submitInfo = {0};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &(VkCommandBuffer)buffer->cmdBuffer;
+
+    //if we are on the graphics queue, the queue may also be used for presenting
+    //hence, we need to wait for the queue to finish presenting before we can transition the image
+    if (buffer->queue == device->graphicsQueue)
+    {
+		EnterMutex(device->graphicsQueue->queueMutex);
+
+		vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
+        //alternatively, wait for queue fence
+        //vkWaitForFences(gpu->logicalDevice, 1, &queueToUse->queueFence, true, UINT64_MAX);
+        //vkResetFences(gpu->logicalDevice, 1, &queueToUse->queueFence);
+
+		ExitMutex(device->graphicsQueue->queueMutex);
+	}
+
+	LGFXFence tempFence = VkLGFXCreateFence(device, false);
+
+	//submit the queue
+    EnterMutex(buffer->queue->queueMutex);
+
+    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)tempFence->fence) != VK_SUCCESS)
+    {
+		ExitMutex(buffer->queue->queueMutex);
+		LGFX_ERROR("Failed to submit queue\n");
+    }
+    //todo: see if can transfer this to a fence or something
+    //vkWaitForFences(gpu->logicalDevice, 1, &queueToUse->queueFence, true, UINT64_MAX);
+    //vkResetFences(gpu->logicalDevice, 1, &queueToUse->queueFence);
+	vkWaitForFences((VkDevice)device->logicalDevice, 1, (VkFence *)&tempFence->fence, VK_TRUE, 10000);
+
+	ExitMutex(buffer->queue->queueMutex);
+
+	//finally, free the command buffer
+	EnterMutex(buffer->queue->commandPoolMutex);
+
+	LGFXDestroyFence(tempFence);
+	vkFreeCommandBuffers((VkDevice)device->logicalDevice, (VkCommandPool)buffer->queue->transientCommandPool, 1, (VkCommandBuffer *)&buffer->cmdBuffer);
+	//vkFreeCommandBuffers(gpu->logicalDevice, queueToUse->transientCommandPool, 1, &commandBuffer);
+
+	ExitMutex(buffer->queue->commandPoolMutex);
+	buffer->begun = false;
+}
+
 LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 {
 	VkFenceCreateInfo fenceCreateInfo = {0};
@@ -298,17 +394,37 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 
 	return result;
 }
-void VkLGFXDestroyFence(LGFXFence fence);
+void VkLGFXDestroyFence(LGFXFence fence)
+{
+	vkDestroyFence((VkDevice)fence->device->logicalDevice, (VkFence)fence->fence, NULL);
+	free(fence);
+}
 
-LGFXCommandQueue VkLGFXCreateCommandQueue(LGFXDevice device, VkQueue vkQueue)
+LGFXCommandQueue VkLGFXCreateCommandQueue(LGFXDevice device, u32 queueFamilyID, VkQueue vkQueue)
 {
 	LGFXCommandQueueImpl *result = Allocate(LGFXCommandQueueImpl, 1);
 
 	result->queue = vkQueue;
+	result->queueFamilyID = queueFamilyID;
 	result->queueMutex = Allocate(Mutex, 1);
 	*result->queueMutex = NewMutex();
 	result->fence = VkLGFXCreateFence(device, true);
+
 	result->inDevice = device;
+
+	result->commandPoolMutex = Allocate(Mutex, 1);
+	*result->commandPoolMutex = NewMutex();
+
+	VkCommandPoolCreateInfo commandPoolCreateInfo = {0};
+	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+	commandPoolCreateInfo.queueFamilyIndex = result->queueFamilyID;
+	commandPoolCreateInfo.pNext = NULL;
+
+	if (vkCreateCommandPool((VkDevice)device->logicalDevice, &commandPoolCreateInfo, NULL, &result->transientCommandPool) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Error creating transient command pool for queue family %u\n", queueFamilyID);
+	}
 
 	return result;
 }
@@ -678,14 +794,15 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 		VkQueue graphicsQueue;
 		vkGetDeviceQueue(result->physicalDevice, inputQueueProps.dedicatedGraphicsQueueIndex, 0, &graphicsQueue);
 
-		result->graphicsQueue = VkLGFXCreateCommandQueue(result, graphicsQueue);
+		result->graphicsQueue = VkLGFXCreateCommandQueue(result, inputQueueProps.dedicatedGraphicsQueueIndex, graphicsQueue);
 	}
+
 	if (inputQueueProps.dedicatedComputeQueueIndex != inputQueueProps.dedicatedGraphicsQueueIndex)
 	{
 		VkQueue computeQueue;
 		vkGetDeviceQueue(result->physicalDevice, inputQueueProps.dedicatedComputeQueueIndex, 0, &computeQueue);
 
-		result->computeQueue = VkLGFXCreateCommandQueue(result, computeQueue);
+		result->computeQueue = VkLGFXCreateCommandQueue(result, inputQueueProps.dedicatedComputeQueueIndex, computeQueue);
 	}
 	else
 	{
@@ -695,13 +812,32 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	if (inputQueueProps.dedicatedTransferQueueIndex != inputQueueProps.dedicatedGraphicsQueueIndex)
 	{
 		VkQueue transferQueue;
-		vkGetDeviceQueue(result->physicalDevice, inputQueueProps.dedicatedComputeQueueIndex, 0, &transferQueue);
+		vkGetDeviceQueue(result->physicalDevice, inputQueueProps.dedicatedTransferQueueIndex, 0, &transferQueue);
 
-		result->transferQueue = VkLGFXCreateCommandQueue(result, transferQueue);
+		result->transferQueue = VkLGFXCreateCommandQueue(result, inputQueueProps.dedicatedTransferQueueIndex, transferQueue);
 	}
 	else
 	{
 		result->transferQueue = result->graphicsQueue;
+	}
+
+	VmaVulkanFunctions vulkanAllocatorFunctions = {0};
+	vulkanAllocatorFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+	vulkanAllocatorFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
+	VmaAllocatorCreateInfo allocatorCreateInfo = {0};
+	allocatorCreateInfo.device = logicalDevice;
+	allocatorCreateInfo.instance = (VkInstance)instance->instance;
+	allocatorCreateInfo.physicalDevice = bestPhysicalDevice;
+	allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+	allocatorCreateInfo.pAllocationCallbacks = NULL;
+	allocatorCreateInfo.pDeviceMemoryCallbacks = NULL;
+	allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+	allocatorCreateInfo.pVulkanFunctions = &vulkanAllocatorFunctions;
+	if (vmaCreateAllocator(&allocatorCreateInfo, (VmaAllocator *)&result->memoryAllocator) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create memory allocator\n");
+		return NULL;
 	}
 
 	return result;
@@ -764,9 +900,406 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 
 	return result;
 }
+
+LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
+{
+	VkImage image;
+	VkImageCreateInfo createInfo = {0};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	if (info->width == 0 || info->height == 0)
+	{
+		createInfo.imageType = VK_IMAGE_TYPE_1D;
+	}
+	else if (info->depth <= 1)
+	{
+		createInfo.imageType = VK_IMAGE_TYPE_2D;
+	}
+	else
+	{
+		createInfo.imageType = VK_IMAGE_TYPE_3D;
+	}
+	createInfo.extent.width = info->width;
+	createInfo.extent.height = info->height;
+	createInfo.extent.depth = info->depth == 0 ? 1 : info->depth;
+	createInfo.format = LGFXTextureFormat2Vulkan(info->format);
+	createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	createInfo.usage = LGFXTextureUsage2Vulkan(info->usage);
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.samples = (VkSampleCountFlags)info->sampleCount;
+	createInfo.flags = 0;
+
+	if (vkCreateImage((VkDevice)device->logicalDevice, &createInfo, NULL, &image) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create image\n");
+	}
+
+	LGFXTexture result;
+	result.imageHandle = image;
+	result.format = info->format;
+	result.width = info->width;
+	result.height = info->height;
+	result.depth = info->depth;
+	result.mipLevels = info->mipLevels;
+	result.sampleCount = info->sampleCount;
+
+	VkImageAspectFlags imageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+	if (result.format == LGFXTextureFormat_Depth16Unorm || result.format == LGFXTextureFormat_Depth32Float)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else if (result.format > LGFXTextureFormat_Depth16Unorm)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	}
+
+	VkImageViewCreateInfo viewCreateInfo = {0};
+	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewCreateInfo.image = image;
+	viewCreateInfo.format = LGFXTextureFormat2Vulkan(info->format);
+	viewCreateInfo.viewType = createInfo.imageType;
+
+	viewCreateInfo.subresourceRange.aspectMask = imageAspect;
+	viewCreateInfo.subresourceRange.baseMipLevel = 0;
+	viewCreateInfo.subresourceRange.levelCount = result.mipLevels;
+	viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+	viewCreateInfo.subresourceRange.layerCount = 1;
+
+	viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+	viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+	if (vkCreateImageView((VkDevice)device->logicalDevice, &viewCreateInfo, NULL, (VkImageView*)&result.imageView) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create image view\n");
+	}
+
+	return result;
+}
+//administer texture HRT (Free of charge)
+void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture *texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth)
+{
+	VkImageAspectFlags imageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+	if (texture->format == LGFXTextureFormat_Depth16Unorm || texture->format == LGFXTextureFormat_Depth32Float)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else if (texture->format > LGFXTextureFormat_Depth16Unorm)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	}
+
+    VkImageMemoryBarrier memBarrier = {0};
+    memBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    memBarrier.oldLayout = LGFXTextureLayout2Vulkan(texture->layout);
+    memBarrier.newLayout = LGFXTextureLayout2Vulkan(targetLayout);
+    memBarrier.srcQueueFamilyIndex = 0;
+    memBarrier.dstQueueFamilyIndex = 0;
+    memBarrier.image = texture->imageHandle;
+    memBarrier.subresourceRange.aspectMask = imageAspect;
+    memBarrier.subresourceRange.baseMipLevel = mipToTransition;
+    memBarrier.subresourceRange.levelCount = mipTransitionDepth == 0 ? texture->mipLevels : mipTransitionDepth;
+    memBarrier.subresourceRange.baseArrayLayer = 0;
+    memBarrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+    LGFXCommandQueue cmdQueue = device->graphicsQueue;
+	VkCommandBuffer cmdBuffer = commandBuffer;
+	if (cmdBuffer == NULL)
+    {
+        cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, cmdQueue, true);
+    }
+
+    if (cmdBuffer != NULL)
+    {
+        VkPipelineStageFlags depthStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        VkPipelineStageFlags sampledStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+        switch (memBarrier.oldLayout)
+        {
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                break;
+
+            case VK_IMAGE_LAYOUT_GENERAL:
+                sourceStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+                memBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                memBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                sourceStage = depthStageMask;
+                memBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+                sourceStage = depthStageMask | sampledStageMask;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                sourceStage = sampledStageMask;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+                memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                sourceStage = VK_PIPELINE_STAGE_HOST_BIT;
+                memBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+                break;
+
+            default:
+				LGFX_ERROR("Invalid source layout: %s\n", (u32)memBarrier.oldLayout);
+                break;
+        }
+
+		switch (memBarrier.newLayout)
+		{
+			case VK_IMAGE_LAYOUT_GENERAL:
+				destinationStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+				memBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+				destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				memBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				destinationStage = depthStageMask;
+				memBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+				destinationStage = depthStageMask | sampledStageMask;
+				memBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+				destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				memBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+				destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+				destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+				// vkQueuePresentKHR performs automatic visibility operations
+				break;
+
+			default:
+				LGFX_ERROR("Invalid destination layout: %s\n", (u32)memBarrier.oldLayout);
+				break;
+		}
+
+        //cmdQueue->commandPoolMutex.EnterLock();
+		EnterMutex(cmdQueue->commandPoolMutex);
+		vkCmdPipelineBarrier(cmdBuffer, sourceStage, destinationStage, 0, 0, NULL, 0, NULL, 1, &memBarrier);
+		ExitMutex(cmdQueue->commandPoolMutex);
+
+		//only end and submit the buffer if the user did not provide one.
+        //If the user did, then it's their role to end and submit
+        if (commandBuffer == NULL)
+        {
+            AstralCanvasVk_EndTransientCommandBuffer(device, cmdQueue, cmdBuffer);
+        }
+    }
+}
+LGFXMemoryBlockImpl VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture *texture, LGFXMemoryUsage memoryUsage)
+{
+	VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
+
+	VmaAllocationCreateInfo allocationCreateInfo = {0};
+    allocationCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+    if (memoryUsage == LGFXMemoryUsage_GPU_ONLY)
+	{
+		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	}
+	else if (memoryUsage == LGFXMemoryUsage_CPU_TO_GPU)
+	{
+		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	}
+	else if (memoryUsage == LGFXMemoryUsage_GPU_TO_CPU)
+	{
+		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+	}
+
+    LGFXMemoryBlockImpl memoryAllocated;
+
+    if (vmaAllocateMemoryForImage(vma, (VkImage)texture->imageHandle, &allocationCreateInfo, &memoryAllocated.vkAllocation, &memoryAllocated.vkAllocationInfo) != VK_SUCCESS)
+    {
+        LGFX_ERROR("Failed to create memory for image");
+    }
+
+    vmaBindImageMemory(vma, memoryAllocated.vkAllocation, (VkImage)texture->imageHandle);
+
+	return memoryAllocated;
+}
+void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture *texture, u8* bytes, usize length)
+{
+	if (texture->textureMemory->vkAllocation == NULL)
+	{
+		VkLGFXAllocMemoryForTexture(device, texture, LGFXMemoryUsage_GPU_ONLY);
+	}
+
+	LGFXBufferCreateInfo stagingBufferInfo = {0};
+	stagingBufferInfo.bufferUsage = LGFXBufferUsage_TransferSource;
+	stagingBufferInfo.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
+	stagingBufferInfo.size = length;
+
+	LGFXBuffer stagingBuffer = VkLGFXCreateBuffer(device, &stagingBufferInfo);
+
+	memcpy(stagingBuffer.bufferMemory->vkAllocationInfo.pMappedData, bytes, length);
+
+	LGFXCommandBuffer cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
+
+	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_TransferDstOptimal, cmdBuffer, 0, 1);
+
+	VkLGFXCopyBufferToImage(device, cmdBuffer, &stagingBuffer, texture, 0);
+
+	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_ShaderReadOptimal, cmdBuffer, 0, 1);
+
+	VkLGFXEndTemporaryCommandBuffer(device, cmdBuffer);
+	free(cmdBuffer);
+
+	VkLGFXDestroyBuffer(stagingBuffer);
+
+	texture->layout = LGFXTextureLayout_ShaderReadOptimal;
+}
+
+LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
+{
+	VkBufferUsageFlags usageFlags = LGFXBufferUsage2Vulkan(info->bufferUsage);
+	LGFXBuffer result;
+
+    VkBufferCreateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.size = info->size;
+    createInfo.usage = usageFlags;
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer((VkDevice)device->logicalDevice, &createInfo, NULL, (VkBuffer *)&result.handle) != VK_SUCCESS)
+    {
+		LGFX_ERROR("Failed to create buffer\n");
+	}
+
+	result.usage = info->bufferUsage;
+	result.bufferMemory = VkLGFXAllocMemoryForBuffer(device, result, info->memoryUsage);
+	result.device = device;
+
+	return result;
+}
+LGFXMemoryBlockImpl VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage)
+{
+    VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
+    
+    VmaAllocationCreateInfo allocationCreateInfo = {0};
+    allocationCreateInfo.usage = memoryUsage;
+    //if (createMapped)
+    {
+        allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    }
+    if (memoryUsage == LGFXMemoryUsage_GPU_ONLY)
+	{
+		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	}
+	else if (memoryUsage == LGFXMemoryUsage_CPU_TO_GPU)
+	{
+		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	}
+	else if (memoryUsage == LGFXMemoryUsage_GPU_TO_CPU)
+	{
+		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+	}
+
+    LGFXMemoryBlockImpl memoryAllocated;
+
+    if (vmaAllocateMemoryForBuffer(vma, (VkBuffer)buffer.handle, &allocationCreateInfo, &memoryAllocated.vkAllocation, &memoryAllocated.vkAllocationInfo) != VK_SUCCESS)
+    {
+        LGFX_ERROR("Failed to create memory for buffer\n");
+    }
+
+    vmaBindBufferMemory(AstralCanvasVk_GetCurrentVulkanAllocator(), memoryAllocated.vkAllocation, (VkBuffer)buffer.handle);
+
+    return memoryAllocated;
+}
+void VkLGFXCopyBufferToImage(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer *from, LGFXTexture *to, u32 toMip)
+{
+	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
+	if (commandBuffer == NULL)
+	{
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, &device->transferQueue, true);
+	}
+
+	VkBufferImageCopy bufferImageCopy = {0};
+    
+    bufferImageCopy.bufferOffset = 0;
+    //only set values other than 0 if the image buffer is not tightly packed
+    bufferImageCopy.bufferRowLength = 0;
+    bufferImageCopy.bufferImageHeight = 0;
+
+	VkImageAspectFlags imageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+	if (to->format == LGFXTextureFormat_Depth16Unorm || to->format == LGFXTextureFormat_Depth32Float)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else if (to->format > LGFXTextureFormat_Depth16Unorm)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	}
+
+    bufferImageCopy.imageSubresource.aspectMask = imageAspect;
+    bufferImageCopy.imageSubresource.mipLevel = toMip;
+    bufferImageCopy.imageSubresource.baseArrayLayer = 0;
+    bufferImageCopy.imageSubresource.layerCount = 1;
+
+    bufferImageCopy.imageExtent.width = to->width;
+    bufferImageCopy.imageExtent.height = to->height;
+    bufferImageCopy.imageExtent.depth = to->depth;
+
+    vkCmdCopyImageToBuffer(transientCmdBuffer, from, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, to, 1, &bufferImageCopy);
+
+	if (commandBuffer == NULL)
+	{
+		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
+		free(transientCmdBuffer);
+	}
+}
 // END
 
 // DESTROY FUNCTIONS
+void VkLGFXDestroyBuffer(LGFXBuffer buffer)
+{
+	vkDestroyBuffer((VkDevice)buffer.device, (VkBuffer)buffer.handle, NULL);
+
+	vmaFreeMemory((VmaAllocator)buffer.device->memoryAllocator, buffer.bufferMemory->vkAllocation);
+}
 void VkLGFXDestroyFence(LGFXFence fence)
 {
 	vkDestroyFence((VkDevice)fence->device->logicalDevice, fence->fence, NULL);

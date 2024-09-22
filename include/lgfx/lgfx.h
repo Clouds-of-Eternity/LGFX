@@ -4,7 +4,7 @@
 #ifndef __cplusplus
 #include <stdbool.h>
 #endif
-#include <stdint.h>
+#include "Linxc.h"
 
 typedef struct LGFXInstanceImpl *LGFXInstance;
 typedef struct LGFXDeviceImpl *LGFXDevice;
@@ -13,6 +13,7 @@ typedef struct LGFXCommandQueueImpl *LGFXCommandQueue;
 typedef struct LGFXFenceImpl *LGFXFence;
 typedef struct LGFXSemaphoreImpl *LGFXSemaphore;
 typedef struct LGFXMemoryBlockImpl *LGFXMemoryBlock;
+typedef struct LGFXCommandBufferImpl *LGFXCommandBuffer;
 
 typedef enum
 {
@@ -57,6 +58,26 @@ typedef enum
     LGFXTextureUsage_FragmentShadingRateAttachment = 0x00000100,
     LGFXTextureUsage_FragmentDensityMap = 0x00000200,
 } LGFXTextureUsage;
+
+typedef enum
+{
+    LGFXBufferUsage_TransferSource = 0x00000001,
+    LGFXBufferUsage_TransferDest = 0x00000002,
+    LGFXBufferUsage_UniformTexel = 0x00000004,
+    LGFXBufferUsage_StorageTexel = 0x00000008,
+    LGFXBufferUsage_UniformBuffer = 0x00000010,
+    LGFXBufferUsage_StorageBuffer = 0x00000020,
+    LGFXBufferUsage_IndexBuffer = 0x00000040,
+    LGFXBufferUsage_VertexBuffer = 0x00000080,
+    LGFXBufferUsage_IndirectDrawCallBuffer = 0x00000100,
+} LGFXBufferUsage;
+
+typedef enum
+{
+    LGFXMemoryUsage_CPU_TO_GPU,
+    LGFXMemoryUsage_GPU_TO_CPU,
+    LGFXMemoryUsage_GPU_ONLY
+} LGFXMemoryUsage;
 
 typedef enum
 {
@@ -162,8 +183,8 @@ typedef struct
 {
     const char *appName;
     const char *engineName;
-    uint32_t appVersion;
-    uint32_t engineVersion;
+    u32 appVersion;
+    u32 engineVersion;
     bool runtimeErrorChecking;
     LGFXBackendType backend;
 } LGFXInstanceCreateInfo;
@@ -224,25 +245,46 @@ typedef struct
 
 typedef struct
 {
-    u8 *pixelData;
     LGFXTextureFormat format;
+    LGFXTextureUsage usage;
     u32 mipLevels;
     u32 width;
     u32 height;
+    u32 depth;
+    u32 sampleCount;
 } LGFXTextureCreateInfo;
 
 typedef struct
 {
     void *imageHandle;
     void *imageView;
+    LGFXTextureFormat format;
     LGFXTextureLayout layout;
     u32 width;
     u32 height;
+    u32 depth;
     u32 mipLevels;
+    u32 sampleCount;
     LGFXMemoryBlock textureMemory;
-} LGFXTexture2D;
+} LGFXTexture;
 
-LGFXTexture2D LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
+typedef struct
+{
+    usize size;
+    LGFXBufferUsage bufferUsage;
+    LGFXMemoryUsage memoryUsage;
+} LGFXBufferCreateInfo;
+
+typedef struct
+{
+    void *handle;
+    LGFXBufferUsage usage;
+    LGFXMemoryBlock bufferMemory;
+    LGFXDevice device;
+} LGFXBuffer;
+
+LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
+void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture *texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
 
 LGFXInstance LGFXCreateInstance(LGFXInstance instance, LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
