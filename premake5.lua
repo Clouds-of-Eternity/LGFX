@@ -99,18 +99,13 @@ workspace "LGFX"
         staticruntime "Off"
         targetdir "bin/%{cfg.buildcfg}"
         includedirs {
-            "include", 
-            "dependencies/glfw/include",
+            "include",
             "dependencies/volk",
-            "Astral.Core/Astral.Core"
         }
-        links {"GLFW"}
 
         files { 
             "src/**.c", 
-            "src/**.cpp", 
             "src/**.h", 
-            "src/**.hpp", 
             "include/**.h",
             "dependencies/volk/volk.c"
         }

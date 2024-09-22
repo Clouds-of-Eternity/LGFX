@@ -47,6 +47,9 @@ void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 LGFXMemoryBlockImpl VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage);
 LGFXMemoryBlockImpl VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage);
 
+LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
+void VkLGFXDestroyFunction(LGFXFunction func);
 
+LGFXShader VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 
 #endif

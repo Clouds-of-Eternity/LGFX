@@ -18,12 +18,58 @@ typedef struct LGFXBufferImpl *LGFXBuffer;
 typedef struct LGFXTextureImpl *LGFXTexture;
 typedef struct LGFXRenderTargetImpl *LGFXRenderTarget;
 typedef struct LGFXRenderProgramImpl *LGFXRenderProgram;
+typedef struct LGFXFunctionImpl *LGFXFunction;
+typedef struct LGFXShaderImpl *LGFXShader;
+typedef struct LGFXComputeImpl *LGFXCompute;
 
 typedef enum
 {
     LGFXBackendType_Vulkan,
     LGFXBackendType_WebGPU
 } LGFXBackendType;
+
+typedef enum
+{
+    LGFXShaderResourceType_Uniform,
+    LGFXShaderResourceType_Sampler,
+    LGFXShaderResourceType_Texture,
+    LGFXShaderResourceType_StructuredBuffer,
+    LGFXShaderResourceType_InputAttachment,
+    LGFXShaderResourceType_StorageTexture
+} LGFXShaderResourceType;
+
+typedef enum
+{
+    LGFXVertexElementFormat_Invalid,
+    LGFXVertexElementFormat_Float,
+    LGFXVertexElementFormat_Vector2,
+    LGFXVertexElementFormat_Vector3,
+    LGFXVertexElementFormat_Vector4,
+    LGFXVertexElementFormat_Int,
+    LGFXVertexElementFormat_Uint
+} LGFXVertexElementFormat;
+
+typedef enum
+{
+    LGFXBlend_Disable,
+    LGFXBlend_One,
+    LGFXBlend_Zero,
+    LGFXBlend_SourceColor,
+    LGFXBlend_InverseSourceColor,
+    LGFXBlend_SourceAlpha,
+    LGFXBlend_InverseSourceAlpha,
+    LGFXBlend_DestinationColor,
+    LGFXBlend_InverseDestinationColor,
+    LGFXBlend_DestinationAlpha,
+    LGFXBlend_InverseDestinationAlpha
+} LGFXBlend;
+
+typedef enum
+{
+    LGFXShaderInputAccess_Vertex = 1,
+    LGFXShaderInputAccess_Fragment = 2,
+    LGFXShaderInputAccess_Compute = 4
+} LGFXShaderInputAccessFlags;
 
 typedef enum
 {
@@ -65,6 +111,27 @@ typedef enum
 
 typedef enum
 {
+    /// Renders the specified vertices as a sequence of isolated triangles. Each group of three vertices defines a separate triangle.
+    LGFXPrimitiveType_TriangleList,
+
+    /// Renders the vertices as a triangle strip.
+    LGFXPrimitiveType_TriangleStrip,
+
+    /// Renders the vertices as a list of isolated straight line segments; the count may be any positive integer.
+    LGFXPrimitiveType_LineList,
+
+    /// Renders the vertices as a single polyline; the count may be any positive integer.
+    LGFXPrimitiveType_LineStrip,
+
+    // Renders the vertices as individual points; the count may be any positive integer.
+    LGFXPrimitiveType_PointList,
+
+    /// Renders the vertices as a series of triangle primitives connected to a central origin vertex
+    PrimitiveType_TriangleFan,
+} LGFXPrimitiveType;
+
+typedef enum
+{
     LGFXBufferUsage_TransferSource = 0x00000001,
     LGFXBufferUsage_TransferDest = 0x00000002,
     LGFXBufferUsage_UniformTexel = 0x00000004,
@@ -75,6 +142,13 @@ typedef enum
     LGFXBufferUsage_VertexBuffer = 0x00000080,
     LGFXBufferUsage_IndirectDrawCallBuffer = 0x00000100,
 } LGFXBufferUsage;
+
+typedef enum
+{
+    LGFXCullMode_None,
+    LGFXCullMode_Front,
+    LGFXCullMode_Back
+} LGFXCullMode;
 
 typedef enum
 {
@@ -331,6 +405,86 @@ typedef struct
     u32 renderPassCount;
 } LGFXRenderProgramCreateInfo;
 
+typedef struct
+{
+    LGFXVertexElementFormat format;
+    u32 offset;
+} LGFXVertexAttribute;
+typedef struct
+{
+    LGFXVertexAttribute *elements;
+    u32 elementsCount;
+    bool isPerInstance;
+    u32 packedSize;
+} LGFXVertexDeclaration;
+LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *elementFormats, u32 elementsCount, bool isPerInstance, bool tightlyPacked);
+
+typedef struct
+{
+    u32 *module1Data;
+    usize module1DataLength;
+
+    u32 *module2Data;
+    usize module2DataLength;
+
+    LGFXShaderResource *uniforms;
+    u32 uniformsCount;
+    
+} LGFXFunctionCreateInfo;
+
+typedef struct LGFXBlendState
+{
+    LGFXBlend sourceColorBlend;
+    LGFXBlend sourceAlphaBlend;
+    LGFXBlend destinationColorBlend;
+    LGFXBlend destinationAlphaBlend;
+} LGFXBlendState;
+
+inline bool LGFXBlendStateEquals(const LGFXBlendState left, LGFXBlendState right)
+{
+    return left.sourceAlphaBlend == right.sourceAlphaBlend
+        && left.sourceColorBlend == right.sourceColorBlend
+        && left.destinationAlphaBlend == right.destinationAlphaBlend
+        && left.destinationColorBlend == right.destinationColorBlend;
+}
+
+#define DISABLE_BLEND {LGFXBlend_Disable, LGFXBlend_Disable, LGFXBlend_Disable, LGFXBlend_Disable}
+#define ADDITIVE_BLEND {LGFXBlend_SourceAlpha, LGFXBlend_SourceAlpha, LGFXBlend_One, LGFXBlend_One}
+#define ALPHA_BLEND {LGFXBlend_One, LGFXBlend_One, LGFXBlend_InverseSourceAlpha, LGFXBlend_InverseSourceAlpha}
+#define NON_PREMULTIPLIED_BLEND {LGFXBlend_SourceAlpha, LGFXBlend_SourceAlpha, LGFXBlend_InverseSourceAlpha, LGFXBlend_InverseSourceAlpha}
+#define OPAQUE_BLEND {LGFXBlend_One, LGFXBlend_One, LGFXBlend_Zero, LGFXBlend_Zero}
+
+typedef struct LGFXShaderResource
+{
+    const char* variableName;
+    LGFXShaderResourceType type;
+    u32 set;
+    u32 binding;
+    u32 arrayLength;
+    u32 inputAttachmentIndex;
+    u32 size;
+    LGFXShaderInputAccessFlags accessedBy;
+} LGFXShaderResource;
+typedef struct LGFXShaderStateCreateInfo
+{
+    LGFXFunction function;
+    bool dynamicViewportScissor;
+    bool dynamicLineWidth;
+    bool depthTest;
+    bool depthWrite;
+
+    LGFXVertexDeclaration *vertexDeclarations;
+    u32 vertexDeclarationCount;
+
+    LGFXPrimitiveType primitiveType;
+    LGFXCullMode cullMode;
+    LGFXBlendState blendState;
+
+    void *existingPipelineLayout;
+    LGFXRenderProgram forRenderProgram;
+    u32 forRenderPass;
+} LGFXShaderStateCreateInfo;
+
 LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
 void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture *texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
 
@@ -344,6 +498,6 @@ LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
-void LGFXDestroySwapcahin(LGFXSwapchain swapchain);
+void LGFXDestroySwapchain(LGFXSwapchain swapchain);
 
 #endif

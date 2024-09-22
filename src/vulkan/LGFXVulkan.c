@@ -5,6 +5,7 @@
 #include "memory.h"
 #include "sync.h"
 #include <string.h>
+#include <math.h>
 #include "vulkan/vk_mem_alloc.h"
 
 // VULKAN-SPECIFIC HELPER STRUCTS
@@ -16,6 +17,78 @@ typedef struct LGFXMemoryBlockImpl
 // END
 
 // HELPER FUNCTIONS
+inline VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
+{
+    switch (blend)
+    {
+        case LGFXBlend_DestinationAlpha:
+            return VK_BLEND_FACTOR_DST_ALPHA;
+        case LGFXBlend_DestinationColor:
+            return VK_BLEND_FACTOR_DST_COLOR;
+        case LGFXBlend_SourceAlpha:
+            return VK_BLEND_FACTOR_SRC_ALPHA;
+        case LGFXBlend_SourceColor:
+            return VK_BLEND_FACTOR_SRC_COLOR;
+
+        case LGFXBlend_InverseDestinationAlpha:
+            return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        case LGFXBlend_InverseDestinationColor:
+            return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+        case LGFXBlend_InverseSourceAlpha:
+            return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        case LGFXBlend_InverseSourceColor:
+            return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+        
+        case LGFXBlend_One:
+            return VK_BLEND_FACTOR_ONE;
+        case LGFXBlend_Disable:
+            return VK_BLEND_FACTOR_ZERO;
+
+        default:
+            return VK_BLEND_FACTOR_ONE;
+    }
+}
+
+inline VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
+{
+	switch (type)
+	{
+		case LGFXPrimitiveType_TriangleList:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		case LGFXPrimitiveType_TriangleStrip:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		case LGFXPrimitiveType_LineList:
+			return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		case LGFXPrimitiveType_LineStrip:
+			return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		case LGFXPrimitiveType_PointList:
+			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		case PrimitiveType_TriangleFan:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+	}
+}
+
+inline VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
+{
+    switch (format)
+    {
+        case LGFXVertexElementFormat_Float:
+            return VK_FORMAT_R32_SFLOAT;
+        case LGFXVertexElementFormat_Vector2:
+            return VK_FORMAT_R32G32_SFLOAT;
+        case LGFXVertexElementFormat_Vector3:
+            return VK_FORMAT_R32G32B32_SFLOAT;
+        case LGFXVertexElementFormat_Vector4:
+            return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case LGFXVertexElementFormat_Int:
+            return VK_FORMAT_R32_SINT;
+        case LGFXVertexElementFormat_Uint:
+            return VK_FORMAT_R32_UINT;
+		default:
+			return VK_FORMAT_UNDEFINED;
+	}
+}
+
 inline VkBufferUsageFlags LGFXBufferUsage2Vulkan(LGFXBufferUsage usage)
 {
 	return (VkBufferUsageFlags)usage;
@@ -68,6 +141,41 @@ inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 			return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
 		LGFXTextureLayout_FragmentShadingRateAttachmentOptima:
 			return VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+	}
+}
+inline VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags)
+{
+	VkShaderStageFlags result = 0;
+	if ((flags & LGFXShaderInputAccess_Vertex) != 0)
+	{
+		result |= VK_SHADER_STAGE_VERTEX_BIT;
+	}
+	if ((flags & LGFXShaderInputAccess_Fragment) != 0)
+	{
+		result |= VK_SHADER_STAGE_FRAGMENT_BIT;
+	}
+	if ((flags & LGFXShaderInputAccess_Compute) != 0)
+	{
+		result |= VK_SHADER_STAGE_COMPUTE_BIT;
+	}
+	return result;
+}
+inline VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType type)
+{
+	switch (type)
+	{
+		case LGFXShaderResourceType_Uniform:
+			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		case LGFXShaderResourceType_Sampler:
+			return VK_DESCRIPTOR_TYPE_SAMPLER;
+		case LGFXShaderResourceType_Texture:
+			return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		case LGFXShaderResourceType_StructuredBuffer:
+			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		case LGFXShaderResourceType_InputAttachment:
+			return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+		case LGFXShaderResourceType_StorageTexture:
+			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	}
 }
 VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
@@ -1594,9 +1702,317 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	*result = program;
 	return result;
 }
+
+LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info)
+{
+	VkShaderModuleCreateInfo createInfo = {0};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = info->module1DataLength * 4;
+	createInfo.pCode = info->module1Data;
+
+	VkShaderModule shaderModule1 = NULL;
+	VkShaderModule shaderModule2 = NULL;
+
+	if (vkCreateShaderModule((VkDevice)device->logicalDevice, &createInfo, NULL, &shaderModule1) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create shader module 1\n");
+		return NULL;
+	}
+
+	if (info->module2Data != NULL && info->module2DataLength > 0)
+	{
+		createInfo.codeSize = info->module2DataLength * 4;
+		createInfo.pCode = info->module2Data;
+
+		if (vkCreateShaderModule((VkDevice)device->logicalDevice, &createInfo, NULL, &shaderModule2) != VK_SUCCESS)
+		{
+			LGFX_ERROR("Failed to create shader module 2\n");
+			return NULL;
+		}
+	}
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.flags = 0;
+	layoutInfo.bindingCount = info->uniformsCount;
+	VkDescriptorSetLayoutBinding *bindings = NULL;
+	if (info->uniformsCount > 0)
+	{
+		bindings = Allocate(VkDescriptorSetLayoutBinding, info->uniformsCount);
+		for (u32 i = 0; i < info->uniformsCount; i++)
+		{
+			VkDescriptorSetLayoutBinding layoutBinding = {0};
+			layoutBinding.binding = info->uniforms[i].binding;
+			layoutBinding.descriptorCount = max(info->uniforms[i].arrayLength, 1);
+			layoutBinding.descriptorType = LGFXShaderResourceType2Vulkan(info->uniforms[i].type);
+			layoutBinding.stageFlags = LGFXShaderInputAccess2Vulkan(info->uniforms[i].accessedBy);
+			layoutBinding.pImmutableSamplers = NULL;
+
+			bindings[i] = layoutBinding;
+		}
+	}
+	layoutInfo.pBindings = bindings;
+
+	VkDescriptorSetLayout layout;
+	if (vkCreateDescriptorSetLayout((VkDevice)device->logicalDevice, &layoutInfo, NULL, &layout) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create pipeline layout\n");
+		return NULL;
+	}
+
+	LGFXFunction result = Allocate(LGFXFunctionImpl, 1);
+	result->module1 = shaderModule1;
+	result->module2 = shaderModule2;
+	result->uniforms = info->uniforms;
+	result->uniformsCount = info->uniformsCount;
+	result->functionVariablesLayout = layout;
+	result->device = device;
+
+	return result;
+}
+LGFXShader VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info)
+{
+	//dynamic state
+	VkPipelineDynamicStateCreateInfo dynamicStateInfo = {0};
+	dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	VkDynamicState dynamicStates[3];
+	u32 dynamicStatesCount = 0;
+	if (info->dynamicLineWidth)
+	{
+		dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_LINE_WIDTH;
+		dynamicStatesCount += 1;
+	}
+	if (info->dynamicViewportScissor)
+	{
+		dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_SCISSOR;
+		dynamicStatesCount += 1;
+		dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_VIEWPORT;
+		dynamicStatesCount += 1;
+	}
+	dynamicStateInfo.pDynamicStates = dynamicStates;
+	dynamicStateInfo.dynamicStateCount = dynamicStatesCount;
+
+	//vertex
+
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
+	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+	vertexInputInfo.vertexBindingDescriptionCount = 0;
+
+	if (info->vertexDeclarationCount > 0)
+	{
+		usize attribCount = 0;
+
+		VkVertexInputBindingDescription *bindingDescriptions = Allocate(VkVertexInputBindingDescription, info->vertexDeclarationCount);
+		for (u32 i = 0; i < info->vertexDeclarationCount; i++)
+		{
+			bindingDescriptions[i].inputRate = info->vertexDeclarations[i].isPerInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX; //(VkVertexInputRate)pipeline->vertexDeclarations.data[i]->inputRate;
+			bindingDescriptions[i].stride = info->vertexDeclarations[i].packedSize;
+			bindingDescriptions[i].binding = i;
+
+			attribCount += info->vertexDeclarations[i].elementsCount; // pipeline->vertexDeclarations.data[i]->elements.count;
+		}
+
+		VkVertexInputAttributeDescription *attribDescriptions = Allocate(VkVertexInputAttributeDescription, attribCount);
+		u32 attribIndex = 0;
+		for (u32 i = 0; i < info->vertexDeclarationCount; i++)
+		{
+			for (usize j = 0; j < info->vertexDeclarations[i].elementsCount; j++)
+			{
+				LGFXVertexAttribute element = info->vertexDeclarations[i].elements[j];
+				//AstralCanvas::VertexElement element = pipeline->vertexDeclarations.data[i]->elements.ptr[j];
+
+				attribDescriptions[attribIndex].format = LGFXVertexElementFormat2Vulkan(element.format);
+				attribDescriptions[attribIndex].binding = i;
+				attribDescriptions[attribIndex].offset = element.offset;
+				attribDescriptions[attribIndex].location = attribIndex; //very important!!
+				attribIndex++;
+			}
+		}
+
+		vertexInputInfo.vertexBindingDescriptionCount = info->vertexDeclarationCount;
+		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions;
+		vertexInputInfo.vertexAttributeDescriptionCount = attribCount;
+		vertexInputInfo.pVertexAttributeDescriptions = attribDescriptions;
+	}
+
+	//primitive type
+
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {0};
+	inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssemblyInfo.topology = LGFXPrimitiveType2Vulkan(info->primitiveType); // AstralCanvasVk_FromPrimitiveType(pipeline->primitiveType);
+	inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+
+	//viewport data
+
+	VkPipelineViewportStateCreateInfo viewportStateInfo = {0};
+	viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportStateInfo.viewportCount = 1;
+	viewportStateInfo.scissorCount = 1;
+
+	//rasterization behaviour
+
+	VkPipelineRasterizationStateCreateInfo rasterizerInfo = {0};
+	rasterizerInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizerInfo.depthClampEnable = false;
+	rasterizerInfo.rasterizerDiscardEnable = false;
+	rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
+	if (inputAssemblyInfo.topology == VK_PRIMITIVE_TOPOLOGY_LINE_LIST || inputAssemblyInfo.topology == VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
+	{
+		rasterizerInfo.polygonMode = VK_POLYGON_MODE_LINE;
+	}
+	rasterizerInfo.lineWidth = 1.0f;
+	rasterizerInfo.cullMode = (VkCullModeFlags)info->cullMode;
+	rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+	rasterizerInfo.depthBiasEnable = false;
+	rasterizerInfo.depthBiasConstantFactor = 0.0f;
+	rasterizerInfo.depthBiasClamp = 0.0f;
+	rasterizerInfo.depthBiasSlopeFactor = 0.0f;
+
+	//multisampling data
+	//todo
+
+	VkPipelineMultisampleStateCreateInfo multisamplingInfo = {0};
+	multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisamplingInfo.sampleShadingEnable = false;
+	multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisamplingInfo.minSampleShading = 1.0f;
+	multisamplingInfo.pSampleMask = NULL;
+	multisamplingInfo.alphaToCoverageEnable = false;
+	multisamplingInfo.alphaToOneEnable = false;
+
+	//depth stencil data
+
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {0};
+	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilInfo.depthTestEnable = info->depthTest;
+	depthStencilInfo.depthWriteEnable = info->depthWrite;
+	depthStencilInfo.depthCompareOp = info->depthTest ? VK_COMPARE_OP_LESS_OR_EQUAL : VK_COMPARE_OP_ALWAYS;
+	depthStencilInfo.depthBoundsTestEnable = false;
+	depthStencilInfo.minDepthBounds = 0.0f;
+	depthStencilInfo.maxDepthBounds = 1.0f;
+	depthStencilInfo.stencilTestEnable = false;
+
+	//color blend state
+
+	VkPipelineColorBlendAttachmentState colorBlendState = {0};
+	colorBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
+
+	LGFXBlendState disabled = DISABLE_BLEND;
+	if (!LGFXBlendStateEquals(info->blendState, disabled))
+	{
+		colorBlendState.srcColorBlendFactor = LGFXBlendState2Vulkan(info->blendState.sourceColorBlend);
+		colorBlendState.srcAlphaBlendFactor = LGFXBlendState2Vulkan(info->blendState.sourceAlphaBlend);
+		colorBlendState.dstColorBlendFactor = LGFXBlendState2Vulkan(info->blendState.destinationColorBlend);
+		colorBlendState.dstAlphaBlendFactor = LGFXBlendState2Vulkan(info->blendState.destinationAlphaBlend);
+		colorBlendState.colorBlendOp = VK_BLEND_OP_ADD;
+		colorBlendState.alphaBlendOp = VK_BLEND_OP_ADD;
+		colorBlendState.blendEnable = true;
+	}
+	else
+		colorBlendState.blendEnable = false;
+
+	//color blend data
+
+	VkPipelineColorBlendStateCreateInfo colorBlendInfo = {0};
+	colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	colorBlendInfo.blendConstants[0] = 1.0f;
+	colorBlendInfo.blendConstants[1] = 1.0f;
+	colorBlendInfo.blendConstants[2] = 1.0f;
+	colorBlendInfo.blendConstants[3] = 1.0f;
+	colorBlendInfo.logicOpEnable = false;
+	colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
+	colorBlendInfo.attachmentCount = 1;
+	colorBlendInfo.pAttachments = &colorBlendState;
+
+	//pipeline layout itself
+	if (info->existingPipelineLayout == NULL)
+	{
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {0};
+		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+		pipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+		pipelineLayoutCreateInfo.flags = 0;
+
+		pipelineLayoutCreateInfo.setLayoutCount = 0;
+		if (info->function->functionVariablesLayout != NULL)
+		{
+			pipelineLayoutCreateInfo.setLayoutCount = 1;
+			pipelineLayoutCreateInfo.pSetLayouts = (VkDescriptorSetLayout*)&info->function->functionVariablesLayout;
+		}
+
+		if (vkCreatePipelineLayout((VkDevice)device->logicalDevice, &pipelineLayoutCreateInfo, NULL, (VkPipelineLayout*)&info->existingPipelineLayout) != VK_SUCCESS)
+		{
+			LGFX_ERROR("Failed to initialize pipeline layout");
+		}
+	}
+
+	VkPipelineShaderStageCreateInfo shaderStageInfos[2];
+	memset(shaderStageInfos, 0, sizeof(VkPipelineShaderStageCreateInfo) * 2);
+	shaderStageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderStageInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+	shaderStageInfos[0].module = (VkShaderModule)info->function->module1;
+	shaderStageInfos[0].pName = "main"; //entry point
+
+	shaderStageInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderStageInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	shaderStageInfos[1].module = (VkShaderModule)info->function->module2;
+	shaderStageInfos[1].pName = "main"; //entry point
+
+	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {0};
+	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineCreateInfo.pStages = shaderStageInfos;
+	pipelineCreateInfo.stageCount = 2;
+	pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
+	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
+	pipelineCreateInfo.pViewportState = &viewportStateInfo;
+	pipelineCreateInfo.pRasterizationState = &rasterizerInfo;
+	pipelineCreateInfo.pMultisampleState = &multisamplingInfo;
+	pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
+	pipelineCreateInfo.pDepthStencilState = &depthStencilInfo;
+	pipelineCreateInfo.pDynamicState = &dynamicStateInfo;
+	pipelineCreateInfo.layout = (VkPipelineLayout)info->existingPipelineLayout;
+	pipelineCreateInfo.renderPass = (VkRenderPass)info->forRenderProgram->handle;
+	pipelineCreateInfo.subpass = info->forRenderPass;
+
+	VkPipeline result;
+    if (vkCreateGraphicsPipelines((VkDevice)device->logicalDevice, NULL, 1, &pipelineCreateInfo, NULL, &result) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Error creating pipeline\n");
+	}
+
+	LGFXShader shader = Allocate(LGFXShaderImpl, 1);
+	shader->device = device;
+	shader->handle = result;
+	shader->pipelineLayoutHandle = info->existingPipelineLayout;
+	shader->function = info->function;
+
+	return shader;
+}
 // END
 
 // DESTROY FUNCTIONS
+void VkLGFXDestroyFunction(LGFXFunction func)
+{
+	if (func->module1 != NULL)
+	{
+		vkDestroyShaderModule((VkDevice)func->device->logicalDevice, (VkShaderModule)func->module1, NULL);
+	}
+	if (func->module2 != NULL)
+	{
+		vkDestroyShaderModule((VkDevice)func->device->logicalDevice, (VkShaderModule)func->module2, NULL);
+	}
+	if (func->functionVariablesLayout != NULL)
+	{
+		vkDestroyDescriptorSetLayout((VkDevice)func->device->logicalDevice, (VkPipelineLayout)func->functionVariablesLayout, NULL);
+	}
+	if (func->uniforms != NULL)
+	{
+		free(func->uniforms);
+	}
+	free(func);
+}
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program)
 {
 	if (program->targetsCount > 0)

@@ -85,4 +85,23 @@ typedef struct LGFXRenderProgramImpl
     u32 targetsCount;
 } LGFXRenderProgramImpl;
 
+typedef struct LGFXFunctionImpl
+{
+    void *module1;
+    void *module2;
+    void *functionVariablesLayout;
+
+    LGFXShaderResource *uniforms;
+    u32 uniformsCount;
+    LGFXDevice device;
+} LGFXFunctionImpl;
+
+typedef struct LGFXShaderImpl
+{
+    void *handle;
+    void *pipelineLayoutHandle;
+    LGFXFunction function;
+    LGFXDevice device;
+} LGFXShaderImpl;
+
 #endif
