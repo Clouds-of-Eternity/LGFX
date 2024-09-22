@@ -64,6 +64,7 @@
         "corecrt_math.h": "c",
         "corecrt.h": "c",
         "memory": "c",
-        "sync.h": "c"
+        "sync.h": "c",
+        "vulkan_xlib.h": "c"
     }
 }

@@ -49,7 +49,7 @@ workspace "LGFX"
     
         filter "system:windows"
             systemversion "latest"
-            defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS" }
+            defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS", "GLFW_EXPOSE_NATIVE_WIN32" }
             files {
                 "dependencies/glfw/src/win32_module.c",
                 "dependencies/glfw/src/win32_init.c",

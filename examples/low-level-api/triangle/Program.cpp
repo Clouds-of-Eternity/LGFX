@@ -1,10 +1,13 @@
 #include "GLFW/glfw3.h"
+#include "GLFW/glfw3native.h"
 #include "Linxc.h"
 #include "stdio.h"
 #include "lgfx/lgfx.h"
+#include "lgfx/lgfx-glfw.h"
 
 LGFXInstance instance;
 LGFXDevice device;
+LGFXSwapchain swapchain;
 
 i32 main()
 {
@@ -35,6 +38,19 @@ i32 main()
     LGFXDeviceCreateInfo deviceCreateInfo = {0};
     device = LGFXCreateDevice(instance, &deviceCreateInfo);
 
+    //create swapchain
+    LGFXSwapchainCreateInfo swapchainCreateInfo = {0};
+    swapchainCreateInfo.oldSwapchain = NULL;
+    swapchainCreateInfo.presentationMode = LGFXSwapchainPresentationMode_Mailbox;
+    int w;
+    int h;
+    glfwGetFramebufferSize(window, &w, &h);
+    swapchainCreateInfo.width = (u32)w;
+    swapchainCreateInfo.height = (u32)h;
+    swapchainCreateInfo.nativeWindowHandle = LGFXGetNativeWindowHandle(window);
+
+    swapchain = LGFXCreateSwapchain(device, &swapchainCreateInfo);
+
     //main loop
     while (!glfwWindowShouldClose(window)) {
 
@@ -43,6 +59,8 @@ i32 main()
     glfwDestroyWindow(window);
 
     //shutdown
+    LGFXDestroySwapchain(swapchain);
+
     LGFXDestroyDevice(device);
 
     LGFXDestroyInstance(instance);

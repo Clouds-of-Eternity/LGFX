@@ -903,6 +903,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	volkLoadDevice(logicalDevice);
 
 	LGFXDevice result = Allocate(LGFXDeviceImpl, 1);
+	result->instance = instance;
 	result->physicalDevice = bestPhysicalDevice;
 	result->logicalDevice = logicalDevice;
 	result->backend = instance->backend;
@@ -962,8 +963,25 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 
 LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info)
 {
-	VkLGFXSwapchainSupport details = VkLGFXQuerySwapchainSupportDetails((VkPhysicalDevice)device->physicalDevice, (VkSurfaceKHR)info->windowSurface);
-	VkSurfaceFormatKHR surfaceFormat = VkLGFXFindSurface(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_FORMAT_B8G8R8A8_UNORM, details.supportedSurfaceFormats);
+	VkSurfaceKHR surfaceKHR;
+
+#if defined(WINDOWS)
+	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {0};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	surfaceCreateInfo.hwnd = info->nativeWindowHandle;
+	surfaceCreateInfo.hinstance = GetModuleHandle(NULL);
+
+	vkCreateWin32SurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
+#elif defined(LINUX)
+	VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {0};
+	#error TODO
+#elif defined(MACOS)
+	VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {0};
+	#error TODO
+#endif
+
+	VkLGFXSwapchainSupport details = VkLGFXQuerySwapchainSupportDetails((VkPhysicalDevice)device->physicalDevice, surfaceKHR);
+	VkSurfaceFormatKHR surfaceFormat = VkLGFXFindSurface(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_FORMAT_B8G8R8A8_UNORM, &details);
 
 	LGFXSwapchain result = Allocate(LGFXSwapchainImpl, 1);
 	result->presentMode = info->presentationMode;
@@ -971,14 +989,14 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	result->currentImageIndex = 0;
 	result->width = info->width;
 	result->height = info->height;
-	result->windowSurface = info->windowSurface;
+	result->windowSurface = surfaceKHR;
 	result->device = device;
 
 	vkDeviceWaitIdle((VkDevice)device->logicalDevice);
 
     VkSwapchainCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = (VkSurfaceKHR)result->windowSurface;
+	createInfo.surface = surfaceKHR;
 	createInfo.minImageCount = details.capabilities.minImageCount;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
 	createInfo.imageFormat = surfaceFormat.format;
@@ -1001,7 +1019,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	createInfo.imageExtent.width = result->width;
 	createInfo.imageExtent.height = result->height;
 
-    if (vkCreateSwapchainKHR((VkDevice)device->logicalDevice, &createInfo, NULL, &result->swapchain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR((VkDevice)device->logicalDevice, &createInfo, NULL, (VkSwapchainKHR *)&result->swapchain) != VK_SUCCESS)
     {
 		VkLGFXDestroySwapchain(result);
 		return NULL;
@@ -1419,7 +1437,7 @@ void VkLGFXDestroyTexture(LGFXTexture texture)
 }
 LGFXRenderTarget VkLGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info)
 {
-	LGFXRenderTargetImpl target;
+	LGFXRenderTarget target = Allocate(LGFXRenderTargetImpl, 1);
 
 	VkImageView *views = Allocate(VkImageView, info->texturesCount);
 	for (u32 i = 0; i < info->texturesCount; i++)
@@ -1438,7 +1456,24 @@ LGFXRenderTarget VkLGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCre
 	createInfo.flags = NULL;
 	createInfo.renderPass = (VkRenderPass)info->forRenderProgram->handle;
 
+	VkFramebuffer frameBuffer;
+	if (vkCreateFramebuffer((VkDevice)device->logicalDevice, &createInfo, NULL, &frameBuffer) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create framebuffer\n");
+	}
+
 	free(views);
+
+	target->texturesCount = info->texturesCount;
+	target->textures = Allocate(LGFXTexture, info->texturesCount);
+	for (u32 i = 0; i < info->texturesCount; i++)
+	{
+		target->textures[i] = info->textures[i];
+	}
+	target->handle = frameBuffer;
+	target->device = device;
+
+	return target;
 }
 
 LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
@@ -2075,10 +2110,14 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain)
 	{
 		vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 
-		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, swapchain->swapchain, NULL);
+		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, (VkSwapchainKHR)swapchain->swapchain, NULL);
 
-		free(swapchain);
 	}
+	if (swapchain->windowSurface != NULL)
+	{
+		vkDestroySurfaceKHR((VkInstance)swapchain->device->instance->instance, (VkSurfaceKHR)swapchain->windowSurface, NULL);
+	}
+	free(swapchain);
 }
 void VkLGFXDestroyCommandQueue(LGFXDevice device, LGFXCommandQueue queue)
 {

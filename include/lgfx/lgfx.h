@@ -274,7 +274,7 @@ typedef struct
 
 typedef struct
 {
-    void *windowSurface;
+    void *nativeWindowHandle;
     LGFXSwapchainPresentationMode presentationMode;
     u32 width;
     u32 height;

@@ -15,6 +15,8 @@ typedef struct LGFXInstanceImpl
 
 typedef struct LGFXDeviceImpl
 {
+    LGFXInstance instance;
+
     void *physicalDevice;
     void *logicalDevice;
     void *memoryAllocator;
