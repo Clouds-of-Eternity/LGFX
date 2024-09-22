@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build LGFX",
+            "type": "shell",
+            "command": "msbuild",
+            "args": ["${workspaceFolder}/LGFX.vcxproj", "/p:configuration='Debug'", "/p:platform=x64"],
+            "problemMatcher": ["$msCompile"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Build Low-Level Triangle Example",
+            "type": "shell",
+            "command": "msbuild",
+            "args": ["${workspaceFolder}/examples/low-level-api/triangle/Triangle.vcxproj", "/p:configuration='Debug'", "/p:platform=x64"],
+            "problemMatcher": ["$msCompile"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

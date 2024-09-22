@@ -26,7 +26,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 void VkLGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
-void VkLGFXDestroySwapcahin(LGFXSwapchain swapchain);
+void VkLGFXDestroySwapchain(LGFXSwapchain swapchain);
 
 LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
 void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
@@ -44,12 +44,10 @@ void VkLGFXDestroyBuffer(LGFXBuffer buffer);
 LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 
-LGFXMemoryBlockImpl VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage);
-LGFXMemoryBlockImpl VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage);
-
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void VkLGFXDestroyFunction(LGFXFunction func);
 
-LGFXShader VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
+LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
+void VkLGFXDestroyShaderState(LGFXShaderState shaderState);
 
 #endif

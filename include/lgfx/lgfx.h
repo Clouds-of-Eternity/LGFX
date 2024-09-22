@@ -3,8 +3,11 @@
 
 #ifndef __cplusplus
 #include <stdbool.h>
+#else
+extern "C"
+{
 #endif
-#include "Linxc.h"
+#include "lgfx/Linxc.h"
 
 typedef struct LGFXInstanceImpl *LGFXInstance;
 typedef struct LGFXDeviceImpl *LGFXDevice;
@@ -19,7 +22,7 @@ typedef struct LGFXTextureImpl *LGFXTexture;
 typedef struct LGFXRenderTargetImpl *LGFXRenderTarget;
 typedef struct LGFXRenderProgramImpl *LGFXRenderProgram;
 typedef struct LGFXFunctionImpl *LGFXFunction;
-typedef struct LGFXShaderImpl *LGFXShader;
+typedef struct LGFXShaderStateImpl *LGFXShaderState;
 typedef struct LGFXComputeImpl *LGFXCompute;
 
 typedef enum
@@ -264,6 +267,8 @@ typedef struct
     u32 appVersion;
     u32 engineVersion;
     bool runtimeErrorChecking;
+    const char **enabledExtensions;
+    u32 enabledExtensionsCount;
     LGFXBackendType backend;
 } LGFXInstanceCreateInfo;
 
@@ -273,7 +278,7 @@ typedef struct
     LGFXSwapchainPresentationMode presentationMode;
     u32 width;
     u32 height;
-    LGFXSwapchain oldSwapchain
+    LGFXSwapchain oldSwapchain;
 } LGFXSwapchainCreateInfo;
 
 typedef struct
@@ -419,19 +424,6 @@ typedef struct
 } LGFXVertexDeclaration;
 LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *elementFormats, u32 elementsCount, bool isPerInstance, bool tightlyPacked);
 
-typedef struct
-{
-    u32 *module1Data;
-    usize module1DataLength;
-
-    u32 *module2Data;
-    usize module2DataLength;
-
-    LGFXShaderResource *uniforms;
-    u32 uniformsCount;
-    
-} LGFXFunctionCreateInfo;
-
 typedef struct LGFXBlendState
 {
     LGFXBlend sourceColorBlend;
@@ -465,6 +457,18 @@ typedef struct LGFXShaderResource
     u32 size;
     LGFXShaderInputAccessFlags accessedBy;
 } LGFXShaderResource;
+typedef struct
+{
+    u32 *module1Data;
+    usize module1DataLength;
+
+    u32 *module2Data;
+    usize module2DataLength;
+
+    LGFXShaderResource *uniforms;
+    u32 uniformsCount;
+    
+} LGFXFunctionCreateInfo;
 typedef struct LGFXShaderStateCreateInfo
 {
     LGFXFunction function;
@@ -480,15 +484,11 @@ typedef struct LGFXShaderStateCreateInfo
     LGFXCullMode cullMode;
     LGFXBlendState blendState;
 
-    void *existingPipelineLayout;
     LGFXRenderProgram forRenderProgram;
     u32 forRenderPass;
 } LGFXShaderStateCreateInfo;
 
-LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
-void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture *texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
-
-LGFXInstance LGFXCreateInstance(LGFXInstance instance, LGFXInstanceCreateInfo *info);
+LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
 
 LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled);
@@ -499,5 +499,31 @@ void LGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
 void LGFXDestroySwapchain(LGFXSwapchain swapchain);
+
+LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
+void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
+void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length);
+void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip);
+void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
+void LGFXDestroyTexture(LGFXTexture texture);
+
+LGFXRenderTarget LGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info);
+void LGFXDestroyRenderTarget(LGFXRenderTarget target);
+
+LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
+void LGFXDestroyBuffer(LGFXBuffer buffer);
+
+LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
+void LGFXDestroyRenderProgram(LGFXRenderProgram program);
+
+LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
+void LGFXDestroyFunction(LGFXFunction func);
+
+LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
+void LGFXDestroyShaderState(LGFXShaderState shaderState);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,9 +1,12 @@
+VULKAN_SDK = os.getenv("VULKAN_SDK")
+
 workspace "LGFX"
     configurations { "Debug", "Release" }
 
     filter "system:windows"
         defines { "WINDOWS", "GLFW_EXPOSE_NATIVE_WIN32" }
         system "windows"
+        architecture "x86_64"
 
     filter "system:linux"
         defines { "LINUX", "POSIX", "GLFW_EXPOSE_NATIVE_X11" }
@@ -48,52 +51,53 @@ workspace "LGFX"
             systemversion "latest"
             defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS" }
             files {
-                "src/win32_module.c",
-                "src/win32_init.c",
-                "src/win32_joystick.c",
-                "src/win32_monitor.c",
-                "src/win32_time.c",
-                "src/win32_thread.c",
-                "src/win32_window.c",
-                "src/wgl_context.c",
-                "src/egl_context.c",
-                "src/osmesa_context.c"
+                "dependencies/glfw/src/win32_module.c",
+                "dependencies/glfw/src/win32_init.c",
+                "dependencies/glfw/src/win32_joystick.c",
+                "dependencies/glfw/src/win32_monitor.c",
+                "dependencies/glfw/src/win32_time.c",
+                "dependencies/glfw/src/win32_thread.c",
+                "dependencies/glfw/src/win32_window.c",
+                "dependencies/glfw/src/wgl_context.c",
+                "dependencies/glfw/src/egl_context.c",
+                "dependencies/glfw/src/osmesa_context.c"
             }
     
         filter "system:macosx"
             defines { "_GLFW_COCOA", "GLFW_EXPOSE_NATIVE_COCOA" }
             files {
-                "src/posix_module.c",
-                "src/cocoa_init.m",
-                "src/cocoa_monitor.m",
-                "src/cocoa_window.m",
-                "src/cocoa_joystick.m",
-                "src/cocoa_time.c",
-                "src/nsgl_context.m",
-                "src/posix_thread.c",
-                "src/osmesa_context.c",
-                "src/egl_context.c"
+                "dependencies/glfw/src/posix_module.c",
+                "dependencies/glfw/src/cocoa_init.m",
+                "dependencies/glfw/src/cocoa_monitor.m",
+                "dependencies/glfw/src/cocoa_window.m",
+                "dependencies/glfw/src/cocoa_joystick.m",
+                "dependencies/glfw/src/cocoa_time.c",
+                "dependencies/glfw/src/nsgl_context.m",
+                "dependencies/glfw/src/posix_thread.c",
+                "dependencies/glfw/src/osmesa_context.c",
+                "dependencies/glfw/src/egl_context.c"
             }
     
         filter "system:linux"
             defines { "_GLFW_X11" }
             files {
-                "src/posix_module.c",
-                "src/x11_init.c",
-                "src/x11_monitor.c",
-                "src/x11_window.c",
-                "src/xkb_unicode.c",
-                "src/posix_time.c",
-                "src/posix_thread.c",
-                "src/glx_context.c",
-                "src/egl_context.c",
-                "src/osmesa_context.c",
-                "src/linux_joystick.c"
+                "dependencies/glfw/src/posix_module.c",
+                "dependencies/glfw/src/x11_init.c",
+                "dependencies/glfw/src/x11_monitor.c",
+                "dependencies/glfw/src/x11_window.c",
+                "dependencies/glfw/src/xkb_unicode.c",
+                "dependencies/glfw/src/posix_time.c",
+                "dependencies/glfw/src/posix_thread.c",
+                "dependencies/glfw/src/glx_context.c",
+                "dependencies/glfw/src/egl_context.c",
+                "dependencies/glfw/src/osmesa_context.c",
+                "dependencies/glfw/src/linux_joystick.c"
             }
 
     project "LGFX"
         kind "StaticLib"
         language "C"
+        cdialect "C99"
         rtti "Off"
         exceptionhandling "Off"
         staticruntime "Off"
@@ -101,10 +105,13 @@ workspace "LGFX"
         includedirs {
             "include",
             "dependencies/volk",
+            "%{VULKAN_SDK}/Include",
+            "src",
         }
 
         files { 
             "src/**.c", 
+            "src/**.cpp", 
             "src/**.h", 
             "include/**.h",
             "dependencies/volk/volk.c"
@@ -112,16 +119,14 @@ workspace "LGFX"
 
         filter "system:windows"
             systemversion "latest"
-            defines { "ASTRALCANVAS_VULKAN", "VK_USE_PLATFORM_WIN32_KHR" }
+            defines { "VK_USE_PLATFORM_WIN32_KHR" }
 
         filter "system:macosx"
-            defines { "ASTRALCANVAS_METAL", "VK_USE_PLATFORM_MACOS_MVK" }
+            defines { "VK_USE_PLATFORM_MACOS_MVK" }
             files "src/**.mm"
 
         filter "system:linux"
-            links { "%{VULKAN_SDK}/Lib/vulkan-1.lib" }
-            includedirs "%{VULKAN_SDK}/Include"
-            defines { "ASTRALCANVAS_VULKAN", "VK_USE_PLATFORM_XLIB_KHR" }
+            defines { "VK_USE_PLATFORM_XLIB_KHR" }
             
         filter "configurations:Debug"
             defines { "DEBUG" }
@@ -130,3 +135,5 @@ workspace "LGFX"
         filter "configurations:Release"
             defines { "NDEBUG" }
             optimize "On"
+
+    include("examples/low-level-api/triangle")

@@ -1,53 +1,57 @@
 #ifndef SYNC_H
 #define SYNC_H
+#include <stdlib.h>
 
 #ifdef WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-typedef CRITICAL_SECTION Mutex;
+typedef CRITICAL_SECTION LockImpl;
 
-inline Mutex NewMutex() 
+typedef LockImpl *Lock;
+
+inline Lock NewLock() 
 {
-    Mutex result;
-    InitializeCriticalSection(&result);
+    Lock result = (Lock)malloc(sizeof(LockImpl));
+    InitializeCriticalSection(result);
     return result;
 };
-inline void DestroyMutex(Mutex *mutex)
+inline void DestroyLock(Lock lock)
 {
-    DeleteCriticalSection(mutex);
+    DeleteCriticalSection(lock);
+    free(lock);
 }
-inline void EnterMutex(Mutex *mutex)
+inline void EnterLock(Lock lock)
 {
-    EnterCriticalSection(mutex);
+    EnterCriticalSection(lock);
 }
-inline void ExitMutex(Mutex *mutex)
+inline void ExitLock(Lock lock)
 {
-    LeaveCriticalSection(mutex);
+    LeaveCriticalSection(lock);
 }
 
 #endif
 
 #ifdef POSIX
 #include "pthreads.h"
-typedef pthread_mutex_t Mutex;
+typedef pthread_mutex_t LockImpl;
 
-inline Mutex NewMutex() 
+inline Lock NewLock() 
 {
-    Mutex result;
-    pthread_mutex_init(&result, NULL);
+    Lock result = (Lock)malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_init(result, NULL);
     return result;
 }
-inline void DestroyMutex(Mutex *mutex)
+inline void DestroyLock(Lock lock)
 {
-    pthread_mutex_destroy(mutex);
+    pthread_mutex_destroy(lock);
 }
-inline void EnterMutex(Mutex *mutex)
+inline void EnterLock(Lock lock)
 {
-    pthread_mutex_lock(mutex);
+    pthread_mutex_lock(lock);
 }
-inline void ExitMutex(Mutex *mutex)
+inline void ExitLock(Lock lock)
 {
-    pthread_mutex_unlock(mutex);
+    pthread_mutex_unlock(lock);
 }
 
 #endif

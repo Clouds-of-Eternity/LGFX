@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Run Low-Level Triangle Example",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "externalTerminal"
+        }
+    ]
+}

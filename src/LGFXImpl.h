@@ -1,10 +1,8 @@
-#ifndef LGFXINSTANCE_HPP
-#define LGFXINSTANCE_HPP
+#ifndef LGFXINSTANCE_H
+#define LGFXINSTANCE_H
 
 #include "lgfx/lgfx.h"
-#include "Linxc.h"
-
-typedef struct Mutex Mutex;
+#include "sync.h"
 
 typedef struct LGFXInstanceImpl
 {
@@ -12,6 +10,7 @@ typedef struct LGFXInstanceImpl
     bool runtimeErrorChecking;
     const char **enabledInstanceExtensions;
     const char **enabledErrorCheckerExtensions;
+    LGFXBackendType backend;
 } LGFXInstanceImpl;
 
 typedef struct LGFXDeviceImpl
@@ -22,16 +21,18 @@ typedef struct LGFXDeviceImpl
     LGFXCommandQueue graphicsQueue;
     LGFXCommandQueue computeQueue;
     LGFXCommandQueue transferQueue;
+
+    LGFXBackendType backend;
 } LGFXDeviceImpl;
 
 typedef struct LGFXCommandQueueImpl
 {
     void *queue;
-    Mutex *queueMutex;
+    Lock queueLock;
     u32 queueFamilyID;
 
     void *transientCommandPool;
-    Mutex *commandPoolMutex;
+    Lock commandPoolLock;
 
     LGFXDevice inDevice;
     LGFXFence fence;
@@ -96,12 +97,12 @@ typedef struct LGFXFunctionImpl
     LGFXDevice device;
 } LGFXFunctionImpl;
 
-typedef struct LGFXShaderImpl
+typedef struct LGFXShaderStateImpl
 {
     void *handle;
     void *pipelineLayoutHandle;
     LGFXFunction function;
     LGFXDevice device;
-} LGFXShaderImpl;
+} LGFXShaderStateImpl;
 
 #endif

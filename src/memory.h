@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #ifndef Allocate
-#define Allocate(type, count) (type *)malloc(sizeof(type) * count)
+#define Allocate(type, count) (type *)malloc(sizeof(type) * (count))
 #endif
 
 #endif
