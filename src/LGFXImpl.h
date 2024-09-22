@@ -63,4 +63,26 @@ typedef struct LGFXCommandBufferImpl
     bool begun;
 } LGFXCommandBufferImpl;
 
+typedef struct RenderProgramImageAttachment
+{
+    /// The format of the image that the render stage(s) with this associated attachment should take
+    LGFXTextureFormat textureFormat;
+    /// Whether the attached image should be cleared when beginning the pass. If transparent, no clearing is performed
+    bool clearColor;
+    /// Whether the attached depth buffer should be cleared when beginning the pass. Not applicable if depthAttachmentIndex is -1
+    bool clearDepth;
+    /// Which renderprogram this pass belongs to
+    LGFXRenderProgram inProgram;
+} RenderProgramImageAttachment;
+
+typedef struct LGFXRenderProgramImpl
+{
+    void *handle;
+    u32 currentPass;
+    LGFXDevice device;
+
+    LGFXRenderTarget *targets;
+    u32 targetsCount;
+} LGFXRenderProgramImpl;
+
 #endif

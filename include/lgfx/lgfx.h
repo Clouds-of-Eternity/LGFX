@@ -14,6 +14,10 @@ typedef struct LGFXFenceImpl *LGFXFence;
 typedef struct LGFXSemaphoreImpl *LGFXSemaphore;
 typedef struct LGFXMemoryBlockImpl *LGFXMemoryBlock;
 typedef struct LGFXCommandBufferImpl *LGFXCommandBuffer;
+typedef struct LGFXBufferImpl *LGFXBuffer;
+typedef struct LGFXTextureImpl *LGFXTexture;
+typedef struct LGFXRenderTargetImpl *LGFXRenderTarget;
+typedef struct LGFXRenderProgramImpl *LGFXRenderProgram;
 
 typedef enum
 {
@@ -252,12 +256,15 @@ typedef struct
     u32 height;
     u32 depth;
     u32 sampleCount;
+
+    void *externalTextureHandle;
 } LGFXTextureCreateInfo;
 
-typedef struct
+typedef struct LGFXTextureImpl
 {
     void *imageHandle;
     void *imageView;
+    bool ownsHandle;
     LGFXTextureFormat format;
     LGFXTextureLayout layout;
     u32 width;
@@ -266,7 +273,8 @@ typedef struct
     u32 mipLevels;
     u32 sampleCount;
     LGFXMemoryBlock textureMemory;
-} LGFXTexture;
+    LGFXDevice device;
+} LGFXTextureImpl;
 
 typedef struct
 {
@@ -274,14 +282,54 @@ typedef struct
     LGFXBufferUsage bufferUsage;
     LGFXMemoryUsage memoryUsage;
 } LGFXBufferCreateInfo;
-
-typedef struct
+typedef struct LGFXBufferImpl
 {
     void *handle;
     LGFXBufferUsage usage;
     LGFXMemoryBlock bufferMemory;
     LGFXDevice device;
-} LGFXBuffer;
+} LGFXBufferImpl;
+
+typedef struct
+{
+    LGFXTexture *textures;
+    u32 texturesCount;
+    LGFXRenderProgram forRenderProgram;
+} LGFXRenderTargetCreateInfo;
+typedef struct LGFXRenderTargetImpl
+{
+    void *handle;
+    LGFXTexture *textures;
+    u32 texturesCount;
+    LGFXDevice device;
+} LGFXRenderTargetImpl;
+
+/// @brief An attachment refers to the state of the textures passing in and out of each renderpass
+typedef struct
+{
+    LGFXTextureFormat format;
+    bool clear;
+    bool readByRenderTarget;
+} LGFXRenderAttachmentInfo;
+/// @brief A pass is a stage of the render program. Currently, all passes in a program execute sequentially, and depend on the completion of the previous pass to execute.
+typedef struct
+{
+    i32 *colorAttachmentIDs;
+    u32 colorAttachmentsCount;
+    i32 depthAttachmentID;
+
+    i32 *readAttachmentIDs;
+    u32 readAttachmentsCount;
+} LGFXRenderPassInfo;
+typedef struct
+{
+    bool outputToBackbuffer;
+    LGFXRenderAttachmentInfo *attachments;
+    u32 attachmentsCount;
+
+    LGFXRenderPassInfo *renderPasses;
+    u32 renderPassCount;
+} LGFXRenderProgramCreateInfo;
 
 LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
 void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture *texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
