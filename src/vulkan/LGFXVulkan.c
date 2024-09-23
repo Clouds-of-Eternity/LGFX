@@ -8,6 +8,8 @@
 #include <math.h>
 #include "vulkan/vk_mem_alloc.h"
 
+#define ONE_OVER_255 0.00392156862f
+
 // VULKAN-SPECIFIC HELPER STRUCTS
 typedef struct LGFXMemoryBlockImpl
 {
@@ -146,6 +148,8 @@ inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 			return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
 		case LGFXTextureLayout_FragmentShadingRateAttachmentOptimal:
 			return VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+		default:
+			return VK_IMAGE_LAYOUT_UNDEFINED;
 	}
 }
 inline VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags)
@@ -425,7 +429,7 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
 
 	EnterLock(queueToUse->queueLock);
 
-    if (vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &allocInfo, (VkCommandBuffer)&result->cmdBuffer) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &allocInfo, (VkCommandBuffer *)&result->cmdBuffer) != VK_SUCCESS)
     {
         result = NULL;
     }
@@ -468,27 +472,28 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 		ExitLock(device->graphicsQueue->queueLock);
 	}
 
-	LGFXFence tempFence = VkLGFXCreateFence(device, false);
+	//LGFXFence tempFence = VkLGFXCreateFence(device, false);
 
 	//submit the queue
     EnterLock(buffer->queue->queueLock);
 
-    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)tempFence->fence) != VK_SUCCESS)
+    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, NULL) != VK_SUCCESS)
     {
-		ExitLock(buffer->queue->queueLock);
 		LGFX_ERROR("Failed to submit queue\n");
     }
-    //todo: see if can transfer this to a fence or something
-    //vkWaitForFences(gpu->logicalDevice, 1, &queueToUse->queueFence, true, UINT64_MAX);
-    //vkResetFences(gpu->logicalDevice, 1, &queueToUse->queueFence);
-	vkWaitForFences((VkDevice)device->logicalDevice, 1, (VkFence *)&tempFence->fence, VK_TRUE, 10000);
 
 	ExitLock(buffer->queue->queueLock);
+
+	vkQueueWaitIdle((VkQueue)buffer->queue->queue);
+	//todo: see if can transfer this to a fence or something
+    //vkWaitForFences(gpu->logicalDevice, 1, &queueToUse->queueFence, true, UINT64_MAX);
+    //vkResetFences(gpu->logicalDevice, 1, &queueToUse->queueFence);
+	//LGFXAwaitFence();
 
 	//finally, free the command buffer
 	EnterLock(buffer->queue->commandPoolLock);
 
-	LGFXDestroyFence(tempFence);
+	//LGFXDestroyFence(tempFence);
 	vkFreeCommandBuffers((VkDevice)device->logicalDevice, (VkCommandPool)buffer->queue->transientCommandPool, 1, (VkCommandBuffer *)&buffer->cmdBuffer);
 	//vkFreeCommandBuffers(gpu->logicalDevice, queueToUse->transientCommandPool, 1, &commandBuffer);
 
@@ -513,6 +518,14 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 	result->device = device;
 
 	return result;
+}
+void VkLGFXAwaitFence(LGFXFence fence)
+{
+	vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, UINT64_MAX);
+}
+void VkLGFXResetFence(LGFXFence fence)
+{
+	vkResetFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence);
 }
 
 LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device)
@@ -1056,24 +1069,41 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		return NULL;
     }
 
-	if (vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->imageCount, NULL)!= VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, NULL)!= VK_SUCCESS)
     {
 		VkLGFXDestroySwapchain(result);
 		return NULL;
     }
-	result->images = Allocate(void *, result->imageCount);
-	vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->imageCount, (VkImage *)result->images);
+	result->backbufferTextures = Allocate(LGFXTexture, result->backbufferTexturesCount);
+	VkImage *backbufferImageHandles = Allocate(VkImage, result->backbufferTexturesCount);
+	vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, backbufferImageHandles);
 
-	result->fence = LGFXCreateFence(device, false);
+	for (u32 i = 0; i < result->backbufferTexturesCount; i++)
+	{
+		LGFXTextureCreateInfo textureCreateInfo = {0};
+		textureCreateInfo.externalTextureHandle = backbufferImageHandles[i];
+		textureCreateInfo.format = LGFXTextureFormat_BGRA8Unorm;
+		textureCreateInfo.width = result->width;
+		textureCreateInfo.height = result->height;
+		textureCreateInfo.depth = 1;
+		textureCreateInfo.mipLevels = 1;
+		textureCreateInfo.sampleCount = 1;
+		textureCreateInfo.usage = LGFXTextureUsage_ColorAttachment;
+		result->backbufferTextures[i] = LGFXCreateTexture(device, &textureCreateInfo);
+	}
+
+	result->fence = LGFXCreateFence(device, true);
 	result->awaitPresentComplete = LGFXCreateSemaphore(device);
 	result->awaitRenderComplete = LGFXCreateSemaphore(device);
+
+	free(backbufferImageHandles);
 
 	return result;
 }
 bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferWidth, u32 currentBackbufferHeight)
 {
 	LGFXSwapchain currentSwapchain = *swapchain;
-	VkResult result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 1000000000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, (VkFence)currentSwapchain->fence->fence, &currentSwapchain->currentImageIndex);
+	VkResult result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 1000000000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
 
     if (result != VK_SUCCESS)
     {
@@ -1461,7 +1491,7 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	if (commandBuffer == NULL)
 	{
-		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, &device->transferQueue, true);
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
 	}
     VkBufferImageCopy bufferImageCopy = {0};
     
@@ -1613,6 +1643,13 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	program.device = device;
 	program.currentPass = 0;
 	program.handle = NULL;
+	program.outputToBackbuffer = info->outputToBackbuffer;
+	program.attachmentsCount = info->attachmentsCount;
+	program.attachments = Allocate(LGFXRenderAttachmentInfo, info->attachmentsCount);
+	for (u32 i = 0; i < info->attachmentsCount; i++)
+	{
+		program.attachments[i] = info->attachments[i];
+	}
 
 	VkAttachmentDescription *attachmentInfos = Allocate(VkAttachmentDescription, info->attachmentsCount);
 	for (u32 i = 0; i < info->attachmentsCount; i++)
@@ -1820,6 +1857,99 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	LGFXRenderProgram result = Allocate(LGFXRenderProgramImpl, 1);
 	*result = program;
 	return result;
+}
+void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures)
+{
+	u32 index = outputSwapchain->currentImageIndex;
+	assert(index < program->targetsCount);
+	if (program->targets[index] == NULL)
+	{
+		LGFXRenderTargetCreateInfo createInfo;
+		createInfo.forRenderProgram = program;
+		createInfo.textures = Allocate(LGFXTexture, program->attachmentsCount);
+		createInfo.texturesCount = program->attachmentsCount;
+		for (u32 i = 0; i < program->attachmentsCount; i++)
+		{
+			if (program->attachments[i].format < LGFXTextureFormat_Depth16Unorm)
+			{
+				if (!program->attachments[i].readByRenderTarget)
+				{
+					createInfo.textures[i] = outputSwapchain->backbufferTextures[index];
+				}
+			}
+		}
+		program->targets[index] = LGFXCreateRenderTarget(program->device, &createInfo);
+
+		free(createInfo.textures);
+	}
+	VkLGFXBeginRenderProgram(program, commandBuffer, program->targets[index], clearColor, autoTransitionTargetTextures);
+}
+void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures)
+{
+	if (autoTransitionTargetTextures)
+	{
+		LGFXCommandBuffer temp = VkLGFXCreateTemporaryCommandBuffer(program->device, program->device->graphicsQueue, true);
+		for (u32 i = 0; i < outputTarget->texturesCount; i++)
+		{
+			LGFXTexture *textures = outputTarget->textures;
+			VkImageLayout newLayout;
+			if (textures[i]->format >= LGFXTextureFormat_Depth16Unorm)
+			{
+				newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			}
+			else
+			{
+				newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			VkLGFXTextureTransitionLayout(program->device, outputTarget->textures[i], newLayout, temp, 0, 1);
+			//if (outputTarget->textures[i]->layout != program->attachments[i].)
+		}
+		VkLGFXEndTemporaryCommandBuffer(program->device, temp);
+	}
+
+	VkRenderPassBeginInfo info = {0};
+	info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	info.framebuffer = (VkFramebuffer)outputTarget->handle;
+	info.renderPass = (VkRenderPass)program->handle;
+
+	//clear values
+	//arbitrarily large number
+	VkClearValue clearValues[32];
+
+	info.clearValueCount = program->attachmentsCount; // this->currentRenderProgram->attachments.count;
+	info.pClearValues = clearValues;
+	for (u32 i = 0; i < program->attachmentsCount; i++)
+	{
+		VkClearValue clearValue = {0};
+		LGFXRenderAttachmentInfo *attachment = &program->attachments[i];
+
+		if (attachment->clear)
+		{
+			if (attachment->format < LGFXTextureFormat_Depth16Unorm)
+			{
+				clearValues[i].color.float32[0] = clearColor.R * ONE_OVER_255;
+				clearValues[i].color.float32[1] = clearColor.G * ONE_OVER_255;
+				clearValues[i].color.float32[2] = clearColor.B * ONE_OVER_255;
+				clearValues[i].color.float32[3] = clearColor.A * ONE_OVER_255;
+			}
+			else
+			{
+				clearValues[i].depthStencil.depth = 1.0f;
+				clearValues[i].depthStencil.stencil = 255;
+			}
+		}
+	}
+
+	info.renderArea.offset.x = 0;
+	info.renderArea.offset.y = 0;
+	info.renderArea.extent.width = outputTarget->textures[0]->width;
+	info.renderArea.extent.height = outputTarget->textures[0]->height;
+
+	vkCmdBeginRenderPass((VkCommandBuffer)commandBuffer->cmdBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+}
+void VkLGFXEndRenderProgram(LGFXCommandBuffer commandBuffer)
+{
+	vkCmdEndRenderPass((VkCommandBuffer)commandBuffer->cmdBuffer);
 }
 
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info)
@@ -2148,6 +2278,10 @@ void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmissio
 
 	buffer->begun = true;
 }
+void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain)
+{
+	VkLGFXCommandBufferEnd(buffer, swapchain->fence, swapchain->awaitPresentComplete, swapchain->awaitRenderComplete);
+}
 void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore)
 {
 	LGFXDevice device = buffer->queue->inDevice;
@@ -2170,20 +2304,20 @@ void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemap
 
 	//if we are on the graphics queue, the queue may also be used for presenting
     //hence, we need to wait for the queue to finish presenting before we can transition the image
-    if (buffer->queue == device->graphicsQueue)
-    {
-		EnterLock(device->graphicsQueue->queueLock);
+    // if (buffer->queue == device->graphicsQueue)
+    // {
+	// 	EnterLock(device->graphicsQueue->queueLock);
 
-		vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
-        //alternatively, wait for queue fence
+	// 	vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
+    //     //alternatively, wait for queue fence
 
-		ExitLock(device->graphicsQueue->queueLock);
-	}
+	// 	ExitLock(device->graphicsQueue->queueLock);
+	// }
 
 	//submit the queue
     EnterLock(buffer->queue->queueLock);
 
-    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)fence->fence) != VK_SUCCESS)
+    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, fence == NULL ? NULL : (VkFence)fence->fence) != VK_SUCCESS)
     {
 		ExitLock(buffer->queue->queueLock);
 		LGFX_ERROR("Failed to submit queue\n");
@@ -2199,10 +2333,15 @@ void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer)
 
 bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
 {
-	VkFence toWaitFor = (VkFence)device->graphicsQueue->fence->fence;
-	vkWaitForFences((VkDevice)device->logicalDevice, 1, &toWaitFor, VK_TRUE, UINT64_MAX);
-
 	LGFXSwapchain currentSwapchain = *swapchain;
+	
+	LGFXAwaitFence(currentSwapchain->fence);
+	LGFXResetFence(currentSwapchain->fence);
+	//VkFence toWaitFor = (VkFence)device->graphicsQueue->fence->fence;
+
+	//vkWaitForFences((VkDevice)device->logicalDevice, 1, &toWaitFor, VK_TRUE, UINT64_MAX);
+	//vkResetFences((VkDevice)device->logicalDevice, 1, &toWaitFor);
+
 	currentSwapchain->recreatedThisFrame = false;
 	currentSwapchain->presentedPreviousFrame = false;
 	if (VkLGFXSwapchainSwapBuffers(swapchain, frameWidth, frameHeight))
@@ -2214,7 +2353,6 @@ bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth,
 		return false;
 	}
 
-	vkResetFences((VkDevice)device->logicalDevice, 1, &toWaitFor);
 
 	return true;
 }
@@ -2231,7 +2369,7 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWid
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = (VkSwapchainKHR *)&currentSwapchain->swapchain;
 	presentInfo.waitSemaphoreCount = 1;
-	//presentInfo.pWaitSemaphores = &awaitRender;
+	presentInfo.pWaitSemaphores = &awaitRender;
 	presentInfo.pImageIndices = &currentSwapchain->currentImageIndex;
 
 	//gpu->DedicatedGraphicsQueue.queueMutex.EnterLock();
@@ -2362,10 +2500,15 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain)
 {
 	if (swapchain->swapchain != NULL)
 	{
+		for (u32 i = 0;  i< swapchain->backbufferTexturesCount; i++)
+		{
+			LGFXDestroyTexture(swapchain->backbufferTextures[i]);
+		}
+		free(swapchain->backbufferTextures);
+
 		vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 
 		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, (VkSwapchainKHR)swapchain->swapchain, NULL);
-
 	}
 	if (swapchain->presentedPreviousFrame != NULL)
 	{

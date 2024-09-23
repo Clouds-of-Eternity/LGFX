@@ -106,6 +106,24 @@ LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled)
     LGFX_ERROR("LGFXCreateFence: Unknown backend\n");
     return NULL;
 }
+void LGFXAwaitFence(LGFXFence fence)
+{
+    if (fence->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXAwaitFence(fence);
+        return;
+    }
+    LGFX_ERROR("VkLGFXAwaitFence: Unknown backend\n");
+}
+void LGFXResetFence(LGFXFence fence)
+{
+    if (fence->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXResetFence(fence);
+        return;
+    }
+    LGFX_ERROR("VkLGFXResetFence: Unknown backend\n");
+}
 void LGFXDestroyFence(LGFXFence fence)
 {
     if (fence->device->backend == LGFXBackendType_Vulkan)
@@ -162,6 +180,10 @@ LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *in
     }
     LGFX_ERROR("LGFXCreateSwapchain: Unknown backend\n");
     return NULL;
+}
+void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain)
+{
+    LGFXAwaitFence(swapchain->fence);
 }
 void LGFXDestroySwapchain(LGFXSwapchain swapchain)
 {
@@ -275,6 +297,33 @@ LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCr
     LGFX_ERROR("LGFXCreateRenderProgram: Unknown backend\n");
     return NULL;
 }
+void LGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures)
+{
+    if (program->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXBeginRenderProgramSwapchain(program, commandBuffer, outputSwapchain, clearColor, autoTransitionTargetTextures);
+        return;
+    }
+    LGFX_ERROR("LGFXBeginRenderProgram: Unknown backend\n");
+}
+void LGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures)
+{
+    if (program->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXBeginRenderProgram(program, commandBuffer, outputTarget, clearColor, autoTransitionTargetTextures);
+        return;
+    }
+    LGFX_ERROR("LGFXBeginRenderProgram: Unknown backend\n");
+}
+void LGFXEndRenderProgram(LGFXCommandBuffer commandBuffer)
+{
+    if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXEndRenderProgram(commandBuffer);
+        return;
+    }
+    LGFX_ERROR("LGFXEndRenderProgram: Unknown backend\n");
+}
 void LGFXDestroyRenderProgram(LGFXRenderProgram program)
 {
     if (program->device->backend == LGFXBackendType_Vulkan)
@@ -349,6 +398,15 @@ void LGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemapho
         return;
     }
     LGFX_ERROR("LGFXCommandBufferEnd: Unknown backend\n");
+}
+void LGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain)
+{
+    if (buffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCommandBufferEndSwapchain(buffer, swapchain);
+        return;
+    }
+    LGFX_ERROR("LGFXCommandBufferEndSwapchain: Unknown backend\n");
 }
 void LGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer)
 {

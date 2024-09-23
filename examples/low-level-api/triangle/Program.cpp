@@ -83,15 +83,24 @@ i32 main()
         int framebufferWidth;
         int framebufferHeight;
         glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
-        // if (LGFXNewFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight))
-        // {
+        if (LGFXNewFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight))
+        {
+            LGFXCommandBufferReset(mainCommands);
+            LGFXCommandBufferBegin(mainCommands, true);
 
-        //     LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
-        // }
+            LGFXBeginRenderProgramSwapchain(rp, mainCommands, swapchain, {128, 128, 128, 255}, true);
+
+            LGFXEndRenderProgram(mainCommands);
+
+            LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
+            LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
+        }
 
         //LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
         glfwPollEvents();
     }
+    LGFXAwaitSwapchainIdle(swapchain);
+
     glfwDestroyWindow(window);
 
     //shutdown

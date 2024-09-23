@@ -44,7 +44,6 @@ typedef struct LGFXCommandQueueImpl
 typedef struct LGFXSwapchainImpl
 {
     void *swapchain;
-    void **images;
     void *nativeWindowHandle;
     void *windowSurface;
     LGFXDevice device;
@@ -52,7 +51,8 @@ typedef struct LGFXSwapchainImpl
     LGFXSwapchainPresentationMode presentMode;
     u32 width;
     u32 height;
-    u32 imageCount;
+    LGFXTexture *backbufferTextures;
+    u32 backbufferTexturesCount;
 
     bool recreatedThisFrame;
     bool presentedPreviousFrame;
@@ -81,18 +81,6 @@ typedef struct LGFXCommandBufferImpl
     bool begun;
 } LGFXCommandBufferImpl;
 
-typedef struct RenderProgramImageAttachment
-{
-    /// The format of the image that the render stage(s) with this associated attachment should take
-    LGFXTextureFormat textureFormat;
-    /// Whether the attached image should be cleared when beginning the pass. If transparent, no clearing is performed
-    bool clearColor;
-    /// Whether the attached depth buffer should be cleared when beginning the pass. Not applicable if depthAttachmentIndex is -1
-    bool clearDepth;
-    /// Which renderprogram this pass belongs to
-    LGFXRenderProgram inProgram;
-} RenderProgramImageAttachment;
-
 typedef struct LGFXRenderProgramImpl
 {
     void *handle;
@@ -101,6 +89,11 @@ typedef struct LGFXRenderProgramImpl
 
     LGFXRenderTarget *targets;
     u32 targetsCount;
+
+    LGFXRenderAttachmentInfo *attachments;
+    u32 attachmentsCount;
+
+    bool outputToBackbuffer;
 } LGFXRenderProgramImpl;
 
 typedef struct LGFXFunctionImpl

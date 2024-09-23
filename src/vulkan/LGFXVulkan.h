@@ -20,6 +20,8 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void VkLGFXDestroyInstance(LGFXInstance instance);
 
 LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled);
+void VkLGFXAwaitFence(LGFXFence fence);
+void VkLGFXResetFence(LGFXFence fence);
 void VkLGFXDestroyFence(LGFXFence fence);
 
 LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device);
@@ -48,6 +50,9 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
 void VkLGFXDestroyBuffer(LGFXBuffer buffer);
 
 LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
+void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
+void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures);
+void VkLGFXEndRenderProgram(LGFXCommandBuffer commandBuffer);
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
@@ -59,6 +64,7 @@ void VkLGFXDestroyShaderState(LGFXShaderState shaderState);
 LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute);
 void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission);
 void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore);
+void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain);
 void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer);
 void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer);
 
