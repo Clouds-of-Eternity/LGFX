@@ -66,8 +66,10 @@ inline VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
 			return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 		case LGFXPrimitiveType_PointList:
 			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-		case PrimitiveType_TriangleFan:
+		case LGFXPrimitiveType_TriangleFan:
 			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+		default:
+			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	}
 }
 
@@ -118,31 +120,31 @@ inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 {
 	switch (layout)
 	{
-		LGFXTextureLayout_Undefined:
+		case LGFXTextureLayout_Undefined:
 			return VK_IMAGE_LAYOUT_UNDEFINED;
-		LGFXTextureLayout_General:
+		case LGFXTextureLayout_General:
 			return VK_IMAGE_LAYOUT_GENERAL;
-		LGFXTextureLayout_ColorAttachmentOptimal:
+		case LGFXTextureLayout_ColorAttachmentOptimal:
 			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		LGFXTextureLayout_DepthStencilAttachmentOptimal:
+		case LGFXTextureLayout_DepthStencilAttachmentOptimal:
 			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		LGFXTextureLayout_DepthStencilReadOptimal:
+		case LGFXTextureLayout_DepthStencilReadOptimal:
 			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-		LGFXTextureLayout_ShaderReadOptimal:
+		case LGFXTextureLayout_ShaderReadOptimal:
 			return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		LGFXTextureLayout_TransferSrcOptimal:
+		case LGFXTextureLayout_TransferSrcOptimal:
 			return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		LGFXTextureLayout_TransferDstOptimal:
+		case LGFXTextureLayout_TransferDstOptimal:
 			return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		LGFXTextureLayout_Preinitialized:
+		case LGFXTextureLayout_Preinitialized:
 			return VK_IMAGE_LAYOUT_PREINITIALIZED;
-		LGFXTextureLayout_PresentSource:
+		case LGFXTextureLayout_PresentSource:
 			return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		LGFXTextureLayout_SharedPresentSrc:
+		case LGFXTextureLayout_SharedPresentSrc:
 			return VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
-		LGFXTextureLayout_FragmentDensityMap:
+		case LGFXTextureLayout_FragmentDensityMap:
 			return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
-		LGFXTextureLayout_FragmentShadingRateAttachmentOptima:
+		case LGFXTextureLayout_FragmentShadingRateAttachmentOptimal:
 			return VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
 	}
 }
@@ -179,204 +181,210 @@ inline VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType typ
 			return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 		case LGFXShaderResourceType_StorageTexture:
 			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		default:
+			LGFX_ERROR("Unknown LGFXShaderResourceType %u\n", type);
+			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	}
 }
 VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
 {
 	switch (format)
 	{
-		LGFXTextureFormat_Undefined:
+		case LGFXTextureFormat_Undefined:
 			return VK_FORMAT_UNDEFINED;
-		LGFXTextureFormat_R8Unorm:
+		case LGFXTextureFormat_R8Unorm:
 			return VK_FORMAT_R8_UNORM;
-		LGFXTextureFormat_R8Snorm:
+		case LGFXTextureFormat_R8Snorm:
 			return VK_FORMAT_R8_SNORM;
-		LGFXTextureFormat_R8Uint:
+		case LGFXTextureFormat_R8Uint:
 			return VK_FORMAT_R8_UINT;
-		LGFXTextureFormat_R8Sint:
+		case LGFXTextureFormat_R8Sint:
 			return VK_FORMAT_R8_SINT;
-		LGFXTextureFormat_R16Uint:
+		case LGFXTextureFormat_R16Uint:
 			return VK_FORMAT_R16_UINT;
-		LGFXTextureFormat_R16Sint:
+		case LGFXTextureFormat_R16Sint:
 			return VK_FORMAT_R16_SINT;
-		LGFXTextureFormat_R16Float:
+		case LGFXTextureFormat_R16Float:
 			return VK_FORMAT_R16_SFLOAT;
-		LGFXTextureFormat_RG8Unorm:
+		case LGFXTextureFormat_RG8Unorm:
 			return VK_FORMAT_R8G8_UNORM;
-		LGFXTextureFormat_RG8Snorm:
+		case LGFXTextureFormat_RG8Snorm:
 			return VK_FORMAT_R8G8_SNORM;
-		LGFXTextureFormat_RG8Uint:
+		case LGFXTextureFormat_RG8Uint:
 			return VK_FORMAT_R8G8_UINT;
-		LGFXTextureFormat_RG8Sint:
+		case LGFXTextureFormat_RG8Sint:
 			return VK_FORMAT_R8G8_SINT;
-		LGFXTextureFormat_R32Float:
+		case LGFXTextureFormat_R32Float:
 			return VK_FORMAT_R32_SFLOAT;
-		LGFXTextureFormat_R32Uint:
+		case LGFXTextureFormat_R32Uint:
 			return VK_FORMAT_R32_UINT;
-		LGFXTextureFormat_R32Sint:
+		case LGFXTextureFormat_R32Sint:
 			return VK_FORMAT_R32_SINT;
-		LGFXTextureFormat_RG16Uint:
+		case LGFXTextureFormat_RG16Uint:
 			return VK_FORMAT_R16G16_UINT;
-		LGFXTextureFormat_RG16Sint:
+		case LGFXTextureFormat_RG16Sint:
 			return VK_FORMAT_R16G16_SINT;
-		LGFXTextureFormat_RG16Float:
+		case LGFXTextureFormat_RG16Float:
 			return VK_FORMAT_R16G16_SFLOAT;
-		LGFXTextureFormat_RGBA8Unorm:
+		case LGFXTextureFormat_RGBA8Unorm:
 			return VK_FORMAT_R8G8B8A8_UNORM;
-		LGFXTextureFormat_RGBA8UnormSrgb:
+		case LGFXTextureFormat_RGBA8UnormSrgb:
 			return VK_FORMAT_R8G8B8A8_SRGB;
-		LGFXTextureFormat_RGBA8Snorm:
+		case LGFXTextureFormat_RGBA8Snorm:
 			return VK_FORMAT_R8G8B8A8_SNORM;
-		LGFXTextureFormat_RGBA8Uint:
+		case LGFXTextureFormat_RGBA8Uint:
 			return VK_FORMAT_R8G8B8A8_UINT;
-		LGFXTextureFormat_RGBA8Sint:
+		case LGFXTextureFormat_RGBA8Sint:
 			return VK_FORMAT_R8G8B8A8_SINT;
-		LGFXTextureFormat_BGRA8Unorm:
+		case LGFXTextureFormat_BGRA8Unorm:
 			return VK_FORMAT_B8G8R8A8_UNORM;
-		LGFXTextureFormat_BGRA8UnormSrgb:
+		case LGFXTextureFormat_BGRA8UnormSrgb:
 			return VK_FORMAT_B8G8R8A8_SRGB;
-		LGFXTextureFormat_RGB10A2Uint:
+		case LGFXTextureFormat_RGB10A2Uint:
 			return VK_FORMAT_A2R10G10B10_UINT_PACK32;
-		LGFXTextureFormat_RGB10A2Unorm:
+		case LGFXTextureFormat_RGB10A2Unorm:
 			return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-		LGFXTextureFormat_RG11B10Ufloat:
+		case LGFXTextureFormat_RG11B10Ufloat:
 			return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-		LGFXTextureFormat_RGB9E5Ufloat:
+		case LGFXTextureFormat_RGB9E5Ufloat:
 			return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
-		LGFXTextureFormat_RG32Float:
+		case LGFXTextureFormat_RG32Float:
 			return VK_FORMAT_R32G32_SFLOAT;
-		LGFXTextureFormat_RG32Uint:
+		case LGFXTextureFormat_RG32Uint:
 			return VK_FORMAT_R32G32_UINT;
-		LGFXTextureFormat_RG32Sint:
+		case LGFXTextureFormat_RG32Sint:
 			return VK_FORMAT_R32G32_SINT;
-		LGFXTextureFormat_RGBA16Uint:
+		case LGFXTextureFormat_RGBA16Uint:
 			return VK_FORMAT_R16G16B16A16_UINT;
-		LGFXTextureFormat_RGBA16Sint:
+		case LGFXTextureFormat_RGBA16Sint:
 			return VK_FORMAT_R16G16B16A16_SINT;
-		LGFXTextureFormat_RGBA16Float:
+		case LGFXTextureFormat_RGBA16Float:
 			return VK_FORMAT_R16G16B16A16_SFLOAT;
-		LGFXTextureFormat_RGBA32Float:
+		case LGFXTextureFormat_RGBA32Float:
 			return VK_FORMAT_R32G32B32A32_SFLOAT;
-		LGFXTextureFormat_RGBA32Uint:
+		case LGFXTextureFormat_RGBA32Uint:
 			return VK_FORMAT_R32G32B32A32_UINT;
-		LGFXTextureFormat_RGBA32Sint:
+		case LGFXTextureFormat_RGBA32Sint:
 			return VK_FORMAT_R32G32B32A32_SINT;
-		LGFXTextureFormat_Stencil8:
+		case LGFXTextureFormat_Stencil8:
 			return VK_FORMAT_S8_UINT;
-		LGFXTextureFormat_Depth16Unorm:
+		case LGFXTextureFormat_Depth16Unorm:
 			return VK_FORMAT_D16_UNORM;
-		LGFXTextureFormat_Depth24Plus:
+		case LGFXTextureFormat_Depth24Plus:
 			return VK_FORMAT_X8_D24_UNORM_PACK32;
-		LGFXTextureFormat_Depth24PlusStencil8:
+		case LGFXTextureFormat_Depth24PlusStencil8:
 			return VK_FORMAT_D24_UNORM_S8_UINT;
-		LGFXTextureFormat_Depth32Float:
+		case LGFXTextureFormat_Depth32Float:
 			return VK_FORMAT_D32_SFLOAT;
-		LGFXTextureFormat_Depth32FloatStencil8:
+		case LGFXTextureFormat_Depth32FloatStencil8:
 			return VK_FORMAT_D32_SFLOAT_S8_UINT;
-		LGFXTextureFormat_BC1RGBAUnorm:
+		case LGFXTextureFormat_BC1RGBAUnorm:
 			return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
-		LGFXTextureFormat_BC1RGBAUnormSrgb:
+		case LGFXTextureFormat_BC1RGBAUnormSrgb:
 			return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
-		LGFXTextureFormat_BC2RGBAUnorm:
+		case LGFXTextureFormat_BC2RGBAUnorm:
 			return VK_FORMAT_BC2_UNORM_BLOCK;
-		LGFXTextureFormat_BC2RGBAUnormSrgb:
+		case LGFXTextureFormat_BC2RGBAUnormSrgb:
 			return VK_FORMAT_BC2_SRGB_BLOCK;
-		LGFXTextureFormat_BC3RGBAUnorm:
+		case LGFXTextureFormat_BC3RGBAUnorm:
 			return VK_FORMAT_BC3_UNORM_BLOCK;
-		LGFXTextureFormat_BC3RGBAUnormSrgb:
+		case LGFXTextureFormat_BC3RGBAUnormSrgb:
 			return VK_FORMAT_BC3_SRGB_BLOCK;
-		LGFXTextureFormat_BC4RUnorm:
+		case LGFXTextureFormat_BC4RUnorm:
 			return VK_FORMAT_BC4_UNORM_BLOCK;
-		LGFXTextureFormat_BC4RSnorm:
+		case LGFXTextureFormat_BC4RSnorm:
 			return VK_FORMAT_BC4_SNORM_BLOCK;
-		LGFXTextureFormat_BC5RGUnorm:
+		case LGFXTextureFormat_BC5RGUnorm:
 			return VK_FORMAT_BC5_UNORM_BLOCK;
-		LGFXTextureFormat_BC5RGSnorm:
+		case LGFXTextureFormat_BC5RGSnorm:
 			return VK_FORMAT_BC5_SNORM_BLOCK;
-		LGFXTextureFormat_BC6HRGBUfloat:
+		case LGFXTextureFormat_BC6HRGBUfloat:
 			return VK_FORMAT_BC6H_UFLOAT_BLOCK;
-		LGFXTextureFormat_BC6HRGBFloat:
+		case LGFXTextureFormat_BC6HRGBFloat:
 			return VK_FORMAT_BC6H_SFLOAT_BLOCK;
-		LGFXTextureFormat_BC7RGBAUnorm:
+		case LGFXTextureFormat_BC7RGBAUnorm:
 			return VK_FORMAT_BC7_SRGB_BLOCK;
-		LGFXTextureFormat_BC7RGBAUnormSrgb:
+		case LGFXTextureFormat_BC7RGBAUnormSrgb:
 			return VK_FORMAT_BC7_UNORM_BLOCK;
-		LGFXTextureFormat_ETC2RGB8Unorm:
+		case LGFXTextureFormat_ETC2RGB8Unorm:
 			return VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
-		LGFXTextureFormat_ETC2RGB8UnormSrgb:
+		case LGFXTextureFormat_ETC2RGB8UnormSrgb:
 			return VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK;
-		LGFXTextureFormat_ETC2RGB8A1Unorm:
+		case LGFXTextureFormat_ETC2RGB8A1Unorm:
 			return VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
-		LGFXTextureFormat_ETC2RGB8A1UnormSrg:
+		case LGFXTextureFormat_ETC2RGB8A1UnormSrgb:
 			return VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK;
-		LGFXTextureFormat_ETC2RGBA8Unorm:
+		case LGFXTextureFormat_ETC2RGBA8Unorm:
 			return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
-		LGFXTextureFormat_ETC2RGBA8UnormSrgb:
+		case LGFXTextureFormat_ETC2RGBA8UnormSrgb:
 			return VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
-		LGFXTextureFormat_EACR11Unorm:
+		case LGFXTextureFormat_EACR11Unorm:
 			return VK_FORMAT_EAC_R11_UNORM_BLOCK;
-		LGFXTextureFormat_EACR11Snorm:
+		case LGFXTextureFormat_EACR11Snorm:
 			return VK_FORMAT_EAC_R11_SNORM_BLOCK;
-		LGFXTextureFormat_EACRG11Unorm:
+		case LGFXTextureFormat_EACRG11Unorm:
 			return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
-		LGFXTextureFormat_EACRG11Snorm:
+		case LGFXTextureFormat_EACRG11Snorm:
 			return VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC4x4Unorm:
+		case LGFXTextureFormat_ASTC4x4Unorm:
 			return VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC4x4UnormSrgb:
+		case LGFXTextureFormat_ASTC4x4UnormSrgb:
 			return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC5x4Unorm:
+		case LGFXTextureFormat_ASTC5x4Unorm:
 			return VK_FORMAT_ASTC_5x4_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC5x4UnormSrgb:
+		case LGFXTextureFormat_ASTC5x4UnormSrgb:
 			return VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC5x5Unorm:
+		case LGFXTextureFormat_ASTC5x5Unorm:
 			return VK_FORMAT_ASTC_5x5_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC5x5UnormSrgb:
+		case LGFXTextureFormat_ASTC5x5UnormSrgb:
 			return VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC6x5Unorm:
+		case LGFXTextureFormat_ASTC6x5Unorm:
 			return VK_FORMAT_ASTC_6x5_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC6x5UnormSrgb:
+		case LGFXTextureFormat_ASTC6x5UnormSrgb:
 			return VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC6x6Unorm:
+		case LGFXTextureFormat_ASTC6x6Unorm:
 			return VK_FORMAT_ASTC_6x6_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC6x6UnormSrgb:
+		case LGFXTextureFormat_ASTC6x6UnormSrgb:
 			return VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC8x5Unorm:
+		case LGFXTextureFormat_ASTC8x5Unorm:
 			return VK_FORMAT_ASTC_8x5_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC8x5UnormSrgb:
+		case LGFXTextureFormat_ASTC8x5UnormSrgb:
 			return VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC8x6Unorm:
+		case LGFXTextureFormat_ASTC8x6Unorm:
 			return VK_FORMAT_ASTC_8x6_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC8x6UnormSrgb:
+		case LGFXTextureFormat_ASTC8x6UnormSrgb:
 			return VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC8x8Unorm:
+		case LGFXTextureFormat_ASTC8x8Unorm:
 			return VK_FORMAT_ASTC_8x8_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC8x8UnormSrgb:
+		case LGFXTextureFormat_ASTC8x8UnormSrgb:
 			return VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC10x5Unorm:
+		case LGFXTextureFormat_ASTC10x5Unorm:
 			return VK_FORMAT_ASTC_10x5_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC10x5UnormSrgb:
+		case LGFXTextureFormat_ASTC10x5UnormSrgb:
 			return VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC10x6Unorm:
+		case LGFXTextureFormat_ASTC10x6Unorm:
 			return VK_FORMAT_ASTC_10x6_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC10x6UnormSrgb:
+		case LGFXTextureFormat_ASTC10x6UnormSrgb:
 			return VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC10x8Unorm:
+		case LGFXTextureFormat_ASTC10x8Unorm:
 			return VK_FORMAT_ASTC_10x8_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC10x8UnormSrgb:
+		case LGFXTextureFormat_ASTC10x8UnormSrgb:
 			return VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC10x10Unorm:
+		case LGFXTextureFormat_ASTC10x10Unorm:
 			return VK_FORMAT_ASTC_10x10_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC10x10UnormSrgb:
+		case LGFXTextureFormat_ASTC10x10UnormSrgb:
 			return VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC12x10Unorm:
+		case LGFXTextureFormat_ASTC12x10Unorm:
 			return VK_FORMAT_ASTC_12x10_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC12x10UnormSrgb:
+		case LGFXTextureFormat_ASTC12x10UnormSrgb:
 			return VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
-		LGFXTextureFormat_ASTC12x12Unorm:
+		case LGFXTextureFormat_ASTC12x12Unorm:
 			return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
-		LGFXTextureFormat_ASTC12x12UnormSrgb:
+		case LGFXTextureFormat_ASTC12x12UnormSrgb:
 			return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
+		default:
+			LGFX_ERROR("Unknown LGFXTextureFormat %u\n", format);
+			return VK_FORMAT_UNDEFINED;
 	}
 }
 
@@ -402,6 +410,7 @@ VkSurfaceFormatKHR VkLGFXFindSurface(VkColorSpaceKHR colorSpace, VkFormat format
     }
 	return supported->supportedSurfaceFormats[0];
 }
+
 LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXCommandQueue queueToUse, bool alsoBeginBuffer)
 {
 	LGFXCommandBuffer result = Allocate(LGFXCommandBufferImpl, 1);
@@ -484,7 +493,7 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 	//vkFreeCommandBuffers(gpu->logicalDevice, queueToUse->transientCommandPool, 1, &commandBuffer);
 
 	ExitLock(buffer->queue->commandPoolLock);
-	buffer->begun = false;
+	free(buffer);
 }
 
 LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
@@ -505,10 +514,22 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 
 	return result;
 }
-void VkLGFXDestroyFence(LGFXFence fence)
+
+LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device)
 {
-	vkDestroyFence((VkDevice)fence->device->logicalDevice, (VkFence)fence->fence, NULL);
-	free(fence);
+	VkSemaphoreCreateInfo semCreateInfo = {0};
+	semCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkSemaphore semaphore;
+	if (vkCreateSemaphore((VkDevice)device->logicalDevice, &semCreateInfo, NULL, &semaphore) != VK_SUCCESS)
+	{
+		return NULL;
+	}
+	LGFXSemaphore result = Allocate(LGFXSemaphoreImpl, 1);
+	result->semaphore = semaphore;
+	result->device = device;
+
+	return result;
 }
 
 LGFXCommandQueue VkLGFXCreateCommandQueue(LGFXDevice device, u32 queueFamilyID, VkQueue vkQueue)
@@ -530,9 +551,18 @@ LGFXCommandQueue VkLGFXCreateCommandQueue(LGFXDevice device, u32 queueFamilyID, 
 	commandPoolCreateInfo.queueFamilyIndex = result->queueFamilyID;
 	commandPoolCreateInfo.pNext = NULL;
 
-	if (vkCreateCommandPool((VkDevice)device->logicalDevice, &commandPoolCreateInfo, NULL, &result->transientCommandPool) != VK_SUCCESS)
+	if (vkCreateCommandPool((VkDevice)device->logicalDevice, &commandPoolCreateInfo, NULL, (VkCommandPool *)&result->transientCommandPool) != VK_SUCCESS)
 	{
 		LGFX_ERROR("Error creating transient command pool for queue family %u\n", queueFamilyID);
+	}
+
+	VkCommandPoolCreateInfo cmdPoolCreateInfo = {0};
+	cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	cmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	cmdPoolCreateInfo.queueFamilyIndex = queueFamilyID; // AstralCanvasVk_GetCurrentGPU()->queueInfo.dedicatedGraphicsQueueIndex;
+	if (vkCreateCommandPool((VkDevice)device->logicalDevice, &cmdPoolCreateInfo, NULL, (VkCommandPool *)&result->regularCommandPool) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create regular command pool for queue family %u\n", queueFamilyID);
 	}
 
 	return result;
@@ -989,6 +1019,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	result->currentImageIndex = 0;
 	result->width = info->width;
 	result->height = info->height;
+	result->nativeWindowHandle = info->nativeWindowHandle;
 	result->windowSurface = surfaceKHR;
 	result->device = device;
 
@@ -1033,7 +1064,44 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	result->images = Allocate(void *, result->imageCount);
 	vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->imageCount, (VkImage *)result->images);
 
+	result->fence = LGFXCreateFence(device, false);
+	result->awaitPresentComplete = LGFXCreateSemaphore(device);
+	result->awaitRenderComplete = LGFXCreateSemaphore(device);
+
 	return result;
+}
+bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferWidth, u32 currentBackbufferHeight)
+{
+	LGFXSwapchain currentSwapchain = *swapchain;
+	VkResult result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 1000000000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, (VkFence)currentSwapchain->fence->fence, &currentSwapchain->currentImageIndex);
+
+    if (result != VK_SUCCESS)
+    {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            //AstralCanvasVk_DestroySwapchain(swapchain);
+            //AstralCanvasVk_SwapchainRecreate(swapchain, gpu);
+			LGFXSwapchainCreateInfo createInfo = {0};
+			createInfo.width = currentBackbufferWidth;
+			createInfo.height = currentBackbufferHeight;
+			createInfo.oldSwapchain = NULL; //todo
+			createInfo.presentationMode = currentSwapchain->presentMode;
+			//to check: do we need to re-acquire this every time we need to change?
+			createInfo.nativeWindowHandle = currentSwapchain->nativeWindowHandle;
+
+			*swapchain = LGFXCreateSwapchain(currentSwapchain->device, &createInfo);
+			LGFXDestroySwapchain(currentSwapchain);
+
+			//resized
+			return true;
+        }
+        else if (result != VK_SUBOPTIMAL_KHR)
+        {
+			LGFX_ERROR("Failed to acquire next swapchain image, error code %u\n", result);
+			return false;
+        }
+    }
+    return false;
 }
 
 LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
@@ -1332,7 +1400,7 @@ void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usi
 
 	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_TransferDstOptimal, cmdBuffer, 0, 1);
 
-	VkLGFXCopyBufferToTexture(device, cmdBuffer, &stagingBuffer, texture, 0);
+	VkLGFXCopyBufferToTexture(device, cmdBuffer, stagingBuffer, texture, 0);
 
 	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_ShaderReadOptimal, cmdBuffer, 0, 1);
 
@@ -1348,7 +1416,7 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	if (commandBuffer == NULL)
 	{
-		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, &device->transferQueue, true);
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
 	}
 
 	VkBufferImageCopy bufferImageCopy = {0};
@@ -1550,10 +1618,11 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	for (u32 i = 0; i < info->attachmentsCount; i++)
 	{
 		VkAttachmentDescription attachmentInfo = {0};
+		attachmentInfo.format = LGFXTextureFormat2Vulkan(info->attachments[i].format);
 		attachmentInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachmentInfo.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachmentInfo.stencilStoreOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachmentInfo.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		if (info->attachments[i].format < LGFXTextureFormat_Depth16Unorm)
 		{
 			attachmentInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1701,7 +1770,7 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 		renderPassInfo.pDependencies = NULL;
 	}
 
-	if (vkCreateRenderPass(device, &renderPassInfo, NULL, (VkRenderPass *)&program.handle) != VK_SUCCESS)
+	if (vkCreateRenderPass((VkDevice)device->logicalDevice, &renderPassInfo, NULL, (VkRenderPass *)&program.handle) != VK_SUCCESS)
 	{
 		LGFX_ERROR("Failed to create render pass\n");
 	}
@@ -2039,9 +2108,191 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 
 	return shader;
 }
+
+LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute)
+{
+	LGFXCommandBuffer result = Allocate(LGFXCommandBufferImpl, 1);
+	result->queue = forCompute ? device->computeQueue : device->graphicsQueue;
+
+	EnterLock(result->queue->commandPoolLock);
+
+	VkCommandBufferAllocateInfo cmdBufferInfo = {0};
+	cmdBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	cmdBufferInfo.commandPool = (VkCommandPool)result->queue->regularCommandPool;
+	cmdBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	cmdBufferInfo.commandBufferCount = 1;
+	VkResult opResult = vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &cmdBufferInfo, (VkCommandBuffer *)&result->cmdBuffer);
+
+	ExitLock(result->queue->commandPoolLock);
+
+	if (opResult != VK_SUCCESS)
+	{
+		free(result);
+		return NULL;
+	}
+
+	return result;
+}
+void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission)
+{
+	VkCommandBufferBeginInfo beginInfo = {0};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.pInheritanceInfo = NULL;
+	beginInfo.pNext = NULL;
+	beginInfo.flags = resetAfterSubmission ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : NULL;
+
+	if (vkBeginCommandBuffer((VkCommandBuffer)buffer->cmdBuffer, &beginInfo) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to begin command buffer\n");
+	}
+
+	buffer->begun = true;
+}
+void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore)
+{
+	LGFXDevice device = buffer->queue->inDevice;
+	vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer);
+
+	VkSubmitInfo submitInfo = {0};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &(VkCommandBuffer)buffer->cmdBuffer;
+	if (awaitSemaphore != NULL)
+	{
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = (VkSemaphore *)&awaitSemaphore->semaphore;
+	}
+	if (signalSemaphore != NULL)
+	{
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = (VkSemaphore *)&signalSemaphore->semaphore;
+	}
+
+	//if we are on the graphics queue, the queue may also be used for presenting
+    //hence, we need to wait for the queue to finish presenting before we can transition the image
+    if (buffer->queue == device->graphicsQueue)
+    {
+		EnterLock(device->graphicsQueue->queueLock);
+
+		vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
+        //alternatively, wait for queue fence
+
+		ExitLock(device->graphicsQueue->queueLock);
+	}
+
+	//submit the queue
+    EnterLock(buffer->queue->queueLock);
+
+    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)fence->fence) != VK_SUCCESS)
+    {
+		ExitLock(buffer->queue->queueLock);
+		LGFX_ERROR("Failed to submit queue\n");
+    }
+	ExitLock(buffer->queue->queueLock);
+
+	buffer->begun = false;
+}
+void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer)
+{
+	vkResetCommandBuffer((VkCommandBuffer)buffer->cmdBuffer, 0);
+}
+
+bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+{
+	VkFence toWaitFor = (VkFence)device->graphicsQueue->fence->fence;
+	vkWaitForFences((VkDevice)device->logicalDevice, 1, &toWaitFor, VK_TRUE, UINT64_MAX);
+
+	LGFXSwapchain currentSwapchain = *swapchain;
+	currentSwapchain->recreatedThisFrame = false;
+	currentSwapchain->presentedPreviousFrame = false;
+	if (VkLGFXSwapchainSwapBuffers(swapchain, frameWidth, frameHeight))
+	{
+		currentSwapchain = *swapchain;
+		currentSwapchain->recreatedThisFrame = true;
+
+		//ask the drawing loop to yield until next frame
+		return false;
+	}
+
+	vkResetFences((VkDevice)device->logicalDevice, 1, &toWaitFor);
+
+	return true;
+}
+void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+{
+	LGFXSwapchain currentSwapchain = *swapchain;
+	VkSemaphore awaitRender = (VkSemaphore)currentSwapchain->awaitRenderComplete->semaphore;
+
+	ExitLock(device->graphicsQueue->queueLock);
+
+	currentSwapchain->presentedPreviousFrame = true;
+	VkPresentInfoKHR presentInfo = {0};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = (VkSwapchainKHR *)&currentSwapchain->swapchain;
+	presentInfo.waitSemaphoreCount = 1;
+	//presentInfo.pWaitSemaphores = &awaitRender;
+	presentInfo.pImageIndices = &currentSwapchain->currentImageIndex;
+
+	//gpu->DedicatedGraphicsQueue.queueMutex.EnterLock();
+	EnterLock(device->graphicsQueue->queueLock);
+	VkResult presentResults = vkQueuePresentKHR((VkQueue)device->graphicsQueue->queue, &presentInfo);
+	//swapchain->renderTargets.data[swapchain->currentImageIndex].textures.data[0]->imageLayout = (u32)VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	ExitLock(device->graphicsQueue->queueLock);
+
+	if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
+	{
+		if (!currentSwapchain->recreatedThisFrame)
+		{
+			LGFXSwapchainCreateInfo createInfo = {0};
+			createInfo.width = frameWidth;
+			createInfo.height = frameHeight;
+			createInfo.oldSwapchain = NULL; //todo
+			createInfo.presentationMode = currentSwapchain->presentMode;
+			//to check: do we need to re-acquire this every time we need to change?
+			createInfo.nativeWindowHandle = currentSwapchain->nativeWindowHandle;
+
+			*swapchain = LGFXCreateSwapchain(currentSwapchain->device, &createInfo);
+			LGFXDestroySwapchain(currentSwapchain);
+
+			//AstralCanvasVk_DestroySwapchain(swapchain);
+			//AstralCanvasVk_SwapchainRecreate(swapchain, gpu);
+		}
+		if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
+		{
+			presentResults = VK_SUCCESS;
+		}
+		//swapChain.Recreate(SwapChain.QuerySwapChainSupport(CurrentGPU.Device));
+	}
+
+	if (presentResults != VK_SUCCESS)
+	{
+		LGFX_ERROR("Error presenting queue");
+	}
+}
 // END
 
 // DESTROY FUNCTIONS
+void VkLGFXDestroyFence(LGFXFence fence)
+{
+	vkDestroyFence((VkDevice)fence->device->logicalDevice, (VkFence)fence->fence, NULL);
+	free(fence);
+}
+void VkLGFXDestroySemaphore(LGFXSemaphore semaphore)
+{
+	vkDestroySemaphore((VkDevice)semaphore->device->logicalDevice, (VkSemaphore)semaphore->semaphore, NULL);
+	free(semaphore);
+}
+void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer)
+{
+	if (commandBuffer->cmdBuffer != NULL)
+	{
+		EnterLock(commandBuffer->queue->commandPoolLock);
+		vkFreeCommandBuffers((VkDevice)commandBuffer->queue->inDevice->logicalDevice, (VkCommandPool)commandBuffer->queue->regularCommandPool, 1, (VkCommandBuffer *)&commandBuffer->cmdBuffer);
+		ExitLock(commandBuffer->queue->commandPoolLock);
+	}
+	free(commandBuffer);
+}
 void VkLGFXDestroyShaderState(LGFXShaderState shaderState)
 {
 	if (shaderState->handle != NULL)
@@ -2066,7 +2317,7 @@ void VkLGFXDestroyFunction(LGFXFunction func)
 	}
 	if (func->functionVariablesLayout != NULL)
 	{
-		vkDestroyDescriptorSetLayout((VkDevice)func->device->logicalDevice, (VkPipelineLayout)func->functionVariablesLayout, NULL);
+		vkDestroyDescriptorSetLayout((VkDevice)func->device->logicalDevice, (VkDescriptorSetLayout)func->functionVariablesLayout, NULL);
 	}
 	if (func->uniforms != NULL)
 	{
@@ -2080,7 +2331,10 @@ void VkLGFXDestroyRenderProgram(LGFXRenderProgram program)
 	{
 		for (u32 i = 0; i < program->targetsCount; i++)
 		{
-			VkLGFXDestroyRenderTarget(program->targets[i]);
+			if (program->targets[i] != NULL)
+			{
+				VkLGFXDestroyRenderTarget(program->targets[i]);
+			}
 		}
 		free(program->targets);
 	}
@@ -2113,6 +2367,12 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain)
 		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, (VkSwapchainKHR)swapchain->swapchain, NULL);
 
 	}
+	if (swapchain->presentedPreviousFrame != NULL)
+	{
+		LGFXDestroySemaphore(swapchain->awaitPresentComplete);
+		LGFXDestroySemaphore(swapchain->awaitRenderComplete);
+		LGFXDestroyFence(swapchain->fence);
+	}
 	if (swapchain->windowSurface != NULL)
 	{
 		vkDestroySurfaceKHR((VkInstance)swapchain->device->instance->instance, (VkSurfaceKHR)swapchain->windowSurface, NULL);
@@ -2121,8 +2381,18 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain)
 }
 void VkLGFXDestroyCommandQueue(LGFXDevice device, LGFXCommandQueue queue)
 {
-	vkDestroyCommandPool((VkDevice)device->logicalDevice, (VkCommandPool)queue->transientCommandPool, NULL);
-	VkLGFXDestroyFence(queue->fence);
+	if (queue->transientCommandPool != NULL)
+	{
+		vkDestroyCommandPool((VkDevice)device->logicalDevice, (VkCommandPool)queue->transientCommandPool, NULL);
+	}
+	if (queue->regularCommandPool != NULL)
+	{
+		vkDestroyCommandPool((VkDevice)device->logicalDevice, (VkCommandPool)queue->regularCommandPool, NULL);
+	}
+	if (queue->fence != NULL)
+	{
+		VkLGFXDestroyFence(queue->fence);
+	}
 	if (queue->queueLock != NULL)
 	{
 		DestroyLock(queue->queueLock);

@@ -85,6 +85,7 @@ LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info)
         return VkLGFXCreateInstance(info);
     }
     LGFX_ERROR("LGFXCreateInstance: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyInstance(LGFXInstance instance)
 {
@@ -103,6 +104,7 @@ LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled)
         return VkLGFXCreateFence(device, signalled);
     }
     LGFX_ERROR("LGFXCreateFence: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyFence(LGFXFence fence)
 {
@@ -114,6 +116,25 @@ void LGFXDestroyFence(LGFXFence fence)
     LGFX_ERROR("LGFXDestroyFence: Unknown backend\n");
 }
 
+LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXCreateSemaphore(device);
+    }
+    LGFX_ERROR("LGFXCreateSemaphore: Unknown backend\n");
+    return NULL;
+}
+void LGFXDestroySemaphore(LGFXSemaphore semaphore)
+{
+    if (semaphore->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDestroySemaphore(semaphore);
+        return;
+    }
+    LGFX_ERROR("LGFXDestroySemaphore: Unknown backend\n");
+}
+
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 {
     if (instance->backend == LGFXBackendType_Vulkan)
@@ -121,6 +142,7 @@ LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
         return VkLGFXCreateDevice(instance, info);
     }
     LGFX_ERROR("LGFXCreateDevice: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyDevice(LGFXDevice device)
 {
@@ -139,6 +161,7 @@ LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *in
         return VkLGFXCreateSwapchain(device, info);
     }
     LGFX_ERROR("LGFXCreateSwapchain: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroySwapchain(LGFXSwapchain swapchain)
 {
@@ -157,6 +180,7 @@ LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
         return VkLGFXCreateTexture(device, info);
     }
     LGFX_ERROR("LGFXCreateTexture: Unknown backend\n");
+    return NULL;
 }
 void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth)
 {
@@ -211,6 +235,7 @@ LGFXRenderTarget LGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreat
         return VkLGFXCreateRenderTarget(device, info);
     }
     LGFX_ERROR("LGFXCreateRenderTarget: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyRenderTarget(LGFXRenderTarget target)
 {
@@ -229,6 +254,7 @@ LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
         return VkLGFXCreateBuffer(device, info);
     }
     LGFX_ERROR("LGFXCreateBuffer: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyBuffer(LGFXBuffer buffer)
 {
@@ -247,6 +273,7 @@ LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCr
         return VkLGFXCreateRenderProgram(device, info);
     }
     LGFX_ERROR("LGFXCreateRenderProgram: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyRenderProgram(LGFXRenderProgram program)
 {
@@ -265,6 +292,7 @@ LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info)
         return VkLGFXCreateFunction(device, info);
     }
     LGFX_ERROR("LGFXCreateFunction: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyFunction(LGFXFunction func)
 {
@@ -283,6 +311,7 @@ LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateIn
         return VkLGFXCreateShaderState(device, info);
     }
     LGFX_ERROR("LGFXCreateShaderState: Unknown backend\n");
+    return NULL;
 }
 void LGFXDestroyShaderState(LGFXShaderState shaderState)
 {
@@ -292,4 +321,69 @@ void LGFXDestroyShaderState(LGFXShaderState shaderState)
         return;
     }
     LGFX_ERROR("LGFXDestroyShaderState: Unknown backend\n");
+}
+
+LGFXCommandBuffer LGFXCreateCommandBuffer(LGFXDevice device, bool forCompute)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXCreateCommandBuffer(device, forCompute);
+    }
+    LGFX_ERROR("LGFXCommandBuffer: Unknown backend\n");
+    return NULL;
+}
+void LGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission)
+{
+    if (buffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCommandBufferBegin(buffer, resetAfterSubmission);
+        return;
+    }
+    LGFX_ERROR("LGFXCommandBufferBegin: Unknown backend\n");
+}
+void LGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore)
+{
+    if (buffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCommandBufferEnd(buffer, fence, awaitSemaphore, signalSemaphore);
+        return;
+    }
+    LGFX_ERROR("LGFXCommandBufferEnd: Unknown backend\n");
+}
+void LGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer)
+{
+    if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDestroyCommandBuffer(commandBuffer);
+        return;
+    }
+    LGFX_ERROR("LGFXDestroyCommandBuffer: Unknown backend\n");
+}
+void LGFXCommandBufferReset(LGFXCommandBuffer buffer)
+{
+    if (buffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCommandBufferReset(buffer);
+        return;
+    }
+    LGFX_ERROR("LGFXCommandBufferReset: Unknown backend\n");
+}
+
+bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXNewFrame(device, swapchain, frameWidth, frameHeight);
+    }
+    LGFX_ERROR("LGFXNewFrame: Unknown backend\n");
+    return NULL;
+}
+void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXSubmitFrame(device, swapchain, frameWidth, frameHeight);
+        return;
+    }
+    LGFX_ERROR("LGFXSubmitFrame: Unknown backend\n");
 }

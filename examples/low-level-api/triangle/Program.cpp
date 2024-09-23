@@ -8,10 +8,11 @@
 LGFXInstance instance;
 LGFXDevice device;
 LGFXSwapchain swapchain;
+LGFXCommandBuffer mainCommands;
+LGFXRenderProgram rp;
 
 i32 main()
 {
-    printf("Hello World!\n");
     glfwInit();
 
     //create window
@@ -51,14 +52,51 @@ i32 main()
 
     swapchain = LGFXCreateSwapchain(device, &swapchainCreateInfo);
 
-    //main loop
-    while (!glfwWindowShouldClose(window)) {
+    //create main command buffer to reuse
+    mainCommands = LGFXCreateCommandBuffer(device, false);
 
+    //render program
+    LGFXRenderAttachmentInfo attachments;
+    attachments.clear = true;
+    attachments.format = LGFXTextureFormat_BGRA8Unorm;
+    attachments.readByRenderTarget = false;
+
+    i32 firstAttachment = 0;
+
+    LGFXRenderPassInfo passes;
+    passes.colorAttachmentIDs = &firstAttachment;
+    passes.colorAttachmentsCount = 1;
+    passes.depthAttachmentID = -1;
+    passes.readAttachmentIDs = NULL;
+    passes.readAttachmentsCount = 0;
+
+    LGFXRenderProgramCreateInfo rpCreateInfo;
+    rpCreateInfo.attachmentsCount = 1;
+    rpCreateInfo.attachments = &attachments;
+    rpCreateInfo.renderPassCount = 1;
+    rpCreateInfo.renderPasses = &passes;
+    rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
+
+    //main loop
+    while (!glfwWindowShouldClose(window)) 
+    {
+        int framebufferWidth;
+        int framebufferHeight;
+        glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        // if (LGFXNewFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight))
+        // {
+
+        //     LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
+        // }
+
+        //LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
         glfwPollEvents();
     }
     glfwDestroyWindow(window);
 
     //shutdown
+    LGFXDestroyRenderProgram(rp);
+
     LGFXDestroySwapchain(swapchain);
 
     LGFXDestroyDevice(device);

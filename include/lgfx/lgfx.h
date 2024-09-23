@@ -130,7 +130,7 @@ typedef enum
     LGFXPrimitiveType_PointList,
 
     /// Renders the vertices as a series of triangle primitives connected to a central origin vertex
-    PrimitiveType_TriangleFan,
+    LGFXPrimitiveType_TriangleFan,
 } LGFXPrimitiveType;
 
 typedef enum
@@ -494,6 +494,9 @@ void LGFXDestroyInstance(LGFXInstance instance);
 LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled);
 void LGFXDestroyFence(LGFXFence fence);
 
+LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
+void LGFXDestroySemaphore(LGFXSemaphore semaphore);
+
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
 
@@ -506,6 +509,12 @@ void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize
 void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip);
 void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
 void LGFXDestroyTexture(LGFXTexture texture);
+
+LGFXCommandBuffer LGFXCreateCommandBuffer(LGFXDevice device, bool forCompute);
+void LGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission);
+void LGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore);
+void LGFXCommandBufferReset(LGFXCommandBuffer buffer);
+void LGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer);
 
 LGFXRenderTarget LGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info);
 void LGFXDestroyRenderTarget(LGFXRenderTarget target);
@@ -521,6 +530,9 @@ void LGFXDestroyFunction(LGFXFunction func);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 void LGFXDestroyShaderState(LGFXShaderState shaderState);
+
+bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
+void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
 
 #ifdef __cplusplus
 }

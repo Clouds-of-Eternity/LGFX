@@ -33,6 +33,7 @@ typedef struct LGFXCommandQueueImpl
     Lock queueLock;
     u32 queueFamilyID;
 
+    void *regularCommandPool;
     void *transientCommandPool;
     Lock commandPoolLock;
 
@@ -44,6 +45,7 @@ typedef struct LGFXSwapchainImpl
 {
     void *swapchain;
     void **images;
+    void *nativeWindowHandle;
     void *windowSurface;
     LGFXDevice device;
     u32 currentImageIndex;
@@ -51,6 +53,13 @@ typedef struct LGFXSwapchainImpl
     u32 width;
     u32 height;
     u32 imageCount;
+
+    bool recreatedThisFrame;
+    bool presentedPreviousFrame;
+
+    LGFXFence fence;
+    LGFXSemaphore awaitPresentComplete;
+    LGFXSemaphore awaitRenderComplete;
 } LGFXSwapchainImpl;
 
 typedef struct LGFXFenceImpl
@@ -58,6 +67,12 @@ typedef struct LGFXFenceImpl
     void *fence;
     LGFXDevice device;
 } LGFXFenceImpl;
+
+typedef struct LGFXSemaphoreImpl
+{
+    void *semaphore;
+    LGFXDevice device;
+} LGFXSemaphoreImpl;
 
 typedef struct LGFXCommandBufferImpl
 {
