@@ -606,7 +606,8 @@ void LGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
 void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain);
-void LGFXDestroySwapchain(LGFXSwapchain swapchain);
+void LGFXSwapchainInvalidate(LGFXSwapchain swapchain);
+void LGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);
 
 LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
 void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
@@ -658,7 +659,7 @@ void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, 
 void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance);
 
 bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
-void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
+void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);
 
 #ifdef __cplusplus
 }

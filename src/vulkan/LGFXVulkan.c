@@ -1082,6 +1082,8 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 {
 	VkSurfaceKHR surfaceKHR;
 
+	if (info->oldSwapchain == NULL)
+	{
 #if defined(WINDOWS)
 	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {0};
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -1096,6 +1098,11 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {0};
 	#error TODO
 #endif
+	}
+	else
+	{
+		surfaceKHR = (VkSurfaceKHR)info->oldSwapchain->windowSurface;
+	}
 
 	VkLGFXSwapchainSupport details = VkLGFXQuerySwapchainSupportDetails((VkPhysicalDevice)device->physicalDevice, surfaceKHR);
 	VkSurfaceFormatKHR surfaceFormat = VkLGFXFindSurface(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_FORMAT_B8G8R8A8_UNORM, &details);
@@ -1109,8 +1116,8 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	result->nativeWindowHandle = info->nativeWindowHandle;
 	result->windowSurface = surfaceKHR;
 	result->device = device;
-
-	vkDeviceWaitIdle((VkDevice)device->logicalDevice);
+	result->justCreated = true;
+	result->invalidated = false;
 
     VkSwapchainCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1129,7 +1136,6 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = result->presentMode;
     createInfo.clipped = true;
-    //createInfo.oldSwapchain = swapchain->handle;
 	if (info->oldSwapchain != NULL)
 	{
 		createInfo.oldSwapchain = info->oldSwapchain->swapchain;
@@ -1139,13 +1145,13 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 
     if (vkCreateSwapchainKHR((VkDevice)device->logicalDevice, &createInfo, NULL, (VkSwapchainKHR *)&result->swapchain) != VK_SUCCESS)
     {
-		VkLGFXDestroySwapchain(result);
+		LGFX_ERROR("Error creating swapchain\n");
 		return NULL;
     }
 
 	if (vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, NULL)!= VK_SUCCESS)
     {
-		VkLGFXDestroySwapchain(result);
+		LGFX_ERROR("Error creating swapchain\n");
 		return NULL;
     }
 	result->backbufferTextures = Allocate(LGFXTexture, result->backbufferTexturesCount);
@@ -1166,9 +1172,23 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		result->backbufferTextures[i] = LGFXCreateTexture(device, &textureCreateInfo);
 	}
 
-	result->fence = LGFXCreateFence(device, true);
-	result->awaitPresentComplete = LGFXCreateSemaphore(device);
-	result->awaitRenderComplete = LGFXCreateSemaphore(device);
+	if (info->oldSwapchain != NULL)
+	{
+		//take ownership of old swapchain synchronization primitives
+		result->fence = info->oldSwapchain->fence;
+		result->awaitPresentComplete = info->oldSwapchain->awaitPresentComplete;
+		result->awaitRenderComplete = info->oldSwapchain->awaitRenderComplete;
+
+		info->oldSwapchain->fence = NULL;
+		info->oldSwapchain->awaitPresentComplete = NULL;
+		info->oldSwapchain->awaitRenderComplete = NULL;
+	}
+	else
+	{
+		result->fence = LGFXCreateFence(device, true);
+		result->awaitPresentComplete = LGFXCreateSemaphore(device);
+		result->awaitRenderComplete = LGFXCreateSemaphore(device);
+	}
 
 	free(backbufferImageHandles);
 
@@ -1177,24 +1197,37 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferWidth, u32 currentBackbufferHeight)
 {
 	LGFXSwapchain currentSwapchain = *swapchain;
-	VkResult result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 1000000000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
-
+	VkResult result = VK_ERROR_OUT_OF_DATE_KHR;
+	if (currentSwapchain != NULL)
+	{
+		LGFXAwaitFence(currentSwapchain->fence);
+		if (!currentSwapchain->invalidated)
+		{
+		
+			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 1000000000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
+		}
+		else
+		{
+			printf("Invalid swapchain detected, recreating\n");
+		}
+	}
     if (result != VK_SUCCESS)
     {
-        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)// && !currentSwapchain->recreatedAtFrameEnd)
         {
-            //AstralCanvasVk_DestroySwapchain(swapchain);
-            //AstralCanvasVk_SwapchainRecreate(swapchain, gpu);
 			LGFXSwapchainCreateInfo createInfo = {0};
 			createInfo.width = currentBackbufferWidth;
 			createInfo.height = currentBackbufferHeight;
-			createInfo.oldSwapchain = NULL; //todo
+			createInfo.oldSwapchain = currentSwapchain;
 			createInfo.presentationMode = currentSwapchain->presentMode;
 			//to check: do we need to re-acquire this every time we need to change?
 			createInfo.nativeWindowHandle = currentSwapchain->nativeWindowHandle;
 
 			*swapchain = LGFXCreateSwapchain(currentSwapchain->device, &createInfo);
-			LGFXDestroySwapchain(currentSwapchain);
+			printf("Swapchain recreated successfully\n");
+			LGFXDestroySwapchain(currentSwapchain, false);
+			printf("Old swapchain disposed\n");
+
 
 			//resized
 			return true;
@@ -1205,7 +1238,56 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 			return false;
         }
     }
+	LGFXResetFence(currentSwapchain->fence);
     return false;
+}
+
+bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+{
+	if (VkLGFXSwapchainSwapBuffers(swapchain, frameWidth, frameHeight))
+	{
+		//ask the drawing loop to yield until next frame
+		return false;
+	}
+
+	return true;
+}
+void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
+{
+	VkSemaphore awaitRender = (VkSemaphore)swapchain->awaitRenderComplete->semaphore;
+
+	VkPresentInfoKHR presentInfo = {0};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = (VkSwapchainKHR *)&swapchain->swapchain;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &awaitRender;
+	presentInfo.pImageIndices = &swapchain->currentImageIndex;
+
+	//gpu->DedicatedGraphicsQueue.queueMutex.EnterLock();
+	EnterLock(device->graphicsQueue->queueLock);
+	VkResult presentResults = vkQueuePresentKHR((VkQueue)device->graphicsQueue->queue, &presentInfo);
+	//swapchain->renderTargets.data[swapchain->currentImageIndex].textures.data[0]->imageLayout = (u32)VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	ExitLock(device->graphicsQueue->queueLock);
+
+	if (swapchain->justCreated)
+	{
+		swapchain->justCreated = false;
+	}
+
+	if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
+	{
+		printf("End-of-frame invalidation detected, will attempt to recreate swapchain next frame\n");
+		swapchain->invalidated = true;
+
+		presentResults = VK_SUCCESS;
+		//swapChain.Recreate(SwapChain.QuerySwapChainSupport(CurrentGPU.Device));
+	}
+
+	if (presentResults != VK_SUCCESS)
+	{
+		LGFX_ERROR("Error presenting queue");
+	}
 }
 
 LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
@@ -1972,6 +2054,17 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 {
 	u32 index = outputSwapchain->currentImageIndex;
 	assert(index < program->targetsCount);
+	if (program->targets[index] != NULL && outputSwapchain->justCreated)
+	{
+		for (u32 i = 0; i < 3; i++)
+		{
+			if (program->targets[i] != NULL)
+			{
+				LGFXDestroyRenderTarget(program->targets[i]);
+				program->targets[i] = NULL;
+			}
+		}
+	}
 	if (program->targets[index] == NULL)
 	{
 		LGFXRenderTargetCreateInfo createInfo;
@@ -2637,7 +2730,6 @@ void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemap
 	// 	EnterLock(device->graphicsQueue->queueLock);
 
 	// 	vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
-    //     //alternatively, wait for queue fence
 
 	// 	ExitLock(device->graphicsQueue->queueLock);
 	// }
@@ -2647,7 +2739,6 @@ void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemap
 
     if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, fence == NULL ? NULL : (VkFence)fence->fence) != VK_SUCCESS)
     {
-		ExitLock(buffer->queue->queueLock);
 		LGFX_ERROR("Failed to submit queue\n");
     }
 	ExitLock(buffer->queue->queueLock);
@@ -2692,84 +2783,6 @@ void VkLGFXDestroySamplerState(LGFXSamplerState state)
 		vkDestroySampler((VkDevice)state->device->logicalDevice, (VkSampler)state->handle, NULL);
 	}
 	free(state);
-}
-
-bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
-{
-	LGFXSwapchain currentSwapchain = *swapchain;
-	
-	LGFXAwaitFence(currentSwapchain->fence);
-	LGFXResetFence(currentSwapchain->fence);
-	//VkFence toWaitFor = (VkFence)device->graphicsQueue->fence->fence;
-
-	//vkWaitForFences((VkDevice)device->logicalDevice, 1, &toWaitFor, VK_TRUE, UINT64_MAX);
-	//vkResetFences((VkDevice)device->logicalDevice, 1, &toWaitFor);
-
-	currentSwapchain->recreatedThisFrame = false;
-	currentSwapchain->presentedPreviousFrame = false;
-	if (VkLGFXSwapchainSwapBuffers(swapchain, frameWidth, frameHeight))
-	{
-		currentSwapchain = *swapchain;
-		currentSwapchain->recreatedThisFrame = true;
-
-		//ask the drawing loop to yield until next frame
-		return false;
-	}
-
-
-	return true;
-}
-void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
-{
-	LGFXSwapchain currentSwapchain = *swapchain;
-	VkSemaphore awaitRender = (VkSemaphore)currentSwapchain->awaitRenderComplete->semaphore;
-
-	ExitLock(device->graphicsQueue->queueLock);
-
-	currentSwapchain->presentedPreviousFrame = true;
-	VkPresentInfoKHR presentInfo = {0};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = (VkSwapchainKHR *)&currentSwapchain->swapchain;
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &awaitRender;
-	presentInfo.pImageIndices = &currentSwapchain->currentImageIndex;
-
-	//gpu->DedicatedGraphicsQueue.queueMutex.EnterLock();
-	EnterLock(device->graphicsQueue->queueLock);
-	VkResult presentResults = vkQueuePresentKHR((VkQueue)device->graphicsQueue->queue, &presentInfo);
-	//swapchain->renderTargets.data[swapchain->currentImageIndex].textures.data[0]->imageLayout = (u32)VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	ExitLock(device->graphicsQueue->queueLock);
-
-	if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
-	{
-		if (!currentSwapchain->recreatedThisFrame)
-		{
-			LGFXSwapchainCreateInfo createInfo = {0};
-			createInfo.width = frameWidth;
-			createInfo.height = frameHeight;
-			createInfo.oldSwapchain = NULL; //todo
-			createInfo.presentationMode = currentSwapchain->presentMode;
-			//to check: do we need to re-acquire this every time we need to change?
-			createInfo.nativeWindowHandle = currentSwapchain->nativeWindowHandle;
-
-			*swapchain = LGFXCreateSwapchain(currentSwapchain->device, &createInfo);
-			LGFXDestroySwapchain(currentSwapchain);
-
-			//AstralCanvasVk_DestroySwapchain(swapchain);
-			//AstralCanvasVk_SwapchainRecreate(swapchain, gpu);
-		}
-		if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
-		{
-			presentResults = VK_SUCCESS;
-		}
-		//swapChain.Recreate(SwapChain.QuerySwapChainSupport(CurrentGPU.Device));
-	}
-
-	if (presentResults != VK_SUCCESS)
-	{
-		LGFX_ERROR("Error presenting queue");
-	}
 }
 
 void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset)
@@ -2879,8 +2892,9 @@ void VkLGFXDestroyBuffer(LGFXBuffer buffer)
 	free(buffer->bufferMemory);
 	free(buffer);
 }
-void VkLGFXDestroySwapchain(LGFXSwapchain swapchain)
+void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 {
+	vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 	if (swapchain->swapchain != NULL)
 	{
 		for (u32 i = 0;  i< swapchain->backbufferTexturesCount; i++)
@@ -2889,17 +2903,16 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain)
 		}
 		free(swapchain->backbufferTextures);
 
-		vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 
 		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, (VkSwapchainKHR)swapchain->swapchain, NULL);
 	}
-	if (swapchain->presentedPreviousFrame != NULL)
+	if (swapchain->awaitPresentComplete != NULL)
 	{
 		LGFXDestroySemaphore(swapchain->awaitPresentComplete);
 		LGFXDestroySemaphore(swapchain->awaitRenderComplete);
 		LGFXDestroyFence(swapchain->fence);
 	}
-	if (swapchain->windowSurface != NULL)
+	if (swapchain->windowSurface != NULL && windowIsDestroyed)
 	{
 		vkDestroySurfaceKHR((VkInstance)swapchain->device->instance->instance, (VkSurfaceKHR)swapchain->windowSurface, NULL);
 	}

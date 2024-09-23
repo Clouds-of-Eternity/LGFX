@@ -21,6 +21,14 @@ LGFXBuffer indexBuffer;
 LGFX::Shader shader;
 LGFXShaderState shaderState;
 
+void WindowFramebufferResized(GLFWwindow *window, i32 width, i32 height)
+{
+    if (swapchain != NULL)
+    {
+        LGFXSwapchainInvalidate(swapchain);
+    }
+}
+
 i32 main()
 {
     glfwInit();
@@ -130,6 +138,8 @@ i32 main()
     }
     fileContents.deinit();
 
+    bool justResized = false;
+
     LGFXShaderStateCreateInfo stateCreateInfo = {0};
     stateCreateInfo.blendState = ALPHA_BLEND;
     stateCreateInfo.cullMode = LGFXCullMode_None;
@@ -143,6 +153,8 @@ i32 main()
     stateCreateInfo.forRenderProgram = rp;
     stateCreateInfo.forRenderPass = 0;
     shaderState = LGFXCreateShaderState(device, &stateCreateInfo);
+
+    glfwSetFramebufferSizeCallback(window, &WindowFramebufferResized);
 
     //main loop
     while (!glfwWindowShouldClose(window)) 
@@ -169,11 +181,11 @@ i32 main()
             LGFXEndRenderProgram(mainCommands);
 
             LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
-            LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
+            LGFXSubmitFrame(device, swapchain);
         }
         else
         {
-            
+            justResized = true;
         }
 
         //LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
@@ -194,7 +206,7 @@ i32 main()
 
     LGFXDestroyRenderProgram(rp);
 
-    LGFXDestroySwapchain(swapchain);
+    LGFXDestroySwapchain(swapchain, true);
 
     LGFXDestroyDevice(device);
 

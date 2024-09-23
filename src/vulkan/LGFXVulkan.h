@@ -31,10 +31,10 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 void VkLGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
-void VkLGFXDestroySwapchain(LGFXSwapchain swapchain);
+void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);
 
 bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
-void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
+void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);
 
 LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
 void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);

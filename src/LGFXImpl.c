@@ -204,11 +204,15 @@ void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain)
 {
     LGFXAwaitFence(swapchain->fence);
 }
-void LGFXDestroySwapchain(LGFXSwapchain swapchain)
+void LGFXSwapchainInvalidate(LGFXSwapchain swapchain)
+{
+    swapchain->invalidated = true;
+}
+void LGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 {
     if (swapchain->device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXDestroySwapchain(swapchain);
+        VkLGFXDestroySwapchain(swapchain, windowIsDestroyed);
         return;
     }
     LGFX_ERROR("LGFXDestroySwapchain: Unknown backend\n");
@@ -586,11 +590,11 @@ bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u
     LGFX_ERROR("LGFXNewFrame: Unknown backend\n");
     return NULL;
 }
-void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXSubmitFrame(device, swapchain, frameWidth, frameHeight);
+        VkLGFXSubmitFrame(device, swapchain);
         return;
     }
     LGFX_ERROR("LGFXSubmitFrame: Unknown backend\n");

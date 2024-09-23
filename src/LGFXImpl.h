@@ -45,6 +45,9 @@ typedef struct LGFXCommandQueueImpl
 
 typedef struct LGFXSwapchainImpl
 {
+    bool invalidated;
+    bool justCreated;
+
     void *swapchain;
     void *nativeWindowHandle;
     void *windowSurface;
@@ -55,9 +58,6 @@ typedef struct LGFXSwapchainImpl
     u32 height;
     LGFXTexture *backbufferTextures;
     u32 backbufferTexturesCount;
-
-    bool recreatedThisFrame;
-    bool presentedPreviousFrame;
 
     LGFXFence fence;
     LGFXSemaphore awaitPresentComplete;
