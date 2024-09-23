@@ -7,34 +7,13 @@
 
 namespace LGFX
 {
-    struct ShaderStagingMutableState
-    {
-        union
-        {
-            struct
-            {
-                LGFXBuffer ub;
-                bool ownsUniformBuffer;
-            };
-            LGFXBuffer computeBuffer;
-            struct
-            {
-                collections::Array<LGFXTexture> textures;
-                void *imageInfos;
-            };
-            struct
-            {
-                collections::Array<LGFXSamplerState> samplers;
-                void *samplerInfos;
-            };
-        };
-        bool mutated;
-    };
     struct ShaderResource
     {
         string nameStr;
         LGFXShaderResource resource;
-        collections::vector<ShaderStagingMutableState> states;
+        collections::vector<LGFXFunctionVariable> states;
+
+        void deinit();
     };
 
     typedef collections::denseset<LGFX::ShaderResource> ShaderVariables;
@@ -42,8 +21,8 @@ namespace LGFX
     struct Shader
     {
         IAllocator allocator;
+        LGFXDevice device;
         LGFXFunction gpuFunction;
-        LGFXShaderState shaderState;
         ShaderVariables uniforms;
 
         usize descriptorForThisDrawCall;
@@ -51,6 +30,7 @@ namespace LGFX
 
         Shader();
         Shader(IAllocator allocator);
+        void deinit();
 
         i32 GetVariableBinding(text variableName);
         void CheckDescriptorSetAvailability(bool forceAddNewDescriptor = false);
@@ -64,7 +44,7 @@ namespace LGFX
         void SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer computeBuffer);
     };
 
-    void ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
+    u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
 
-    i32 CreateShaderFromString(IAllocator allocator, string jsonString, Shader *result);
+    usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
 }

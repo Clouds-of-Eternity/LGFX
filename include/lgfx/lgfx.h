@@ -532,6 +532,19 @@ typedef struct LGFXShaderResource
 } LGFXShaderResource;
 typedef struct
 {
+    void *descriptor;
+    void **currentValues;
+    u32 valuesCount;
+    void *infos;
+    LGFXShaderResource *metadata;
+
+    LGFXDevice device;
+    bool valueIsOwnedBuffer;
+    bool mutated;
+} LGFXFunctionVariable;
+
+typedef struct
+{
     u32 *module1Data;
     usize module1DataLength;
 
@@ -613,6 +626,9 @@ void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void LGFXDestroyFunction(LGFXFunction func);
+LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
+void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *functionVariables, u32 variablesCount);
+void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 void LGFXDestroyShaderState(LGFXShaderState shaderState);

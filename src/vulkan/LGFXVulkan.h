@@ -63,6 +63,9 @@ void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void VkLGFXDestroyFunction(LGFXFunction func);
+LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
+void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *shaderVariables, u32 shaderVariableCount);
+void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 void VkLGFXDestroyShaderState(LGFXShaderState shaderState);

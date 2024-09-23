@@ -417,6 +417,34 @@ void LGFXDestroyFunction(LGFXFunction func)
     }
     LGFX_ERROR("LGFXDestroyFunction: Unknown backend\n");
 }
+LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
+{
+    if (function->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXFunctionGetVariableSlot(function, forVariableOfIndex);
+    }
+    LGFX_ERROR("LGFXFunctionGetVariableSlot: Unknown backend\n");
+    LGFXFunctionVariable empty = {0};
+    return empty;
+}
+void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *functionVariables, u32 variablesCount)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXFunctionSendVariablesToGPU(device, functionVariables, variablesCount);
+        return;
+    }
+    LGFX_ERROR("LGFXFunctionSendVariablesToGPU: Unknown backend\n");
+}
+void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable)
+{
+    if (variable.device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDestroyFunctionVariable(variable);
+        return;
+    }
+    LGFX_ERROR("LGFXDestroyFunctionVariable: Unknown backend\n");
+}
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info)
 {

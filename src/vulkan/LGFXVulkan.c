@@ -2129,6 +2129,187 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 
 	return result;
 }
+LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
+{
+	LGFXFunctionVariable variable = {0};
+	LGFXShaderResource *resource = &function->uniforms[forVariableOfIndex];
+	variable.metadata = resource;
+	variable.valuesCount = resource->arrayLength == 0 ? 1 : resource->arrayLength;
+	variable.device = function->device;
+
+	VkDescriptorSetAllocateInfo allocInfo;
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.descriptorPool = (VkDescriptorPool)function->device->descriptorPool;
+	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&function->functionVariablesLayout;
+
+	u32 errorCode = vkAllocateDescriptorSets((VkDevice)function->device->logicalDevice, &allocInfo, (VkDescriptorSet *)&variable.descriptor);
+	if (errorCode != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to allocate descriptor set, error code %u\n", errorCode);
+		return variable;
+	}
+
+	switch (resource->type)
+	{
+		case LGFXShaderResourceType_StructuredBuffer:
+		case LGFXShaderResourceType_Uniform:
+		{
+			variable.currentValues = (void **)Allocate(LGFXBuffer, variable.valuesCount);
+			variable.infos = (void **)Allocate(VkDescriptorBufferInfo, variable.valuesCount);
+			break;
+		}
+		case LGFXShaderResourceType_StorageTexture:
+		case LGFXShaderResourceType_Texture:
+		{
+			variable.currentValues = (void **)Allocate(LGFXTexture, variable.valuesCount);
+			variable.infos = (void **)Allocate(VkDescriptorImageInfo, variable.valuesCount);
+			break;
+		}
+		case LGFXShaderResourceType_Sampler:
+		{
+			variable.currentValues = (void **)Allocate(LGFXSamplerState, variable.valuesCount);
+			variable.infos = (void **)Allocate(VkDescriptorImageInfo, variable.valuesCount);
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+	return variable;
+}
+void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *shaderVariables, u32 shaderVariableCount)
+{
+	VkWriteDescriptorSet setWrites[32];
+
+	for (u32 i = 0; i < shaderVariableCount; i++)
+	{
+		VkWriteDescriptorSet setWrite = {0};
+		setWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		setWrite.dstSet = (VkDescriptorSet)shaderVariables[i].descriptor;
+		setWrite.dstBinding = shaderVariables[i].metadata->binding;
+
+		switch (shaderVariables[i].metadata->type)
+		{
+			case LGFXShaderResourceType_InputAttachment:
+			{
+				VkDescriptorImageInfo imageInfo = {0};
+				imageInfo.sampler = NULL;
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //(VkImageLayout)toMutate->textures.data[i]->imageLayout;
+				imageInfo.imageView = (VkImageView)(((LGFXTexture)shaderVariables[i].currentValues[0])->imageView); // toMutate->textures.data[0]->imageView;
+				((VkDescriptorImageInfo*)shaderVariables[i].infos)[0] = imageInfo;
+
+				setWrite.dstArrayElement = 0;
+				setWrite.descriptorCount = shaderVariables[i].valuesCount;
+				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+				setWrite.pImageInfo = (VkDescriptorImageInfo *)shaderVariables[i].infos;
+				break;
+			}
+			case LGFXShaderResourceType_Uniform:
+			{
+				LGFXBuffer buffer = (LGFXBuffer)shaderVariables[i].currentValues[0];
+				VkDescriptorBufferInfo bufferInfo = {0};
+				bufferInfo.buffer = (VkBuffer)buffer->handle;
+				bufferInfo.offset = 0;
+				bufferInfo.range = buffer->size;
+				*((VkDescriptorBufferInfo *)shaderVariables[i].infos) = bufferInfo;
+
+				setWrite.dstArrayElement = 0;
+				setWrite.descriptorCount = 1;
+				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				setWrite.pBufferInfo = (VkDescriptorBufferInfo *)shaderVariables[i].infos;
+
+				break;
+			}
+			case LGFXShaderResourceType_Texture:
+			{
+				for (u32 j = 0; j < shaderVariables[i].valuesCount; j++)
+				{
+					VkDescriptorImageInfo imageInfo = {0};
+					imageInfo.sampler = NULL;
+					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //(VkImageLayout)toMutate->textures.data[i]->imageLayout;
+					imageInfo.imageView = (VkImageView)(((LGFXTexture *)shaderVariables[i].currentValues)[j]->imageView);
+					((VkDescriptorImageInfo*)shaderVariables[i].infos)[j] = imageInfo;
+				}
+
+				setWrite.dstArrayElement = 0;
+				setWrite.descriptorCount = shaderVariables[i].valuesCount;
+				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+				setWrite.pImageInfo = (VkDescriptorImageInfo *)shaderVariables[i].infos;
+
+				break;
+			}
+			case LGFXShaderResourceType_Sampler:
+			{
+				for (u32 j = 0; j < shaderVariables[i].valuesCount; j++)
+				{
+					VkDescriptorImageInfo imageInfo = {0};
+					imageInfo.sampler = (VkSampler)(((LGFXSamplerState *)shaderVariables[i].currentValues)[j]->handle);
+					imageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED; //(VkImageLayout)toMutate->textures.data[i]->imageLayout;
+					imageInfo.imageView = NULL;
+					((VkDescriptorImageInfo*)shaderVariables[i].infos)[j] = imageInfo;
+				}
+
+				setWrite.dstArrayElement = 0;
+				setWrite.descriptorCount = shaderVariables[i].valuesCount;
+				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+				setWrite.pImageInfo = (VkDescriptorImageInfo *)shaderVariables[i].infos;
+
+				break;
+			}
+			case LGFXShaderResourceType_StructuredBuffer:
+			{
+				LGFXBuffer buffer = (LGFXBuffer)shaderVariables[i].currentValues[0];
+				VkDescriptorBufferInfo bufferInfo = {0};
+				bufferInfo.buffer = (VkBuffer)buffer->handle;
+				bufferInfo.offset = 0;
+				bufferInfo.range = buffer->size;
+				*((VkDescriptorBufferInfo *)shaderVariables[i].infos) = bufferInfo;
+
+				setWrite.dstArrayElement = 0;
+				setWrite.descriptorCount = 1;
+				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+				setWrite.pBufferInfo = (VkDescriptorBufferInfo *)shaderVariables[i].infos;
+
+				break;
+			}
+			case LGFXShaderResourceType_StorageTexture:
+			{
+				LGFXTexture texture = (LGFXTexture)shaderVariables[i].currentValues[0];
+				VkDescriptorImageInfo textureInfo = {0};
+				//compute textures use the general layout format
+				textureInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				textureInfo.imageView = (VkImageView)texture->imageView;
+				textureInfo.sampler = NULL;
+				*((VkDescriptorImageInfo *)shaderVariables[i].infos) = textureInfo;
+
+				setWrite.dstArrayElement = 0;
+				setWrite.descriptorCount = 1;
+				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+				setWrite.pBufferInfo = (VkDescriptorBufferInfo *)shaderVariables[i].infos;
+
+				break;
+			}
+			default:
+				break;
+		}
+	}
+
+	vkUpdateDescriptorSets((VkDevice)device->logicalDevice, shaderVariableCount, setWrites, 0, NULL);
+}
+void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable)
+{
+	vkFreeDescriptorSets((VkDevice)variable.device->logicalDevice, (VkDescriptorPool)variable.device->descriptorPool, 1, (VkDescriptorSet *)&variable.descriptor);
+	if (variable.valueIsOwnedBuffer)
+	{
+		LGFXBuffer buffer = (LGFXBuffer)variable.currentValues[0];
+		LGFXDestroyBuffer(buffer);
+	}
+	free(variable.infos);
+	free(variable.currentValues);
+}
+
 LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info)
 {
 	//dynamic state
