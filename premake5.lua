@@ -139,3 +139,5 @@ workspace "LGFX"
     include("Astral.Canvas")
 
     include("examples/low-level-api/triangle")
+
+    include("examples/high-level-api/triangle")

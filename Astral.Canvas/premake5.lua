@@ -7,9 +7,10 @@ project "Astral.Canvas.LGFX"
     includedirs {
         "../include",
         "../Astral.Core/Astral.Core",
-        "../src"
+        "../src",
+        "../dependencies/glfw/include"
     }
-    links {"LGFX" }
+    links {"LGFX", "GLFW" }
 
     files {
         "**.cpp"

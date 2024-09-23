@@ -4,7 +4,7 @@
 
 using namespace Json;
 
-namespace LGFX
+namespace AstralCanvas
 {
     Shader::Shader()
     {
@@ -190,7 +190,7 @@ namespace LGFX
                     length = binding;
                 }
 
-                LGFX::ShaderResource *resource = results->Get(binding);
+                AstralCanvas::ShaderResource *resource = results->Get(binding);
                 if (resource != NULL && resource->resource.variableName != NULL)
                 {
                     resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
@@ -230,7 +230,7 @@ namespace LGFX
                     length = binding;
                 }
 
-                LGFX::ShaderResource *resource = results->Get(binding);
+                AstralCanvas::ShaderResource *resource = results->Get(binding);
                 if (resource != NULL && resource->resource.variableName != NULL)
                 {
                     resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
@@ -269,7 +269,7 @@ namespace LGFX
                     length = binding;
                 }
 
-                LGFX::ShaderResource *resource = results->Get(binding);
+                AstralCanvas::ShaderResource *resource = results->Get(binding);
                 if (resource != NULL && resource->resource.variableName != NULL)
                 {
                     resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
@@ -307,7 +307,7 @@ namespace LGFX
                     length = binding;
                 }
 
-                LGFX::ShaderResource *resource = results->Get(binding);
+                AstralCanvas::ShaderResource *resource = results->Get(binding);
                 if (resource != NULL && resource->resource.variableName != NULL)
                 {
                     resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
@@ -346,7 +346,7 @@ namespace LGFX
                     length = binding;
                 }
 
-                LGFX::ShaderResource *resource = results->Get(binding);
+                AstralCanvas::ShaderResource *resource = results->Get(binding);
                 if (resource != NULL && resource->resource.variableName != NULL)
                 {
                     resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);

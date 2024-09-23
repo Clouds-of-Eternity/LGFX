@@ -24,6 +24,17 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build High-Level Triangle Example",
+            "type": "shell",
+            "command": "msbuild",
+            "args": ["${workspaceFolder}/examples/high-level-api/triangle/AstralCanvasTriangle.vcxproj", "/p:configuration='Debug'", "/p:platform=x64"],
+            "problemMatcher": ["$msCompile"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

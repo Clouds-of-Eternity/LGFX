@@ -5,7 +5,7 @@
 #include "vector.hpp"
 #include "Json.hpp"
 
-namespace LGFX
+namespace AstralCanvas
 {
     struct ShaderResource
     {
@@ -16,7 +16,7 @@ namespace LGFX
         void deinit();
     };
 
-    typedef collections::denseset<LGFX::ShaderResource> ShaderVariables;
+    typedef collections::denseset<AstralCanvas::ShaderResource> ShaderVariables;
 
     struct Shader
     {

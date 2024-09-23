@@ -18,7 +18,7 @@ LGFXVertexDeclaration vertexDecl;
 LGFXBuffer vertexBuffer;
 LGFXBuffer indexBuffer;
 
-LGFX::Shader shader;
+AstralCanvas::Shader shader;
 LGFXShaderState shaderState;
 
 void WindowFramebufferResized(GLFWwindow *window, i32 width, i32 height)
@@ -132,13 +132,11 @@ i32 main()
 
     //shadah
     string fileContents = io::ReadFile(GetCAllocator(), "Triangle.shaderobj", false);
-    if (LGFX::CreateShaderFromString(device, GetCAllocator(), fileContents, &shader) != 0)
+    if (AstralCanvas::CreateShaderFromString(device, GetCAllocator(), fileContents, &shader) != 0)
     {
         printf("Error loading shader json\n");
     }
     fileContents.deinit();
-
-    bool justResized = false;
 
     LGFXShaderStateCreateInfo stateCreateInfo = {0};
     stateCreateInfo.blendState = ALPHA_BLEND;
@@ -159,9 +157,14 @@ i32 main()
     //main loop
     while (!glfwWindowShouldClose(window)) 
     {
-        int framebufferWidth;
-        int framebufferHeight;
+        i32 framebufferWidth;
+        i32 framebufferHeight;
         glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        while (framebufferWidth == 0 || framebufferHeight == 0)
+        {
+            glfwPollEvents();
+            glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+        }
         if (LGFXNewFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight))
         {
             LGFXCommandBufferReset(mainCommands);
@@ -182,10 +185,6 @@ i32 main()
 
             LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
             LGFXSubmitFrame(device, swapchain);
-        }
-        else
-        {
-            justResized = true;
         }
 
         //LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
