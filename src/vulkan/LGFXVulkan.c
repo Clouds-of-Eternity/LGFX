@@ -113,6 +113,49 @@ inline VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresen
 			return VK_PRESENT_MODE_MAILBOX_KHR;
 	}
 }
+inline VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMode)
+{
+	switch (repeatMode)
+	{
+		case LGFXSamplerRepeatMode_Repeat:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case LGFXSamplerRepeatMode_ClampToEdgeColor:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case LGFXSamplerRepeatMode_ClampToStaticColor:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	}
+}
+inline VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
+{
+	switch (type)
+	{
+		case LGFXFilterType_Linear:
+			return VK_FILTER_LINEAR;
+		case LGFXFilterType_Point:
+			return VK_FILTER_NEAREST;
+	}
+}
+inline VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
+{
+	switch (color)
+	{
+		case LGFXSamplerBorderColor_OpaqueBlack:
+			return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+		case LGFXSamplerBorderColor_OpaqueWhite:
+			return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+			
+		case LGFXSamplerBorderColor_OpaqueBlackInt:
+			return VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		case LGFXSamplerBorderColor_OpaqueWhiteInt:
+			return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+
+		case LGFXSamplerBorderColor_TransparentBlack:
+			return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		case LGFXSamplerBorderColor_TransparentBlackInt:
+			return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
+	}
+}
+
 inline VkImageUsageFlags LGFXTextureUsage2Vulkan(LGFXTextureUsage usage)
 {
 	//these map 1:1
@@ -386,6 +429,7 @@ VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
 			return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
 		case LGFXTextureFormat_ASTC12x12UnormSrgb:
 			return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
+
 		default:
 			LGFX_ERROR("Unknown LGFXTextureFormat %u\n", format);
 			return VK_FORMAT_UNDEFINED;
@@ -1001,6 +1045,36 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 		return NULL;
 	}
 
+	u32 maxUniformDescriptors = info->maxDescriptorSets == 0 ? 1024 : info->maxDescriptorSets;
+	VkDescriptorPoolSize poolSizes[6];
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	poolSizes[0].descriptorCount = maxUniformDescriptors;
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+	poolSizes[1].descriptorCount = maxUniformDescriptors;
+	poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[2].descriptorCount = maxUniformDescriptors;
+	poolSizes[3].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+	poolSizes[3].descriptorCount = maxUniformDescriptors;
+	poolSizes[4].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSizes[4].descriptorCount = maxUniformDescriptors;
+	poolSizes[5].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	poolSizes[5].descriptorCount = maxUniformDescriptors;
+
+	VkDescriptorPoolCreateInfo poolCreateInfo = {0};
+	poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolCreateInfo.pPoolSizes = poolSizes;
+	poolCreateInfo.poolSizeCount = 6;
+	poolCreateInfo.maxSets = maxUniformDescriptors;
+
+	VkDescriptorPool mainPool;
+	if (vkCreateDescriptorPool(logicalDevice, &poolCreateInfo, NULL, &mainPool) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create shader uniform descriptor pool\n");
+		return NULL;
+	}
+
+	result->descriptorPool = mainPool;
+
 	return result;
 }
 
@@ -1435,7 +1509,6 @@ void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usi
 	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_ShaderReadOptimal, cmdBuffer, 0, 1);
 
 	VkLGFXEndTemporaryCommandBuffer(device, cmdBuffer);
-	free(cmdBuffer);
 
 	VkLGFXDestroyBuffer(stagingBuffer);
 
@@ -1483,7 +1556,6 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	if (commandBuffer == NULL)
 	{
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
-		free(transientCmdBuffer);
 	}
 }
 void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip)
@@ -1517,7 +1589,6 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	if (commandBuffer == NULL)
 	{
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
-		free(transientCmdBuffer);
 	}
     //AstralCanvasVk_EndTransientCommandBuffer(gpu, &gpu->DedicatedTransferQueue, transientCmdBuffer);
 }
@@ -1593,10 +1664,49 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
 	result.usage = info->bufferUsage;
 	result.bufferMemory = VkLGFXAllocMemoryForBuffer(device, &result, info->memoryUsage);
 	result.device = device;
+	result.size = info->size;
 
 	LGFXBuffer ptr = Allocate(LGFXBufferImpl, 1);
 	*ptr = result;
 	return ptr;
+}
+void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to)
+{
+	VkBufferCopy regions;
+	regions.size = from->size;
+	regions.srcOffset = 0;
+	regions.dstOffset = 0;
+	vkCmdCopyBuffer((VkCommandBuffer)commandBuffer->cmdBuffer, (VkBuffer)from->handle, (VkBuffer)to->handle, 1, &regions);
+}
+void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength)
+{
+	LGFXBufferCreateInfo stagingBufferInfo = {0};
+	stagingBufferInfo.bufferUsage = LGFXBufferUsage_TransferSource;
+	stagingBufferInfo.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
+	stagingBufferInfo.size = dataLength;
+
+	LGFXBuffer stagingBuffer = VkLGFXCreateBuffer(buffer->device, &stagingBufferInfo);
+
+	memcpy(stagingBuffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
+
+	LGFXCommandBuffer cmdBuffer = commandBufferToUse;
+	if (commandBufferToUse == NULL)
+	{
+		cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(buffer->device, buffer->device->transferQueue, true);
+	}
+
+	VkLGFXCopyBufferToBuffer(buffer->device, cmdBuffer, stagingBuffer, buffer);
+
+	if (commandBufferToUse == NULL)
+	{
+		VkLGFXEndTemporaryCommandBuffer(buffer->device, cmdBuffer);
+	}
+
+	VkLGFXDestroyBuffer(stagingBuffer);
+}
+void VkLGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength)
+{
+	memcpy(buffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
 }
 LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage)
 {
@@ -2331,6 +2441,41 @@ void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer)
 	vkResetCommandBuffer((VkCommandBuffer)buffer->cmdBuffer, 0);
 }
 
+LGFXSamplerState VkLGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info)
+{
+	VkSamplerCreateInfo createInfo = {0};
+	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	createInfo.addressModeU = LGFXSamplerRepeatMode2Vulkan(info->repeatModeU);
+	createInfo.addressModeV = LGFXSamplerRepeatMode2Vulkan(info->repeatModeV);
+	createInfo.addressModeW = LGFXSamplerRepeatMode2Vulkan(info->repeatModeW);
+	createInfo.anisotropyEnable = info->isAnisotropic;
+	createInfo.maxAnisotropy = info->maxAnisotropy;
+	createInfo.minFilter = LGFXFilterType2Vulkan(info->minimizationFilter);
+	createInfo.magFilter = LGFXFilterType2Vulkan(info->magnificationFilter);
+	createInfo.minLod = info->minLODClamp;
+	createInfo.maxLod = info->maxLODClamp;
+	createInfo.borderColor = LGFXSamplerBorderColor2Vulkan(info->borderColor);
+
+	LGFXSamplerState state = Allocate(LGFXSamplerStateImpl, 1);
+	state->device = device;
+	if (vkCreateSampler((VkDevice)device->logicalDevice, &createInfo, NULL, (VkSampler *)&state->handle) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to create sampler state\n");
+		free(state);
+		return NULL;
+	}
+
+	return state;
+}
+void VkLGFXDestroySamplerState(LGFXSamplerState state)
+{
+	if (state->handle != NULL)
+	{
+		vkDestroySampler((VkDevice)state->device->logicalDevice, (VkSampler)state->handle, NULL);
+	}
+	free(state);
+}
+
 bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
 {
 	LGFXSwapchain currentSwapchain = *swapchain;
@@ -2407,6 +2552,26 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWid
 	{
 		LGFX_ERROR("Error presenting queue");
 	}
+}
+
+void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset)
+{
+	vkCmdBindIndexBuffer((VkCommandBuffer)commands->cmdBuffer, (VkBuffer)indexBuffer->handle, offset, VK_INDEX_TYPE_UINT32);
+}
+void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount)
+{
+	VkBuffer vkBuffers[16];
+	VkDeviceSize offsets[16];
+	for (u32 i = 0; i < vertexBuffersCount; i++)
+	{
+		vkBuffers[i] = (VkBuffer)vertexBuffers[i]->handle;
+		offsets[i] = 0;
+	}
+	vkCmdBindVertexBuffers((VkCommandBuffer)commands->cmdBuffer, 0, vertexBuffersCount, vkBuffers, offsets);
+}
+void VkLGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance)
+{
+	vkCmdDrawIndexed((VkCommandBuffer)commands->cmdBuffer, indexCount, instances, firstIndex, vertexOffset, firstInstance);
 }
 // END
 
@@ -2489,7 +2654,7 @@ void VkLGFXDestroyRenderTarget(LGFXRenderTarget target)
 }
 void VkLGFXDestroyBuffer(LGFXBuffer buffer)
 {
-	vkDestroyBuffer((VkDevice)buffer->device, (VkBuffer)buffer->handle, NULL);
+	vkDestroyBuffer((VkDevice)buffer->device->logicalDevice, (VkBuffer)buffer->handle, NULL);
 
 	vmaFreeMemory((VmaAllocator)buffer->device->memoryAllocator, buffer->bufferMemory->vkAllocation);
 
@@ -2561,6 +2726,8 @@ void VkLGFXDestroyDevice(LGFXDevice device)
 		}
 
 		VkLGFXDestroyCommandQueue(device, device->graphicsQueue);
+
+		vmaDestroyAllocator((VmaAllocator)device->memoryAllocator);
 
 		vkDestroyDevice((VkDevice)device->logicalDevice, NULL);
 	}

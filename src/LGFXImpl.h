@@ -20,6 +20,8 @@ typedef struct LGFXDeviceImpl
     void *physicalDevice;
     void *logicalDevice;
     void *memoryAllocator;
+    void *descriptorPool;
+
     LGFXCommandQueue graphicsQueue;
     LGFXCommandQueue computeQueue;
     LGFXCommandQueue transferQueue;
@@ -114,5 +116,11 @@ typedef struct LGFXShaderStateImpl
     LGFXFunction function;
     LGFXDevice device;
 } LGFXShaderStateImpl;
+
+typedef struct LGFXSamplerStateImpl
+{
+    void *handle;
+    LGFXDevice device;
+} LGFXSamplerStateImpl;
 
 #endif

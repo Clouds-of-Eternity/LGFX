@@ -12,7 +12,6 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
     result.elementsCount = elementsCount;
 
     u32 total = 0;
-    LGFXVertexElementFormat prevFormat = LGFXVertexElementFormat_Invalid;
     for (u32 i = 0; i < elementsCount; i++)
     {
         result.elements[i].format = elementFormats[i];
@@ -27,9 +26,20 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             case LGFXVertexElementFormat_Uint:
             case LGFXVertexElementFormat_Int:
             {
-                if (prevFormat == LGFXVertexElementFormat_Float || prevFormat == LGFXVertexElementFormat_Uint || prevFormat == LGFXVertexElementFormat_Int)
+                LGFXVertexElementFormat prevFormat = LGFXVertexElementFormat_Invalid;
+                if (i >= 1)
                 {
-                    total += 4;
+                    prevFormat = result.elements[i - 1].format;
+                }
+                if (!tightlyPacked && prevFormat != LGFXVertexElementFormat_Invalid)
+                {
+                    if (prevFormat != LGFXVertexElementFormat_Float && prevFormat != LGFXVertexElementFormat_Uint && prevFormat != LGFXVertexElementFormat_Int)
+                    {
+                        if (total % 8 != 0)
+                        {
+                            total = (u32)ceilf((float)total / 8.0f - 0.01f) * 8;
+                        }
+                    }
                 }
                 result.elements[i].offset = total;
                 total += 4;
@@ -37,9 +47,12 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             }
             case LGFXVertexElementFormat_Vector2:
             {
-                if (total % 8 != 0)
+                if (!tightlyPacked)
                 {
-                    total = (u32)ceilf((float)total / 8.0f - 0.01f) * 8;
+                    if (total % 8 != 0)
+                    {
+                        total = (u32)ceilf((float)total / 8.0f - 0.01f) * 8;
+                    }
                 }
                 result.elements[i].offset = total;
                 total += 8;
@@ -48,9 +61,12 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             case LGFXVertexElementFormat_Vector3:
             {
                 //utterly cursed attribute format
-                if (total % 12 != 0 && total % 16 != 0)
+                if (!tightlyPacked)
                 {
-                    total = min((u32)ceilf((float)total / 12.0f - 0.01f) * 12, (u32)ceilf((float)total / 16.0f - 0.01f) * 16);
+                    if (total % 12 != 0 && total % 16 != 0)
+                    {
+                        total = min((u32)ceilf((float)total / 12.0f - 0.01f) * 12, (u32)ceilf((float)total / 16.0f - 0.01f) * 16);
+                    }
                 }
                 result.elements[i].offset = total;
                 total += 12;
@@ -58,9 +74,12 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             }
             case LGFXVertexElementFormat_Vector4:
             {
-                if (total % 16 != 0)
+                if (!tightlyPacked)
                 {
-                    total = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
+                    if (total % 16 != 0)
+                    {
+                        total = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
+                    }
                 }
                 result.elements[i].offset = total;
                 total += 16;
@@ -69,11 +88,11 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             default:
                 break;
         }
-        prevFormat = elementFormats[i];
     }
 
     result.packedSize = total;
     result.isPerInstance = isPerInstance;
+    result.isTightlyPacked = tightlyPacked;
 
     return result;
 }
@@ -250,6 +269,25 @@ void LGFXDestroyTexture(LGFXTexture texture)
     LGFX_ERROR("LGFXDestroyTexture: Unknown backend\n");
 }
 
+LGFXSamplerState LGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXCreateSamplerState(device, info);
+    }
+    LGFX_ERROR("LGFXCreateSamplerState: Unknown backend\n");
+    return NULL;
+}
+void LGFXDestroySamplerState(LGFXSamplerState state)
+{
+    if (state->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDestroySamplerState(state);
+        return;
+    }
+    LGFX_ERROR("LGFXDestroySamplerState: Unknown backend\n");
+}
+
 LGFXRenderTarget LGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
@@ -277,6 +315,33 @@ LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
     }
     LGFX_ERROR("LGFXCreateBuffer: Unknown backend\n");
     return NULL;
+}
+void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCopyBufferToBuffer(device, commandBuffer, from, to);
+        return;
+    }
+    LGFX_ERROR("LGFXCopyBufferToBuffer: Unknown backend\n");
+}
+void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength)
+{
+    if (buffer->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXSetBufferDataOptimizedData(buffer, commandBufferToUse, data, dataLength);
+        return;
+    }
+    LGFX_ERROR("LGFXSetBufferDataOptimizedData: Unknown backend\n");
+}
+void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength)
+{
+    if (buffer->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXSetBufferDataFast(buffer, data, dataLength);
+        return;
+    }
+    LGFX_ERROR("LGFXSetBufferDataFast: Unknown backend\n");
 }
 void LGFXDestroyBuffer(LGFXBuffer buffer)
 {
@@ -425,6 +490,34 @@ void LGFXCommandBufferReset(LGFXCommandBuffer buffer)
         return;
     }
     LGFX_ERROR("LGFXCommandBufferReset: Unknown backend\n");
+}
+
+void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset)
+{
+    if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXUseIndexBuffer(commands, indexBuffer, offset);
+        return;
+    }
+    LGFX_ERROR("LGFXUseIndexBuffer: Unknown backend\n");
+}
+void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount)
+{
+    if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXUseVertexBuffer(commands, vertexBuffers, vertexBuffersCount);
+        return;
+    }
+    LGFX_ERROR("LGFXUseVertexBuffer: Unknown backend\n");
+}
+void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance)
+{
+    if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDrawIndexed(commands, indexCount, instances, firstIndex, vertexOffset, firstInstance);
+        return;
+    }
+    LGFX_ERROR("LGFXDrawIndexed: Unknown backend\n");
 }
 
 bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)

@@ -4,12 +4,17 @@
 #include "stdio.h"
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
+#include "lgfx-astral/lgfx-astral-types.hpp"
 
 LGFXInstance instance;
 LGFXDevice device;
 LGFXSwapchain swapchain;
 LGFXCommandBuffer mainCommands;
 LGFXRenderProgram rp;
+
+LGFXVertexDeclaration vertexDecl;
+LGFXBuffer vertexBuffer;
+LGFXBuffer indexBuffer;
 
 i32 main()
 {
@@ -55,6 +60,41 @@ i32 main()
     //create main command buffer to reuse
     mainCommands = LGFXCreateCommandBuffer(device, false);
 
+    //create resource buffers
+
+    LGFXBufferCreateInfo bufferCreateInfo;
+    bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_VertexBuffer | LGFXBufferUsage_TransferDest);
+    bufferCreateInfo.memoryUsage = LGFXMemoryUsage_GPU_ONLY;
+    bufferCreateInfo.size = sizeof(LGFX::VertexPositionColor) * 3;
+    vertexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
+
+    bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_IndexBuffer | LGFXBufferUsage_TransferDest);
+    bufferCreateInfo.size = sizeof(u32) * 3;
+    indexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
+
+    vertexDecl = LGFX::GetVertexPositionColorDecl();
+
+    LGFX::VertexPositionColor vertices[3] = {
+        {
+            Maths::Vec3(0.5, 0.0, 0.0),
+            Maths::Vec4(1.0, 0.0, 0.0, 1.0)
+        },
+        {
+            Maths::Vec3(0.5, 1.0, 0.0),
+            Maths::Vec4(0.0, 1.0, 0.0, 1.0)
+        },
+        {
+            Maths::Vec3(1.0, 1.0, 0.0),
+            Maths::Vec4(0.0, 0.0, 1.0, 1.0)
+        }
+    };
+    LGFXSetBufferDataOptimizedData(vertexBuffer, NULL, (u8*)vertices, sizeof(vertices));
+
+    u32 indices[3] = {
+        0, 1, 2
+    };
+    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8 *)indices, sizeof(indices));
+
     //render program
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
@@ -90,6 +130,9 @@ i32 main()
 
             LGFXBeginRenderProgramSwapchain(rp, mainCommands, swapchain, {128, 128, 128, 255}, true);
 
+            LGFXUseVertexBuffer(mainCommands, &vertexBuffer, 1);
+            LGFXUseIndexBuffer(mainCommands, indexBuffer, 0);
+
             LGFXEndRenderProgram(mainCommands);
 
             LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
@@ -104,6 +147,10 @@ i32 main()
     glfwDestroyWindow(window);
 
     //shutdown
+    LGFXDestroyCommandBuffer(mainCommands);
+    LGFXDestroyBuffer(vertexBuffer);
+    LGFXDestroyBuffer(indexBuffer);
+
     LGFXDestroyRenderProgram(rp);
 
     LGFXDestroySwapchain(swapchain);

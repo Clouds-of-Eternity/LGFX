@@ -24,6 +24,7 @@ typedef struct LGFXRenderProgramImpl *LGFXRenderProgram;
 typedef struct LGFXFunctionImpl *LGFXFunction;
 typedef struct LGFXShaderStateImpl *LGFXShaderState;
 typedef struct LGFXComputeImpl *LGFXCompute;
+typedef struct LGFXSamplerStateImpl *LGFXSamplerState;
 
 typedef enum
 {
@@ -40,6 +41,50 @@ typedef enum
     LGFXShaderResourceType_InputAttachment,
     LGFXShaderResourceType_StorageTexture
 } LGFXShaderResourceType;
+
+typedef enum
+{
+    LGFXFilterType_Point,
+    LGFXFilterType_Linear
+} LGFXFilterType;
+
+typedef enum
+{
+    LGFXSamplerRepeatMode_Repeat,
+    LGFXSamplerRepeatMode_ClampToEdgeColor,
+    LGFXSamplerRepeatMode_ClampToStaticColor
+} LGFXSamplerRepeatMode;
+
+typedef enum
+{
+    LGFXSamplerBorderColor_TransparentBlack,
+    LGFXSamplerBorderColor_TransparentBlackInt,
+    LGFXSamplerBorderColor_OpaqueBlack,
+    LGFXSamplerBorderColor_OpaqueBlackInt,
+    LGFXSamplerBorderColor_OpaqueWhite,
+    LGFXSamplerBorderColor_OpaqueWhiteInt
+} LGFXSamplerBorderColor;
+
+typedef enum
+{
+    LGFXComparisonMode_Never,
+    LGFXComparisonMode_Less,
+    LGFXComparisonMode_Equal,
+    LGFXComparisonMode_LessEqual,
+    LGFXComparisonMode_Greater,
+    LGFXComparisonMode_NotEqual,
+    LGFXComparisonMode_GreaterEqual,
+    LGFXComparisonMode_Always
+} LGFXComparisonMode;
+
+typedef enum
+{
+    LGFXShaderType_Vertex = 1,
+    LGFXShaderType_Fragment = 2,
+    LGFXShaderType_Compute = 4,
+    LGFXShaderType_Tessellation = 8,
+    LGFXShaderType_Mesh = 16
+} LGFXShaderType;
 
 typedef enum
 {
@@ -332,6 +377,7 @@ typedef struct
 typedef struct
 {
     LGFXDeviceFeatures requiredFeatures;
+    u32 maxDescriptorSets;
 } LGFXDeviceCreateInfo;
 
 typedef struct
@@ -346,6 +392,23 @@ typedef struct
 
     void *externalTextureHandle;
 } LGFXTextureCreateInfo;
+
+typedef struct
+{
+    LGFXSamplerRepeatMode repeatModeU;
+    LGFXSamplerRepeatMode repeatModeV;
+    LGFXSamplerRepeatMode repeatModeW;
+    LGFXFilterType magnificationFilter;
+    LGFXFilterType minimizationFilter;
+    LGFXFilterType mipmapLookupMode;
+    float minLODClamp;
+    float maxLODClamp;
+    LGFXSamplerBorderColor borderColor;
+    bool isAnisotropic;
+    float maxAnisotropy;
+    bool isComparisonSampler;
+    LGFXComparisonMode comparisonOperation;
+} LGFXSamplerStateCreateInfo;
 
 typedef struct LGFXTextureImpl
 {
@@ -375,6 +438,7 @@ typedef struct LGFXBufferImpl
     LGFXBufferUsage usage;
     LGFXMemoryBlock bufferMemory;
     LGFXDevice device;
+    usize size;
 } LGFXBufferImpl;
 
 typedef struct
@@ -428,6 +492,7 @@ typedef struct
     LGFXVertexAttribute *elements;
     u32 elementsCount;
     bool isPerInstance;
+    bool isTightlyPacked;
     u32 packedSize;
 } LGFXVertexDeclaration;
 LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *elementFormats, u32 elementsCount, bool isPerInstance, bool tightlyPacked);
@@ -521,6 +586,9 @@ void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer,
 void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
 void LGFXDestroyTexture(LGFXTexture texture);
 
+LGFXSamplerState LGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info);
+void LGFXDestroySamplerState(LGFXSamplerState state);
+
 LGFXCommandBuffer LGFXCreateCommandBuffer(LGFXDevice device, bool forCompute);
 void LGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission);
 void LGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore);
@@ -532,6 +600,9 @@ LGFXRenderTarget LGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreat
 void LGFXDestroyRenderTarget(LGFXRenderTarget target);
 
 LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
+void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to);
+void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength);
+void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength);
 void LGFXDestroyBuffer(LGFXBuffer buffer);
 
 LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
@@ -545,6 +616,10 @@ void LGFXDestroyFunction(LGFXFunction func);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 void LGFXDestroyShaderState(LGFXShaderState shaderState);
+
+void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
+void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);
+void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance);
 
 bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
 void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);

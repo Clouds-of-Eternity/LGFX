@@ -43,10 +43,16 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
 void VkLGFXDestroyTexture(LGFXTexture texture);
 
+LGFXSamplerState VkLGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info);
+void VkLGFXDestroySamplerState(LGFXSamplerState state);
+
 LGFXRenderTarget VkLGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info);
 void VkLGFXDestroyRenderTarget(LGFXRenderTarget target);
 
 LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
+void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to);
+void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength);
+void VkLGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength);
 void VkLGFXDestroyBuffer(LGFXBuffer buffer);
 
 LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
@@ -68,6 +74,8 @@ void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swa
 void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer);
 void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer);
 
-
+void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
+void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);
+void VkLGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance);
 
 #endif
