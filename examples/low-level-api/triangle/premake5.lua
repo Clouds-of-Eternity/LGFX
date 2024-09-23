@@ -9,10 +9,11 @@ project "Triangle"
         "../../../Astral.Core/Astral.Core",
         "../../../dependencies/glfw/include"
     }
-    links {"LGFX", "GLFW"}
+    links {"Astral.Canvas.LGFX", "GLFW"}
 
     files {
-        "Program.cpp"
+        "Program.cpp",
+        "Json.cpp"
     }
 
     -- postbuildcommands { 

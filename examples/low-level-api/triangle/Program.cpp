@@ -2,9 +2,11 @@
 #include "GLFW/glfw3native.h"
 #include "Linxc.h"
 #include "stdio.h"
+#include "io.hpp"
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
 #include "lgfx-astral/lgfx-astral-types.hpp"
+#include "lgfx-astral/Shader.hpp"
 
 LGFXInstance instance;
 LGFXDevice device;
@@ -15,6 +17,9 @@ LGFXRenderProgram rp;
 LGFXVertexDeclaration vertexDecl;
 LGFXBuffer vertexBuffer;
 LGFXBuffer indexBuffer;
+
+LGFX::Shader shader;
+LGFXShaderState shaderState;
 
 i32 main()
 {
@@ -76,11 +81,11 @@ i32 main()
 
     LGFX::VertexPositionColor vertices[3] = {
         {
-            Maths::Vec3(0.5, 0.0, 0.0),
+            Maths::Vec3(0.0, -1.0, 0.0),
             Maths::Vec4(1.0, 0.0, 0.0, 1.0)
         },
         {
-            Maths::Vec3(0.5, 1.0, 0.0),
+            Maths::Vec3(-1.0, 1.0, 0.0),
             Maths::Vec4(0.0, 1.0, 0.0, 1.0)
         },
         {
@@ -117,6 +122,28 @@ i32 main()
     rpCreateInfo.renderPasses = &passes;
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
+    //shadah
+    string fileContents = io::ReadFile(GetCAllocator(), "Triangle.shaderobj", false);
+    if (LGFX::CreateShaderFromString(device, GetCAllocator(), fileContents, &shader) != 0)
+    {
+        printf("Error loading shader json\n");
+    }
+    fileContents.deinit();
+
+    LGFXShaderStateCreateInfo stateCreateInfo = {0};
+    stateCreateInfo.blendState = ALPHA_BLEND;
+    stateCreateInfo.cullMode = LGFXCullMode_None;
+    stateCreateInfo.depthTest = false;
+    stateCreateInfo.depthWrite = false;
+    stateCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
+    stateCreateInfo.dynamicViewportScissor = true;
+    stateCreateInfo.function = shader.gpuFunction;
+    stateCreateInfo.vertexDeclarationCount = 1;
+    stateCreateInfo.vertexDeclarations = &vertexDecl;
+    stateCreateInfo.forRenderProgram = rp;
+    stateCreateInfo.forRenderPass = 0;
+    shaderState = LGFXCreateShaderState(device, &stateCreateInfo);
+
     //main loop
     while (!glfwWindowShouldClose(window)) 
     {
@@ -128,15 +155,25 @@ i32 main()
             LGFXCommandBufferReset(mainCommands);
             LGFXCommandBufferBegin(mainCommands, true);
 
+            LGFXSetViewport(mainCommands, {0, 0, (float)framebufferWidth, (float)framebufferHeight});
+            LGFXSetClipArea(mainCommands, {0, 0, (u32)framebufferWidth, (u32)framebufferHeight});
+
             LGFXBeginRenderProgramSwapchain(rp, mainCommands, swapchain, {128, 128, 128, 255}, true);
 
             LGFXUseVertexBuffer(mainCommands, &vertexBuffer, 1);
             LGFXUseIndexBuffer(mainCommands, indexBuffer, 0);
+            LGFXUseShaderState(mainCommands, shaderState);
+
+            LGFXDrawIndexed(mainCommands, 3, 1, 0, 0, 0);
 
             LGFXEndRenderProgram(mainCommands);
 
             LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
             LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
+        }
+        else
+        {
+            
         }
 
         //LGFXSubmitFrame(device, &swapchain, (u32)framebufferWidth, (u32)framebufferHeight);
@@ -147,6 +184,10 @@ i32 main()
     glfwDestroyWindow(window);
 
     //shutdown
+    LGFXDestroyShaderState(shaderState);
+
+    shader.deinit();
+
     LGFXDestroyCommandBuffer(mainCommands);
     LGFXDestroyBuffer(vertexBuffer);
     LGFXDestroyBuffer(indexBuffer);

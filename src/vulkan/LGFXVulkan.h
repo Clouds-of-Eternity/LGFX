@@ -69,6 +69,7 @@ void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 void VkLGFXDestroyShaderState(LGFXShaderState shaderState);
+void VkLGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState);
 
 LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute);
 void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission);
@@ -76,6 +77,9 @@ void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemap
 void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain);
 void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer);
 void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer);
+
+void VkLGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area);
+void VkLGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 
 void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
 void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);

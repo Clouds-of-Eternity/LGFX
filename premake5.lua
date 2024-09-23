@@ -136,4 +136,6 @@ workspace "LGFX"
             defines { "NDEBUG" }
             optimize "On"
 
+    include("Astral.Canvas")
+
     include("examples/low-level-api/triangle")

@@ -9,6 +9,30 @@ extern "C"
 #endif
 #include "lgfx/Linxc.h"
 
+typedef struct
+{
+    u8 R;
+    u8 G;
+    u8 B;
+    u8 A;
+} LGFXColor;
+
+typedef struct
+{
+    i32 X;
+    i32 Y;
+    u32 width;
+    u32 height;
+} LGFXRectangle;
+
+typedef struct
+{
+    float X;
+    float Y;
+    float width;
+    float height;
+} LGFXBox;
+
 typedef struct LGFXInstanceImpl *LGFXInstance;
 typedef struct LGFXDeviceImpl *LGFXDevice;
 typedef struct LGFXSwapchainImpl *LGFXSwapchain;
@@ -304,14 +328,6 @@ typedef enum
     LGFXTextureFormat_Depth32Float,
     LGFXTextureFormat_Depth32FloatStencil8,
 } LGFXTextureFormat;
-
-typedef struct
-{
-    u8 R;
-    u8 G;
-    u8 B;
-    u8 A;
-} LGFXColor;
 
 typedef struct
 {
@@ -632,6 +648,10 @@ void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
 void LGFXDestroyShaderState(LGFXShaderState shaderState);
+void LGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState);
+
+void LGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area);
+void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 
 void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
 void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);

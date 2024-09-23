@@ -2119,13 +2119,44 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 		return NULL;
 	}
 
+	VkPipelineLayout pipelineLayout;
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {0};
+	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+	pipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+	pipelineLayoutCreateInfo.flags = 0;
+
+	pipelineLayoutCreateInfo.setLayoutCount = 0;
+	if (layout != NULL)
+	{
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
+		pipelineLayoutCreateInfo.pSetLayouts = (VkDescriptorSetLayout*)&layout;
+	}
+
+	if (vkCreatePipelineLayout((VkDevice)device->logicalDevice, &pipelineLayoutCreateInfo, NULL, (VkPipelineLayout*)&pipelineLayout) != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to initialize pipeline layout");
+	}
+
 	LGFXFunction result = Allocate(LGFXFunctionImpl, 1);
 	result->module1 = shaderModule1;
 	result->module2 = shaderModule2;
-	result->uniforms = info->uniforms;
+	if (info->uniformsCount > 0)
+	{
+		result->uniforms = Allocate(LGFXShaderResource, info->uniformsCount);
+		for (u32 i = 0; i < info->uniformsCount; i++)
+		{
+			result->uniforms[i] = info->uniforms[i];
+		}
+	}
+	else
+	{
+		result->uniforms = NULL;
+	}
 	result->uniformsCount = info->uniformsCount;
 	result->functionVariablesLayout = layout;
 	result->device = device;
+	result->pipelineLayout = pipelineLayout;
 
 	return result;
 }
@@ -2468,24 +2499,6 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 
 	//pipeline layout itself
 	//dont reuse these
-	VkPipelineLayout pipelineLayout;
-	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {0};
-	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-	pipelineLayoutCreateInfo.pPushConstantRanges = NULL;
-	pipelineLayoutCreateInfo.flags = 0;
-
-	pipelineLayoutCreateInfo.setLayoutCount = 0;
-	if (info->function->functionVariablesLayout != NULL)
-	{
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = (VkDescriptorSetLayout*)&info->function->functionVariablesLayout;
-	}
-
-	if (vkCreatePipelineLayout((VkDevice)device->logicalDevice, &pipelineLayoutCreateInfo, NULL, (VkPipelineLayout*)&pipelineLayout) != VK_SUCCESS)
-	{
-		LGFX_ERROR("Failed to initialize pipeline layout");
-	}
 
 	VkPipelineShaderStageCreateInfo shaderStageInfos[2];
 	memset(shaderStageInfos, 0, sizeof(VkPipelineShaderStageCreateInfo) * 2);
@@ -2511,7 +2524,7 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 	pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
 	pipelineCreateInfo.pDepthStencilState = &depthStencilInfo;
 	pipelineCreateInfo.pDynamicState = &dynamicStateInfo;
-	pipelineCreateInfo.layout = (VkPipelineLayout)pipelineLayout;
+	pipelineCreateInfo.layout = (VkPipelineLayout)info->function->pipelineLayout;
 	pipelineCreateInfo.renderPass = (VkRenderPass)info->forRenderProgram->handle;
 	pipelineCreateInfo.subpass = info->forRenderPass;
 
@@ -2524,10 +2537,34 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 	LGFXShaderState shader = Allocate(LGFXShaderStateImpl, 1);
 	shader->device = device;
 	shader->handle = result;
-	shader->pipelineLayoutHandle = pipelineLayout;
 	shader->function = info->function;
 
 	return shader;
+}
+void VkLGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState)
+{
+	vkCmdBindPipeline((VkCommandBuffer)buffer->cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, (VkPipeline)shaderState->handle);
+}
+
+void VkLGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area)
+{
+	VkRect2D rects;
+	rects.offset.x = area.X;
+	rects.offset.y = area.Y;
+	rects.extent.width = area.width;
+	rects.extent.height = area.height;
+	vkCmdSetScissor((VkCommandBuffer)commandBuffer->cmdBuffer, 0, 1, &rects);
+}
+void VkLGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area)
+{
+	VkViewport viewports;
+	viewports.minDepth = 0.0f;
+	viewports.maxDepth = 1.0f;
+	viewports.x = area.X;
+	viewports.y = area.Y;
+	viewports.width = area.width;
+	viewports.height = area.height;
+	vkCmdSetViewport((VkCommandBuffer)commandBuffer->cmdBuffer, 0, 1, &viewports);
 }
 
 LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute)
@@ -2783,14 +2820,14 @@ void VkLGFXDestroyShaderState(LGFXShaderState shaderState)
 	{
 		vkDestroyPipeline((VkDevice)shaderState->device->logicalDevice, (VkPipeline)shaderState->handle, NULL);
 	}
-	if (shaderState->pipelineLayoutHandle != NULL)
-	{
-		vkDestroyPipelineLayout((VkDevice)shaderState->device->logicalDevice, (VkPipelineLayout)shaderState->pipelineLayoutHandle, NULL);
-	}
 	free(shaderState);
 }
 void VkLGFXDestroyFunction(LGFXFunction func)
 {
+	if (func->pipelineLayout != NULL)
+	{
+		vkDestroyPipelineLayout((VkDevice)func->device->logicalDevice, (VkPipelineLayout)func->pipelineLayout, NULL);
+	}
 	if (func->module1 != NULL)
 	{
 		vkDestroyShaderModule((VkDevice)func->device->logicalDevice, (VkShaderModule)func->module1, NULL);
@@ -2905,6 +2942,8 @@ void VkLGFXDestroyDevice(LGFXDevice device)
 		{
 			VkLGFXDestroyCommandQueue(device, device->transferQueue);
 		}
+
+		vkDestroyDescriptorPool((VkDevice)device->logicalDevice, (VkDescriptorPool)device->descriptorPool, NULL);
 
 		VkLGFXDestroyCommandQueue(device, device->graphicsQueue);
 

@@ -464,6 +464,35 @@ void LGFXDestroyShaderState(LGFXShaderState shaderState)
     }
     LGFX_ERROR("LGFXDestroyShaderState: Unknown backend\n");
 }
+void LGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState)
+{
+    if (shaderState->device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXUseShaderState(buffer, shaderState);
+        return;
+    }
+    LGFX_ERROR("LGFXUseShaderState: Unknown backend\n");
+}
+
+
+void LGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area)
+{
+    if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXSetViewport(commandBuffer, area);
+        return;
+    }
+    LGFX_ERROR("LGFXSetViewport: Unknown backend\n");
+}
+void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area)
+{
+    if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXSetClipArea(commandBuffer, area);
+        return;
+    }
+    LGFX_ERROR("LGFXSetClipArea: Unknown backend\n");
+}
 
 LGFXCommandBuffer LGFXCreateCommandBuffer(LGFXDevice device, bool forCompute)
 {

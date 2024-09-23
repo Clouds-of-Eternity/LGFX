@@ -37,15 +37,18 @@ namespace LGFX
     void Shader::deinit()
     {
         LGFXDestroyFunction(this->gpuFunction);
-        for (u32 i = 0; i < uniforms.capacity; i++)
+        if (uniforms.ptr != NULL)
         {
-            if (uniforms.ptr[i].nameStr.buffer == NULL)
+            for (u32 i = 0; i < uniforms.capacity; i++)
             {
-                continue;
+                if (uniforms.ptr[i].nameStr.buffer == NULL)
+                {
+                    continue;
+                }
+                uniforms.ptr[i].deinit();
             }
-            uniforms.ptr[i].deinit();
+            uniforms.deinit();
         }
-        uniforms.deinit();
     }
 
     void Shader::SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer buffer)
@@ -410,7 +413,7 @@ namespace LGFX
             info.module2DataLength = 0;
             info.uniformsCount = uniformsCount;
             info.uniforms = inputResources;
-            LGFXCreateFunction(device, &info);
+            result->gpuFunction = LGFXCreateFunction(device, &info);
 
             free(inputResources);
         }
@@ -453,7 +456,7 @@ namespace LGFX
                 info.module2DataLength = fragmentSpirvData.length;
                 info.uniformsCount = uniformsCount;
                 info.uniforms = inputResources;
-                LGFXCreateFunction(device, &info);
+                result->gpuFunction = LGFXCreateFunction(device, &info);
 
                 free(inputResources);
             }
