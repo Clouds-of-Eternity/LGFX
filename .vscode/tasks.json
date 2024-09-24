@@ -35,6 +35,17 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build High-Level Compute Example",
+            "type": "shell",
+            "command": "msbuild",
+            "args": ["${workspaceFolder}/examples/high-level-api/compute/AstralCanvasCompute.vcxproj", "/p:configuration='Debug'", "/p:platform=x64"],
+            "problemMatcher": ["$msCompile"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

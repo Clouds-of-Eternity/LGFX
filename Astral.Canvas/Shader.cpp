@@ -13,7 +13,7 @@ namespace AstralCanvas
         uniforms = ShaderVariables();
 
         this->descriptorForThisDrawCall = 0;
-        this->descriptorSets = collections::vector<void *>();
+        this->variableBatches = collections::vector<LGFXFunctionVariableBatch>();
     }
     Shader::Shader(IAllocator allocator)
     {
@@ -22,7 +22,7 @@ namespace AstralCanvas
         uniforms = ShaderVariables(allocator, ShaderResource{});
 
         this->descriptorForThisDrawCall = 0;
-        this->descriptorSets = collections::vector<void *>(allocator);
+        this->variableBatches = collections::vector<LGFXFunctionVariableBatch>(allocator);
     }
     void ShaderResource::deinit()
     {
@@ -142,6 +142,7 @@ namespace AstralCanvas
 
     void Shader::CheckDescriptorSetAvailability(bool forceAddNewDescriptor)
     {
+        bool added = false;
         for (u32 i = 0; i < this->uniforms.capacity; i++)
         {
             if (uniforms.ptr[i].nameStr.buffer == NULL)
@@ -149,14 +150,21 @@ namespace AstralCanvas
                 break;
             }
 
-            if (forceAddNewDescriptor || this->descriptorForThisDrawCall >= this->uniforms.ptr[i].states.count)
+            if (forceAddNewDescriptor || this->descriptorForThisDrawCall >= this->variableBatches.count)
             {
                 LGFXFunctionVariable newVarSlot = LGFXFunctionGetVariableSlot(this->gpuFunction, i);
                 this->uniforms.ptr[i].states.Add(newVarSlot);
+                added = true;
             }
         }
+        if (added)
+        {
+            LGFXFunctionVariableBatch batch = LGFXFunctionGetVariableBatch(this->gpuFunction);
+            this->variableBatches.Add(batch);
+            printf("Added new variable batch\n");
+        }
     }
-    void Shader::SyncUniformsWithGPU(void *commandEncoder)
+    void Shader::SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer)
     {
         LGFXFunctionVariable variables[32];
         u32 variablesCount = 0;
@@ -169,12 +177,14 @@ namespace AstralCanvas
             variables[i] = this->uniforms.ptr[i].states.ptr[this->descriptorForThisDrawCall];
             variablesCount++;
         }
-        LGFXFunctionSendVariablesToGPU(this->device, variables, variablesCount);
+        LGFXFunctionVariableBatch batch = this->variableBatches.ptr[this->descriptorForThisDrawCall];
+        LGFXFunctionSendVariablesToGPU(this->device, batch, variables, variablesCount);
+        LGFXUseFunctionVariables(commandBuffer, batch, variables, variablesCount);
     }
 
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)
     {
-        u32 length = -1;
+        i32 length = -1;
         JsonElement *uniforms = json->GetProperty("uniforms");
         if (uniforms != NULL)
         {
@@ -185,7 +195,7 @@ namespace AstralCanvas
                 u32 set = uniforms->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = uniforms->arrayElements.data[i].GetProperty("binding")->GetUint32();
 
-                if (binding > length)
+                if ((i32)binding > length)
                 {
                     length = binding;
                 }
@@ -225,7 +235,7 @@ namespace AstralCanvas
                 u32 set = textures->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = textures->arrayElements.data[i].GetProperty("binding")->GetUint32();
                 
-                if (binding > length)
+                if ((i32)binding > length)
                 {
                     length = binding;
                 }
@@ -264,7 +274,7 @@ namespace AstralCanvas
                 u32 set = samplers->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = samplers->arrayElements.data[i].GetProperty("binding")->GetUint32();
 
-                if (binding > length)
+                if ((i32)binding > length)
                 {
                     length = binding;
                 }
@@ -302,7 +312,7 @@ namespace AstralCanvas
                 u32 set = inputAttachments->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = inputAttachments->arrayElements.data[i].GetProperty("binding")->GetUint32();
 
-                if (binding > length)
+                if ((i32)binding > length)
                 {
                     length = binding;
                 }
@@ -339,9 +349,8 @@ namespace AstralCanvas
                 string name = storageBuffers->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
                 u32 set = storageBuffers->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = storageBuffers->arrayElements.data[i].GetProperty("binding")->GetUint32();
-                u32 mslBinding = storageBuffers->arrayElements.data[i].GetProperty("mslBinding")->GetUint32();
 
-                if (binding > length)
+                if ((i32)binding > length)
                 {
                     length = binding;
                 }
@@ -360,7 +369,7 @@ namespace AstralCanvas
                     newResource.resource.variableName = name.buffer;
                     newResource.resource.arrayLength = 0;
                     newResource.resource.accessedBy = accessedByShaderOfType;
-                    newResource.resource.type = LGFXShaderResourceType_InputAttachment;
+                    newResource.resource.type = LGFXShaderResourceType_StructuredBuffer;
                     newResource.resource.size = 0;
 
                     newResource.nameStr = name;
@@ -370,7 +379,7 @@ namespace AstralCanvas
             }
         }
 
-        return length + 1;
+        return (u32)(length + 1);
     }
 
     usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader* result)
@@ -403,7 +412,8 @@ namespace AstralCanvas
             LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
             for (usize i = 0; i < uniformsCount; i++)
             {
-                inputResources[i] = result->uniforms.ptr[i].resource;
+                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
+                printf("Var %s bound to %u\n", result->uniforms.ptr[i].nameStr.buffer, result->uniforms.ptr[i].resource.binding);
             }
 
             LGFXFunctionCreateInfo info;
@@ -413,6 +423,7 @@ namespace AstralCanvas
             info.module2DataLength = 0;
             info.uniformsCount = uniformsCount;
             info.uniforms = inputResources;
+            info.type = LGFXFunctionType_Compute;
             result->gpuFunction = LGFXCreateFunction(device, &info);
 
             free(inputResources);
@@ -446,7 +457,8 @@ namespace AstralCanvas
                 LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
                 for (usize i = 0; i < uniformsCount; i++)
                 {
-                    inputResources[i] = result->uniforms.ptr[i].resource;
+                    inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
+                    printf("Var %s bound to %u\n", result->uniforms.ptr[i].nameStr.buffer, result->uniforms.ptr[i].resource.binding);
                 }
 
                 LGFXFunctionCreateInfo info;
@@ -456,6 +468,7 @@ namespace AstralCanvas
                 info.module2DataLength = fragmentSpirvData.length;
                 info.uniformsCount = uniformsCount;
                 info.uniforms = inputResources;
+                info.type = (LGFXFunctionType)(LGFXFunctionType_Fragment | LGFXFunctionType_Vertex);
                 result->gpuFunction = LGFXCreateFunction(device, &info);
 
                 free(inputResources);

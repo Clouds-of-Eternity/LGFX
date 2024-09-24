@@ -141,3 +141,5 @@ workspace "LGFX"
     include("examples/low-level-api/triangle")
 
     include("examples/high-level-api/triangle")
+
+    include("examples/high-level-api/compute")

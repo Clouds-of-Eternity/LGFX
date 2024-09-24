@@ -49,6 +49,7 @@ typedef struct LGFXFunctionImpl *LGFXFunction;
 typedef struct LGFXShaderStateImpl *LGFXShaderState;
 typedef struct LGFXComputeImpl *LGFXCompute;
 typedef struct LGFXSamplerStateImpl *LGFXSamplerState;
+typedef struct LGFXFunctionVariableBatchImpl *LGFXFunctionVariableBatch;
 
 typedef enum
 {
@@ -103,12 +104,12 @@ typedef enum
 
 typedef enum
 {
-    LGFXShaderType_Vertex = 1,
-    LGFXShaderType_Fragment = 2,
-    LGFXShaderType_Compute = 4,
-    LGFXShaderType_Tessellation = 8,
-    LGFXShaderType_Mesh = 16
-} LGFXShaderType;
+    LGFXFunctionType_Vertex = 1,
+    LGFXFunctionType_Fragment = 2,
+    LGFXFunctionType_Compute = 4,
+    LGFXFunctionType_Tessellation = 8,
+    LGFXFunctionType_Mesh = 16
+} LGFXFunctionType;
 
 typedef enum
 {
@@ -548,11 +549,11 @@ typedef struct LGFXShaderResource
 } LGFXShaderResource;
 typedef struct
 {
-    void *descriptor;
     void **currentValues;
     u32 valuesCount;
     void *infos;
     LGFXShaderResource *metadata;
+    LGFXFunction forFunction;
 
     LGFXDevice device;
     bool valueIsOwnedBuffer;
@@ -561,6 +562,8 @@ typedef struct
 
 typedef struct
 {
+    LGFXFunctionType type;
+
     u32 *module1Data;
     usize module1DataLength;
 
@@ -621,7 +624,8 @@ void LGFXDestroySamplerState(LGFXSamplerState state);
 
 LGFXCommandBuffer LGFXCreateCommandBuffer(LGFXDevice device, bool forCompute);
 void LGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission);
-void LGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore);
+void LGFXCommandBufferEnd(LGFXCommandBuffer buffer);
+void LGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore);
 void LGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain);
 void LGFXCommandBufferReset(LGFXCommandBuffer buffer);
 void LGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer);
@@ -634,17 +638,22 @@ void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, 
 void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength);
 void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength);
 void LGFXDestroyBuffer(LGFXBuffer buffer);
+void *LGFXGetBufferData(LGFXBuffer buffer, usize *bytesLength);
+void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize));
 
 LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
 void LGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void LGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures);
+void LGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
 void LGFXEndRenderProgram(LGFXCommandBuffer commandBuffer);
 void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void LGFXDestroyFunction(LGFXFunction func);
+LGFXFunctionVariableBatch LGFXFunctionGetVariableBatch(LGFXFunction function);
 LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
-void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *functionVariables, u32 variablesCount);
+void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, u32 variablesCount);
+void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *variables, u32 variablesCount);
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
@@ -657,6 +666,9 @@ void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
 void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);
 void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance);
+
+void LGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ);
+void LGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, usize offset);
 
 bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
 void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);

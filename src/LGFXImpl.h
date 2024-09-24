@@ -105,6 +105,8 @@ typedef struct LGFXFunctionImpl
     void *functionVariablesLayout;
     void *pipelineLayout;
 
+    LGFXFunctionType type;
+
     LGFXShaderResource *uniforms;
     u32 uniformsCount;
     LGFXDevice device;

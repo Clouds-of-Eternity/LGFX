@@ -26,7 +26,7 @@ namespace AstralCanvas
         ShaderVariables uniforms;
 
         usize descriptorForThisDrawCall;
-        collections::vector<void *> descriptorSets;
+        collections::vector<LGFXFunctionVariableBatch> variableBatches;
 
         Shader();
         Shader(IAllocator allocator);
@@ -34,7 +34,7 @@ namespace AstralCanvas
 
         i32 GetVariableBinding(text variableName);
         void CheckDescriptorSetAvailability(bool forceAddNewDescriptor = false);
-        void SyncUniformsWithGPU(void *commandEncoder);
+        void SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer);
 
         void SetShaderVariable(const char* variableName, void* ptr, usize size);
         void SetShaderVariableTexture(const char* variableName, LGFXTexture texture);

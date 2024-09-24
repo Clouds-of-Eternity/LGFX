@@ -504,17 +504,14 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 
     //if we are on the graphics queue, the queue may also be used for presenting
     //hence, we need to wait for the queue to finish presenting before we can transition the image
-    if (buffer->queue == device->graphicsQueue)
-    {
-		EnterLock(device->graphicsQueue->queueLock);
+    // if (buffer->queue == device->graphicsQueue)
+    // {
+	// 	EnterLock(device->graphicsQueue->queueLock);
 
-		vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
-        //alternatively, wait for queue fence
-        //vkWaitForFences(gpu->logicalDevice, 1, &queueToUse->queueFence, true, UINT64_MAX);
-        //vkResetFences(gpu->logicalDevice, 1, &queueToUse->queueFence);
+	// 	vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
 
-		ExitLock(device->graphicsQueue->queueLock);
-	}
+	// 	ExitLock(device->graphicsQueue->queueLock);
+	// }
 
 	//LGFXFence tempFence = VkLGFXCreateFence(device, false);
 
@@ -1686,6 +1683,22 @@ void VkLGFXDestroyTexture(LGFXTexture texture)
 	}
 	free(texture);
 }
+
+// void VkLGFXTextureBlit(LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXFilterType filter)
+// {
+// 	VkImageBlit regions;
+// 	regions.dstSubresource.
+// 	vkCmdBlitImage(
+// 		(VkCommandBuffer)commandBuffer->cmdBuffer, 
+// 		(VkImage)from->imageHandle, 
+// 		LGFXTextureLayout2Vulkan(from->layout), 
+// 		(VkImage)to->imageHandle,
+// 		LGFXTextureLayout2Vulkan(to->layout),
+// 		1,
+// 		regions,
+// 		LGFXFilterType2Vulkan(filter))
+// }
+
 LGFXRenderTarget VkLGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info)
 {
 	LGFXRenderTarget target = Allocate(LGFXRenderTargetImpl, 1);
@@ -1789,6 +1802,37 @@ void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer comma
 void VkLGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength)
 {
 	memcpy(buffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
+}
+void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize))
+{
+	if (allocateFunction == NULL)
+	{
+		allocateFunction = &malloc;
+	}
+	assert((buffer->usage & LGFXBufferUsage_TransferSource) != 0);
+	void *result = allocateFunction(buffer->size);
+
+	LGFXBufferCreateInfo info;
+	info.bufferUsage = LGFXBufferUsage_TransferDest;
+	info.memoryUsage = LGFXMemoryUsage_GPU_TO_CPU;
+	info.size = buffer->size;
+	LGFXBuffer destBuffer = LGFXCreateBuffer(buffer->device, &info);
+
+	LGFXCommandBuffer cmds = VkLGFXCreateTemporaryCommandBuffer(buffer->device, buffer->device->transferQueue, true);
+
+	VkLGFXCopyBufferToBuffer(buffer->device, cmds, buffer, destBuffer);
+
+	VkLGFXEndTemporaryCommandBuffer(buffer->device, cmds);
+
+	memcpy(result, destBuffer->bufferMemory->vkAllocationInfo.pMappedData, buffer->size);
+
+	LGFXDestroyBuffer(destBuffer);
+
+	return result;
+}
+void *VkLGFXGetBufferData(LGFXBuffer buffer)
+{
+	return buffer->bufferMemory->vkAllocationInfo.pMappedData;
 }
 LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage)
 {
@@ -2150,6 +2194,10 @@ void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer comma
 
 	vkCmdBeginRenderPass((VkCommandBuffer)commandBuffer->cmdBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
 }
+void VkLGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer)
+{
+	vkCmdNextSubpass((VkCommandBuffer)commandBuffer->cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
+}
 void VkLGFXEndRenderProgram(LGFXCommandBuffer commandBuffer)
 {
 	vkCmdEndRenderPass((VkCommandBuffer)commandBuffer->cmdBuffer);
@@ -2200,13 +2248,13 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 			layoutBinding.stageFlags = LGFXShaderInputAccess2Vulkan(info->uniforms[i].accessedBy);
 			layoutBinding.pImmutableSamplers = NULL;
 
-			bindings[i] = layoutBinding;
+			bindings[layoutBinding.binding] = layoutBinding;
 		}
 	}
 	layoutInfo.pBindings = bindings;
 
-	VkDescriptorSetLayout layout;
-	if (vkCreateDescriptorSetLayout((VkDevice)device->logicalDevice, &layoutInfo, NULL, &layout) != VK_SUCCESS)
+	VkDescriptorSetLayout descriptorLayout;
+	if (vkCreateDescriptorSetLayout((VkDevice)device->logicalDevice, &layoutInfo, NULL, &descriptorLayout) != VK_SUCCESS)
 	{
 		LGFX_ERROR("Failed to create pipeline layout\n");
 		return NULL;
@@ -2220,10 +2268,10 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 	pipelineLayoutCreateInfo.flags = 0;
 
 	pipelineLayoutCreateInfo.setLayoutCount = 0;
-	if (layout != NULL)
+	if (descriptorLayout != NULL)
 	{
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = (VkDescriptorSetLayout*)&layout;
+		pipelineLayoutCreateInfo.pSetLayouts = (VkDescriptorSetLayout*)&descriptorLayout;
 	}
 
 	if (vkCreatePipelineLayout((VkDevice)device->logicalDevice, &pipelineLayoutCreateInfo, NULL, (VkPipelineLayout*)&pipelineLayout) != VK_SUCCESS)
@@ -2247,11 +2295,32 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 		result->uniforms = NULL;
 	}
 	result->uniformsCount = info->uniformsCount;
-	result->functionVariablesLayout = layout;
+	result->functionVariablesLayout = descriptorLayout;
 	result->device = device;
 	result->pipelineLayout = pipelineLayout;
+	result->type = info->type;
+
+	free(bindings);
 
 	return result;
+}
+LGFXFunctionVariableBatch VkLGFXFunctionGetVariableBatch(LGFXFunction function)
+{
+	VkDescriptorSetAllocateInfo allocInfo = {0};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.descriptorPool = (VkDescriptorPool)function->device->descriptorPool;
+	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&function->functionVariablesLayout;
+
+	VkDescriptorSet set;
+	u32 errorCode = vkAllocateDescriptorSets((VkDevice)function->device->logicalDevice, &allocInfo, &set);
+	if (errorCode != VK_SUCCESS)
+	{
+		LGFX_ERROR("Failed to allocate descriptor set, error code %u\n", errorCode);
+		return NULL;
+	}
+
+	return (LGFXFunctionVariableBatch)set;
 }
 LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
 {
@@ -2260,19 +2329,7 @@ LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 fo
 	variable.metadata = resource;
 	variable.valuesCount = resource->arrayLength == 0 ? 1 : resource->arrayLength;
 	variable.device = function->device;
-
-	VkDescriptorSetAllocateInfo allocInfo;
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.descriptorPool = (VkDescriptorPool)function->device->descriptorPool;
-	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&function->functionVariablesLayout;
-
-	u32 errorCode = vkAllocateDescriptorSets((VkDevice)function->device->logicalDevice, &allocInfo, (VkDescriptorSet *)&variable.descriptor);
-	if (errorCode != VK_SUCCESS)
-	{
-		LGFX_ERROR("Failed to allocate descriptor set, error code %u\n", errorCode);
-		return variable;
-	}
+	variable.forFunction = function;
 
 	switch (resource->type)
 	{
@@ -2281,6 +2338,20 @@ LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 fo
 		{
 			variable.currentValues = (void **)Allocate(LGFXBuffer, variable.valuesCount);
 			variable.infos = (void **)Allocate(VkDescriptorBufferInfo, variable.valuesCount);
+
+			if (resource->type == LGFXShaderResourceType_Uniform)
+			{
+				variable.valueIsOwnedBuffer = true;
+				LGFXBufferCreateInfo info;
+				info.size = variable.metadata->size;
+				info.bufferUsage = LGFXBufferUsage_UniformBuffer;
+				info.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
+				((LGFXBuffer *)variable.currentValues)[0] = LGFXCreateBuffer(function->device, &info);
+			}
+			else
+			{
+				variable.valueIsOwnedBuffer = false;
+			}
 			break;
 		}
 		case LGFXShaderResourceType_StorageTexture:
@@ -2303,7 +2374,7 @@ LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 fo
 	}
 	return variable;
 }
-void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *shaderVariables, u32 shaderVariableCount)
+void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *shaderVariables, u32 shaderVariableCount)
 {
 	VkWriteDescriptorSet setWrites[32];
 
@@ -2311,7 +2382,7 @@ void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *s
 	{
 		VkWriteDescriptorSet setWrite = {0};
 		setWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		setWrite.dstSet = (VkDescriptorSet)shaderVariables[i].descriptor;
+		setWrite.dstSet = (VkDescriptorSet)batch;
 		setWrite.dstBinding = shaderVariables[i].metadata->binding;
 
 		switch (shaderVariables[i].metadata->type)
@@ -2418,213 +2489,261 @@ void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariable *s
 			default:
 				break;
 		}
+		setWrites[i] = setWrite;
 	}
 
 	vkUpdateDescriptorSets((VkDevice)device->logicalDevice, shaderVariableCount, setWrites, 0, NULL);
 }
-void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable)
+void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *variables, u32 variablesCount)
 {
-	vkFreeDescriptorSets((VkDevice)variable.device->logicalDevice, (VkDescriptorPool)variable.device->descriptorPool, 1, (VkDescriptorSet *)&variable.descriptor);
-	if (variable.valueIsOwnedBuffer)
+	VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	if (variables[0].forFunction->type == LGFXFunctionType_Compute)
 	{
-		LGFXBuffer buffer = (LGFXBuffer)variable.currentValues[0];
-		LGFXDestroyBuffer(buffer);
+		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
-	free(variable.infos);
-	free(variable.currentValues);
+	for (u32 i = 0; i < variablesCount; i++)
+	{
+		vkCmdBindDescriptorSets(
+			(VkCommandBuffer)commandBuffer->cmdBuffer, 
+			bindPoint, 
+			(VkPipelineLayout)variables[0].forFunction->pipelineLayout, 
+			0, 1, //descriptor set count
+			(VkDescriptorSet *)&batch,
+			0, NULL); //dynamic offsets count
+	}
+	// VkDescriptorSet sets[32];
+	// for (u32 i = 0; i < variablesCount; i++)
+	// {
+	// 	sets[variables[i].metadata->binding] = (VkDescriptorSet)variables[i].descriptor;
+	// }
+
+	// VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	// if (variables[0].forFunction->type == LGFXFunctionType_Compute)
+	// {
+	// 	bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+	// }
+	
+	// vkCmdBindDescriptorSets(
+	// 	(VkCommandBuffer)commandBuffer->cmdBuffer, 
+	// 	bindPoint, 
+	// 	(VkPipelineLayout)variables[0].forFunction->pipelineLayout, 
+	// 	0, 1, //descriptor set count
+	// 	sets,
+	// 	0, NULL); //dynamic offsets count
 }
 
 LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info)
 {
-	//dynamic state
-	VkPipelineDynamicStateCreateInfo dynamicStateInfo = {0};
-	dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	VkDynamicState dynamicStates[3];
-	u32 dynamicStatesCount = 0;
-	if (info->dynamicLineWidth)
+	VkPipeline result;
+	if (info->function->type == LGFXFunctionType_Compute)
 	{
-		dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_LINE_WIDTH;
-		dynamicStatesCount += 1;
-	}
-	if (info->dynamicViewportScissor)
-	{
-		dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_SCISSOR;
-		dynamicStatesCount += 1;
-		dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_VIEWPORT;
-		dynamicStatesCount += 1;
-	}
-	dynamicStateInfo.pDynamicStates = dynamicStates;
-	dynamicStateInfo.dynamicStateCount = dynamicStatesCount;
+		VkPipelineShaderStageCreateInfo shaderStageInfo = {0};
+		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		shaderStageInfo.module = (VkShaderModule)info->function->module1;
+		shaderStageInfo.pName = "main"; //entry point
 
-	//vertex
+		VkComputePipelineCreateInfo computeInfo = {0};
+		computeInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		computeInfo.stage = shaderStageInfo;
+		computeInfo.layout = info->function->pipelineLayout;
 
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-
-	if (info->vertexDeclarationCount > 0)
-	{
-		u32 attribCount = 0;
-
-		VkVertexInputBindingDescription *bindingDescriptions = Allocate(VkVertexInputBindingDescription, info->vertexDeclarationCount);
-		for (u32 i = 0; i < info->vertexDeclarationCount; i++)
+		if (vkCreateComputePipelines((VkDevice)device->logicalDevice, NULL, 1, &computeInfo, NULL, &result) != VK_SUCCESS)
 		{
-			bindingDescriptions[i].inputRate = info->vertexDeclarations[i].isPerInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX; //(VkVertexInputRate)pipeline->vertexDeclarations.data[i]->inputRate;
-			bindingDescriptions[i].stride = info->vertexDeclarations[i].packedSize;
-			bindingDescriptions[i].binding = i;
-
-			attribCount += info->vertexDeclarations[i].elementsCount; // pipeline->vertexDeclarations.data[i]->elements.count;
+			LGFX_ERROR("Failed to create compute shader state\n");
 		}
-
-		VkVertexInputAttributeDescription *attribDescriptions = Allocate(VkVertexInputAttributeDescription, attribCount);
-		u32 attribIndex = 0;
-		for (u32 i = 0; i < info->vertexDeclarationCount; i++)
-		{
-			for (u32 j = 0; j < info->vertexDeclarations[i].elementsCount; j++)
-			{
-				LGFXVertexAttribute element = info->vertexDeclarations[i].elements[j];
-				//AstralCanvas::VertexElement element = pipeline->vertexDeclarations.data[i]->elements.ptr[j];
-
-				attribDescriptions[attribIndex].format = LGFXVertexElementFormat2Vulkan(element.format);
-				attribDescriptions[attribIndex].binding = i;
-				attribDescriptions[attribIndex].offset = element.offset;
-				attribDescriptions[attribIndex].location = attribIndex; //very important!!
-				attribIndex++;
-			}
-		}
-
-		vertexInputInfo.vertexBindingDescriptionCount = info->vertexDeclarationCount;
-		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions;
-		vertexInputInfo.vertexAttributeDescriptionCount = attribCount;
-		vertexInputInfo.pVertexAttributeDescriptions = attribDescriptions;
-	}
-
-	//primitive type
-
-	VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {0};
-	inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssemblyInfo.topology = LGFXPrimitiveType2Vulkan(info->primitiveType); // AstralCanvasVk_FromPrimitiveType(pipeline->primitiveType);
-	inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
-
-	//viewport data
-
-	VkPipelineViewportStateCreateInfo viewportStateInfo = {0};
-	viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewportStateInfo.viewportCount = 1;
-	viewportStateInfo.scissorCount = 1;
-
-	//rasterization behaviour
-
-	VkPipelineRasterizationStateCreateInfo rasterizerInfo = {0};
-	rasterizerInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizerInfo.depthClampEnable = false;
-	rasterizerInfo.rasterizerDiscardEnable = false;
-	rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
-	if (inputAssemblyInfo.topology == VK_PRIMITIVE_TOPOLOGY_LINE_LIST || inputAssemblyInfo.topology == VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
-	{
-		rasterizerInfo.polygonMode = VK_POLYGON_MODE_LINE;
-	}
-	rasterizerInfo.lineWidth = 1.0f;
-	rasterizerInfo.cullMode = (VkCullModeFlags)info->cullMode;
-	rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-	rasterizerInfo.depthBiasEnable = false;
-	rasterizerInfo.depthBiasConstantFactor = 0.0f;
-	rasterizerInfo.depthBiasClamp = 0.0f;
-	rasterizerInfo.depthBiasSlopeFactor = 0.0f;
-
-	//multisampling data
-	//todo
-
-	VkPipelineMultisampleStateCreateInfo multisamplingInfo = {0};
-	multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisamplingInfo.sampleShadingEnable = false;
-	multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-	multisamplingInfo.minSampleShading = 1.0f;
-	multisamplingInfo.pSampleMask = NULL;
-	multisamplingInfo.alphaToCoverageEnable = false;
-	multisamplingInfo.alphaToOneEnable = false;
-
-	//depth stencil data
-
-	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {0};
-	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencilInfo.depthTestEnable = info->depthTest;
-	depthStencilInfo.depthWriteEnable = info->depthWrite;
-	depthStencilInfo.depthCompareOp = info->depthTest ? VK_COMPARE_OP_LESS_OR_EQUAL : VK_COMPARE_OP_ALWAYS;
-	depthStencilInfo.depthBoundsTestEnable = false;
-	depthStencilInfo.minDepthBounds = 0.0f;
-	depthStencilInfo.maxDepthBounds = 1.0f;
-	depthStencilInfo.stencilTestEnable = false;
-
-	//color blend state
-
-	VkPipelineColorBlendAttachmentState colorBlendState = {0};
-	colorBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
-
-	LGFXBlendState disabled = DISABLE_BLEND;
-	if (!LGFXBlendStateEquals(info->blendState, disabled))
-	{
-		colorBlendState.srcColorBlendFactor = LGFXBlendState2Vulkan(info->blendState.sourceColorBlend);
-		colorBlendState.srcAlphaBlendFactor = LGFXBlendState2Vulkan(info->blendState.sourceAlphaBlend);
-		colorBlendState.dstColorBlendFactor = LGFXBlendState2Vulkan(info->blendState.destinationColorBlend);
-		colorBlendState.dstAlphaBlendFactor = LGFXBlendState2Vulkan(info->blendState.destinationAlphaBlend);
-		colorBlendState.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendState.alphaBlendOp = VK_BLEND_OP_ADD;
-		colorBlendState.blendEnable = true;
 	}
 	else
-		colorBlendState.blendEnable = false;
-
-	//color blend data
-
-	VkPipelineColorBlendStateCreateInfo colorBlendInfo = {0};
-	colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlendInfo.blendConstants[0] = 1.0f;
-	colorBlendInfo.blendConstants[1] = 1.0f;
-	colorBlendInfo.blendConstants[2] = 1.0f;
-	colorBlendInfo.blendConstants[3] = 1.0f;
-	colorBlendInfo.logicOpEnable = false;
-	colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-	colorBlendInfo.attachmentCount = 1;
-	colorBlendInfo.pAttachments = &colorBlendState;
-
-	//pipeline layout itself
-	//dont reuse these
-
-	VkPipelineShaderStageCreateInfo shaderStageInfos[2];
-	memset(shaderStageInfos, 0, sizeof(VkPipelineShaderStageCreateInfo) * 2);
-	shaderStageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStageInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	shaderStageInfos[0].module = (VkShaderModule)info->function->module1;
-	shaderStageInfos[0].pName = "main"; //entry point
-
-	shaderStageInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStageInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	shaderStageInfos[1].module = (VkShaderModule)info->function->module2;
-	shaderStageInfos[1].pName = "main"; //entry point
-
-	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {0};
-	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineCreateInfo.pStages = shaderStageInfos;
-	pipelineCreateInfo.stageCount = 2;
-	pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
-	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
-	pipelineCreateInfo.pViewportState = &viewportStateInfo;
-	pipelineCreateInfo.pRasterizationState = &rasterizerInfo;
-	pipelineCreateInfo.pMultisampleState = &multisamplingInfo;
-	pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
-	pipelineCreateInfo.pDepthStencilState = &depthStencilInfo;
-	pipelineCreateInfo.pDynamicState = &dynamicStateInfo;
-	pipelineCreateInfo.layout = (VkPipelineLayout)info->function->pipelineLayout;
-	pipelineCreateInfo.renderPass = (VkRenderPass)info->forRenderProgram->handle;
-	pipelineCreateInfo.subpass = info->forRenderPass;
-
-	VkPipeline result;
-    if (vkCreateGraphicsPipelines((VkDevice)device->logicalDevice, NULL, 1, &pipelineCreateInfo, NULL, &result) != VK_SUCCESS)
 	{
-		LGFX_ERROR("Error creating pipeline\n");
+		//dynamic state
+		VkPipelineDynamicStateCreateInfo dynamicStateInfo = {0};
+		dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		VkDynamicState dynamicStates[3];
+		u32 dynamicStatesCount = 0;
+		if (info->dynamicLineWidth)
+		{
+			dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_LINE_WIDTH;
+			dynamicStatesCount += 1;
+		}
+		if (info->dynamicViewportScissor)
+		{
+			dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_SCISSOR;
+			dynamicStatesCount += 1;
+			dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_VIEWPORT;
+			dynamicStatesCount += 1;
+		}
+		dynamicStateInfo.pDynamicStates = dynamicStates;
+		dynamicStateInfo.dynamicStateCount = dynamicStatesCount;
+
+		//vertex
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		vertexInputInfo.vertexBindingDescriptionCount = 0;
+
+		if (info->vertexDeclarationCount > 0)
+		{
+			u32 attribCount = 0;
+
+			VkVertexInputBindingDescription *bindingDescriptions = Allocate(VkVertexInputBindingDescription, info->vertexDeclarationCount);
+			for (u32 i = 0; i < info->vertexDeclarationCount; i++)
+			{
+				bindingDescriptions[i].inputRate = info->vertexDeclarations[i].isPerInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX; //(VkVertexInputRate)pipeline->vertexDeclarations.data[i]->inputRate;
+				bindingDescriptions[i].stride = info->vertexDeclarations[i].packedSize;
+				bindingDescriptions[i].binding = i;
+
+				attribCount += info->vertexDeclarations[i].elementsCount; // pipeline->vertexDeclarations.data[i]->elements.count;
+			}
+
+			VkVertexInputAttributeDescription *attribDescriptions = Allocate(VkVertexInputAttributeDescription, attribCount);
+			u32 attribIndex = 0;
+			for (u32 i = 0; i < info->vertexDeclarationCount; i++)
+			{
+				for (u32 j = 0; j < info->vertexDeclarations[i].elementsCount; j++)
+				{
+					LGFXVertexAttribute element = info->vertexDeclarations[i].elements[j];
+					//AstralCanvas::VertexElement element = pipeline->vertexDeclarations.data[i]->elements.ptr[j];
+
+					attribDescriptions[attribIndex].format = LGFXVertexElementFormat2Vulkan(element.format);
+					attribDescriptions[attribIndex].binding = i;
+					attribDescriptions[attribIndex].offset = element.offset;
+					attribDescriptions[attribIndex].location = attribIndex; //very important!!
+					attribIndex++;
+				}
+			}
+
+			vertexInputInfo.vertexBindingDescriptionCount = info->vertexDeclarationCount;
+			vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions;
+			vertexInputInfo.vertexAttributeDescriptionCount = attribCount;
+			vertexInputInfo.pVertexAttributeDescriptions = attribDescriptions;
+		}
+
+		//primitive type
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {0};
+		inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssemblyInfo.topology = LGFXPrimitiveType2Vulkan(info->primitiveType); // AstralCanvasVk_FromPrimitiveType(pipeline->primitiveType);
+		inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+
+		//viewport data
+
+		VkPipelineViewportStateCreateInfo viewportStateInfo = {0};
+		viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportStateInfo.viewportCount = 1;
+		viewportStateInfo.scissorCount = 1;
+
+		//rasterization behaviour
+
+		VkPipelineRasterizationStateCreateInfo rasterizerInfo = {0};
+		rasterizerInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizerInfo.depthClampEnable = false;
+		rasterizerInfo.rasterizerDiscardEnable = false;
+		rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
+		if (inputAssemblyInfo.topology == VK_PRIMITIVE_TOPOLOGY_LINE_LIST || inputAssemblyInfo.topology == VK_PRIMITIVE_TOPOLOGY_LINE_STRIP)
+		{
+			rasterizerInfo.polygonMode = VK_POLYGON_MODE_LINE;
+		}
+		rasterizerInfo.lineWidth = 1.0f;
+		rasterizerInfo.cullMode = (VkCullModeFlags)info->cullMode;
+		rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+		rasterizerInfo.depthBiasEnable = false;
+		rasterizerInfo.depthBiasConstantFactor = 0.0f;
+		rasterizerInfo.depthBiasClamp = 0.0f;
+		rasterizerInfo.depthBiasSlopeFactor = 0.0f;
+
+		//multisampling data
+		//todo
+
+		VkPipelineMultisampleStateCreateInfo multisamplingInfo = {0};
+		multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisamplingInfo.sampleShadingEnable = false;
+		multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisamplingInfo.minSampleShading = 1.0f;
+		multisamplingInfo.pSampleMask = NULL;
+		multisamplingInfo.alphaToCoverageEnable = false;
+		multisamplingInfo.alphaToOneEnable = false;
+
+		//depth stencil data
+
+		VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {0};
+		depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilInfo.depthTestEnable = info->depthTest;
+		depthStencilInfo.depthWriteEnable = info->depthWrite;
+		depthStencilInfo.depthCompareOp = info->depthTest ? VK_COMPARE_OP_LESS_OR_EQUAL : VK_COMPARE_OP_ALWAYS;
+		depthStencilInfo.depthBoundsTestEnable = false;
+		depthStencilInfo.minDepthBounds = 0.0f;
+		depthStencilInfo.maxDepthBounds = 1.0f;
+		depthStencilInfo.stencilTestEnable = false;
+
+		//color blend state
+
+		VkPipelineColorBlendAttachmentState colorBlendState = {0};
+		colorBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT; // ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
+
+		LGFXBlendState disabled = DISABLE_BLEND;
+		if (!LGFXBlendStateEquals(info->blendState, disabled))
+		{
+			colorBlendState.srcColorBlendFactor = LGFXBlendState2Vulkan(info->blendState.sourceColorBlend);
+			colorBlendState.srcAlphaBlendFactor = LGFXBlendState2Vulkan(info->blendState.sourceAlphaBlend);
+			colorBlendState.dstColorBlendFactor = LGFXBlendState2Vulkan(info->blendState.destinationColorBlend);
+			colorBlendState.dstAlphaBlendFactor = LGFXBlendState2Vulkan(info->blendState.destinationAlphaBlend);
+			colorBlendState.colorBlendOp = VK_BLEND_OP_ADD;
+			colorBlendState.alphaBlendOp = VK_BLEND_OP_ADD;
+			colorBlendState.blendEnable = true;
+		}
+		else
+			colorBlendState.blendEnable = false;
+
+		//color blend data
+
+		VkPipelineColorBlendStateCreateInfo colorBlendInfo = {0};
+		colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendInfo.blendConstants[0] = 1.0f;
+		colorBlendInfo.blendConstants[1] = 1.0f;
+		colorBlendInfo.blendConstants[2] = 1.0f;
+		colorBlendInfo.blendConstants[3] = 1.0f;
+		colorBlendInfo.logicOpEnable = false;
+		colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
+		colorBlendInfo.attachmentCount = 1;
+		colorBlendInfo.pAttachments = &colorBlendState;
+
+		//pipeline layout itself
+		//dont reuse these
+
+		VkPipelineShaderStageCreateInfo shaderStageInfos[2];
+		memset(shaderStageInfos, 0, sizeof(VkPipelineShaderStageCreateInfo) * 2);
+		shaderStageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+		shaderStageInfos[0].module = (VkShaderModule)info->function->module1;
+		shaderStageInfos[0].pName = "main"; //entry point
+
+		shaderStageInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		shaderStageInfos[1].module = (VkShaderModule)info->function->module2;
+		shaderStageInfos[1].pName = "main"; //entry point
+
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {0};
+		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCreateInfo.pStages = shaderStageInfos;
+		pipelineCreateInfo.stageCount = 2;
+		pipelineCreateInfo.pVertexInputState = &vertexInputInfo;
+		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyInfo;
+		pipelineCreateInfo.pViewportState = &viewportStateInfo;
+		pipelineCreateInfo.pRasterizationState = &rasterizerInfo;
+		pipelineCreateInfo.pMultisampleState = &multisamplingInfo;
+		pipelineCreateInfo.pColorBlendState = &colorBlendInfo;
+		pipelineCreateInfo.pDepthStencilState = &depthStencilInfo;
+		pipelineCreateInfo.pDynamicState = &dynamicStateInfo;
+		pipelineCreateInfo.layout = (VkPipelineLayout)info->function->pipelineLayout;
+		pipelineCreateInfo.renderPass = (VkRenderPass)info->forRenderProgram->handle;
+		pipelineCreateInfo.subpass = info->forRenderPass;
+
+		if (vkCreateGraphicsPipelines((VkDevice)device->logicalDevice, NULL, 1, &pipelineCreateInfo, NULL, &result) != VK_SUCCESS)
+		{
+			LGFX_ERROR("Error creating pipeline\n");
+		}
 	}
 
 	LGFXShaderState shader = Allocate(LGFXShaderStateImpl, 1);
@@ -2636,7 +2755,12 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 }
 void VkLGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState)
 {
-	vkCmdBindPipeline((VkCommandBuffer)buffer->cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, (VkPipeline)shaderState->handle);
+	VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	if (shaderState->function->type == LGFXFunctionType_Compute)
+	{
+		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
+	vkCmdBindPipeline((VkCommandBuffer)buffer->cmdBuffer, bindPoint, (VkPipeline)shaderState->handle);
 }
 
 void VkLGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area)
@@ -2701,13 +2825,19 @@ void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmissio
 }
 void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain)
 {
-	VkLGFXCommandBufferEnd(buffer, swapchain->fence, swapchain->awaitPresentComplete, swapchain->awaitRenderComplete);
+	VkLGFXCommandBufferEnd(buffer);
+	VkLGFXCommandBufferExecute(buffer, swapchain->fence, swapchain->awaitPresentComplete, swapchain->awaitRenderComplete);
 }
-void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore)
+
+void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer)
 {
 	LGFXDevice device = buffer->queue->inDevice;
 	vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer);
 
+	buffer->begun = false;
+}
+void VkLGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore)
+{
 	VkSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
@@ -2742,8 +2872,6 @@ void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemap
 		LGFX_ERROR("Failed to submit queue\n");
     }
 	ExitLock(buffer->queue->queueLock);
-
-	buffer->begun = false;
 }
 void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer)
 {
@@ -2804,9 +2932,36 @@ void VkLGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances
 {
 	vkCmdDrawIndexed((VkCommandBuffer)commands->cmdBuffer, indexCount, instances, firstIndex, vertexOffset, firstInstance);
 }
+void VkLGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, usize bufferOffset, usize drawCount, usize drawParamsStride)
+{
+	if (drawParamsStride == 0)
+	{
+		drawParamsStride = sizeof(VkDrawIndexedIndirectCommand);
+	}
+	vkCmdDrawIndexedIndirect((VkCommandBuffer)commands->cmdBuffer, (VkBuffer)drawParamsBuffer->handle, bufferOffset, drawCount, drawParamsStride);
+}
+
+void VkLGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ)
+{
+	vkCmdDispatch((VkCommandBuffer)commands->cmdBuffer, groupsX, groupsY, groupsZ);
+}
+void VkLGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, usize offset)
+{
+	vkCmdDispatchIndirect((VkCommandBuffer)commands->cmdBuffer, (VkBuffer)dispatchParamsBuffer->handle, offset);
+}
 // END
 
 // DESTROY FUNCTIONS
+void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable)
+{
+	if (variable.valueIsOwnedBuffer)
+	{
+		LGFXBuffer buffer = (LGFXBuffer)variable.currentValues[0];
+		LGFXDestroyBuffer(buffer);
+	}
+	free(variable.infos);
+	free(variable.currentValues);
+}
 void VkLGFXDestroyFence(LGFXFence fence)
 {
 	vkDestroyFence((VkDevice)fence->device->logicalDevice, (VkFence)fence->fence, NULL);
