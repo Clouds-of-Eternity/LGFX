@@ -24,7 +24,7 @@ void main()
 
     gl_Position = matrices.projectionMatrix * matrices.viewMatrix * thisVertex;
 
-    fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    fragColor = vec4(vec3(position.z / 5.0), 1.0);
 }
 
 #fragment

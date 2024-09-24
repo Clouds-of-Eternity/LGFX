@@ -4,7 +4,7 @@
 #include "lgfx-astral/Shader.hpp"
 #include "random.hpp"
 
-#define PARTICLES_COUNT 1024
+#define PARTICLES_COUNT 1048576
 
 LGFXRenderProgram rp;
 
@@ -25,8 +25,19 @@ struct Particle
     Maths::Vec4 velocity;
 };
 
+float fpsTimer = 0.0f;
+
 void Update(float deltaTime)
 {
+    fpsTimer += deltaTime;
+    if (fpsTimer >= 0.1f)
+    {
+        string title = string(GetCAllocator(), "Compute, Frames: ");
+        title.Append(1.0f / deltaTime);
+        AstralCanvas::applicationInstance.windows.ptr[0].SetWindowTitle(title);
+        title.deinit();
+        fpsTimer = 0.0f;
+    }
 }
 void Draw(float deltaTime, AstralCanvas::Window *window)
 {
@@ -45,7 +56,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     Maths::Matrix4x4 matrices[2];
     //projection
-    matrices[0] = Maths::Matrix4x4::CreateOrthographicOffset(Maths::Vec3(-0.5f, -0.5f, 0.0f), 40.0f, 22.5f, -1000.0f, 1000.0f);
+    matrices[0] = Maths::Matrix4x4::CreateOrthographic(80.0f, 45.0f, -1000.0f, 1000.0f);
     //view
     matrices[1] = Maths::Matrix4x4::Identity();
 
@@ -65,6 +76,11 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     computeShader.descriptorForThisDrawCall = 0;
     renderShader.descriptorForThisDrawCall = 0;
+
+    //swap buffers
+    LGFXBuffer temp = outputBuffer;
+    outputBuffer = inputBuffer;
+    inputBuffer = temp;
 }
 void PostEndDraw(float deltaTime)
 {
@@ -98,13 +114,10 @@ void Init()
 
     //compute buffer
     LGFXBufferCreateInfo bufferCreateInfo;
-    bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_StorageBuffer | LGFXBufferUsage_TransferDest);
-    bufferCreateInfo.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
+    bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_StorageBuffer | LGFXBufferUsage_VertexBuffer | LGFXBufferUsage_TransferDest);
+    bufferCreateInfo.memoryUsage = LGFXMemoryUsage_GPU_ONLY;
     bufferCreateInfo.size = sizeof(Particle) * PARTICLES_COUNT;
     inputBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
-
-    bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_StorageBuffer | LGFXBufferUsage_VertexBuffer);
-    bufferCreateInfo.memoryUsage = LGFXMemoryUsage_GPU_ONLY;
     outputBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
     //particles
     Random random = Random::FromTime();
@@ -113,10 +126,10 @@ void Init()
     for (u32 i = 0; i < PARTICLES_COUNT; i++)
     {
         particles[i] = {0};
-        particles[i].position = Maths::Vec4(random.NextFloatRange(-5.0f, 5.0f), random.NextFloatRange(-5.0f, 5.0f), random.NextFloatRange(-5.0f, 5.0f), 0.0f);
-        particles[i].velocity = Maths::Vec4(random.NextFloatRange(-5.0f, 5.0f), random.NextFloatRange(-5.0f, 5.0f), random.NextFloatRange(-5.0f, 5.0f));
+        particles[i].position = Maths::Vec4(random.NextFloatRange(-40.0f, 40.0f), random.NextFloatRange(-22.5f, 22.5f), random.NextFloatRange(0.0f, 5.0f), 0.0f);
+        particles[i].velocity = Maths::Vec4(random.NextFloatRange(-2.0f, 2.0f), random.NextFloatRange(-2.0f, 2.0f), 0.0f, 0.0f);
     }
-    LGFXSetBufferDataFast(inputBuffer, (u8 *)particles, sizeof(Particle) * PARTICLES_COUNT);
+    LGFXSetBufferDataOptimizedData(inputBuffer, NULL, (u8 *)particles, sizeof(Particle) * PARTICLES_COUNT);
 
     LGFXVertexElementFormat formats[2];
     formats[0] = LGFXVertexElementFormat_Vector4;
