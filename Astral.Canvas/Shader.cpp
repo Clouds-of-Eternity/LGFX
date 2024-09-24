@@ -413,7 +413,6 @@ namespace AstralCanvas
             for (usize i = 0; i < uniformsCount; i++)
             {
                 inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
-                printf("Var %s bound to %u\n", result->uniforms.ptr[i].nameStr.buffer, result->uniforms.ptr[i].resource.binding);
             }
 
             LGFXFunctionCreateInfo info;
@@ -458,7 +457,6 @@ namespace AstralCanvas
                 for (usize i = 0; i < uniformsCount; i++)
                 {
                     inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
-                    printf("Var %s bound to %u\n", result->uniforms.ptr[i].nameStr.buffer, result->uniforms.ptr[i].resource.binding);
                 }
 
                 LGFXFunctionCreateInfo info;

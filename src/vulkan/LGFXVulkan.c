@@ -586,6 +586,49 @@ LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device)
 	return result;
 }
 
+void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType)
+{
+	VkMemoryBarrier2 memoryBarrier = {0};
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+	memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+	memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+
+	if ((opType & LGFXFunctionOperationType_IndexBufferRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_IndirectBufferRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_VertexBufferRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_UniformBufferRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_ComputeBufferRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
+	}
+
+	VkDependencyInfo dependency = {0};
+	dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependency.memoryBarrierCount = 1;
+	dependency.pMemoryBarriers = &memoryBarrier;
+	dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	vkCmdPipelineBarrier2((VkCommandBuffer)commandBuffer->cmdBuffer, &dependency);
+	//vkCmdPipelineBarrier((VkCommandBuffer)commandBuffer->cmdBuffer, );
+}
+
 LGFXCommandQueue VkLGFXCreateCommandQueue(LGFXDevice device, u32 queueFamilyID, VkQueue vkQueue)
 {
 	LGFXCommandQueueImpl *result = Allocate(LGFXCommandQueueImpl, 1);
@@ -824,14 +867,22 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	}
 	else
 	{
-		LGFX_ERROR("TODO\n");
+		result->enabledInstanceExtensions = Allocate(const char *, info->enabledExtensionsCount);
+		for (u32 i = 0; i < info->enabledExtensionsCount; i++)
+		{
+			result->enabledInstanceExtensions[i] = info->enabledExtensions[i];
+		}
+		
+		instanceInfo.enabledExtensionCount = info->enabledExtensionsCount;
+		instanceInfo.ppEnabledExtensionNames = result->enabledInstanceExtensions;
 	}
 	instanceInfo.flags = 0;
 
 	if (info->runtimeErrorChecking)
 	{
+		text errorChecker = "VK_LAYER_KHRONOS_validation";
 		result->enabledErrorCheckerExtensions = Allocate(const char *, 1);
-		result->enabledErrorCheckerExtensions[0] = "VK_LAYER_KHRONOS_validation";
+		result->enabledErrorCheckerExtensions[0] = errorChecker;
 		//check validation layer support
 		u32 layerCount = 0;
 		vkEnumerateInstanceLayerProperties(&layerCount, NULL);
@@ -842,7 +893,8 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 		u32 totalSupported = 0;
 		for (usize i = 0; i < layerCount; i++)
 		{
-			if (strcmp("VK_LAYER_KHRONOS_validation", layerProperties[i].layerName) == 0)
+			//printf("instance has layer %s\n", layerProperties[i].layerName);
+			if (strcmp(errorChecker, layerProperties[i].layerName) == 0)
 			{
 				totalSupported++;
 			}
@@ -869,6 +921,7 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	}
 	else
 	{
+		result->enabledErrorCheckerExtensions = NULL;
 		instanceInfo.enabledLayerCount = 0;
 		instanceInfo.ppEnabledLayerNames = NULL;
 		instanceInfo.pNext = NULL;
@@ -944,26 +997,33 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	float priority = 0.0f;
 	VkLGFXGetQueueCreateInfos(&inputQueueProps, bestPhysicalDevice, queueCreateInfos, &finalQueueCreateInfoCount, &priority);
 
-	VkPhysicalDeviceFeatures deviceEnabledFeatures = {0};
+	VkPhysicalDeviceSynchronization2Features sync2 = {0};
+	sync2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+	sync2.pNext = NULL;
+	sync2.synchronization2 = VK_TRUE;
+
+	VkPhysicalDeviceFeatures2 deviceEnabledFeatures = {0};
+	deviceEnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	deviceEnabledFeatures.pNext = &sync2;
 	//no easier way to do this... oh well
-	deviceEnabledFeatures.fillModeNonSolid = true;
-	deviceEnabledFeatures.multiDrawIndirect = info->requiredFeatures.multiDrawIndirect;
-	deviceEnabledFeatures.depthClamp = info->requiredFeatures.depthClamp;
-	deviceEnabledFeatures.fillModeNonSolid = info->requiredFeatures.fillModeNonSolid;
-	deviceEnabledFeatures.wideLines = info->requiredFeatures.wideLines;
-	deviceEnabledFeatures.textureCompressionETC2 = info->requiredFeatures.textureCompressionETC2;
-	deviceEnabledFeatures.textureCompressionASTC_LDR = info->requiredFeatures.textureCompressionASTC;
-	deviceEnabledFeatures.textureCompressionBC = info->requiredFeatures.textureCompressionBC;
-	deviceEnabledFeatures.vertexPipelineStoresAndAtomics = info->requiredFeatures.vertexShaderCanStoreDataAndAtomics;
-	deviceEnabledFeatures.fragmentStoresAndAtomics = info->requiredFeatures.fragmentShaderCanStoreDataAndAtomics;
-	deviceEnabledFeatures.shaderFloat64 = info->requiredFeatures.shaderFloat64;
-	deviceEnabledFeatures.shaderInt64 = info->requiredFeatures.shaderInt64;
-	deviceEnabledFeatures.shaderInt16 = info->requiredFeatures.shaderInt16;
-	deviceEnabledFeatures.sparseBinding = info->requiredFeatures.sparseBinding;
-	deviceEnabledFeatures.shaderUniformBufferArrayDynamicIndexing = info->requiredFeatures.bindlessUniformBufferArrays;
-	deviceEnabledFeatures.shaderSampledImageArrayDynamicIndexing = info->requiredFeatures.bindlessSamplerAndTextureArrays;
-	deviceEnabledFeatures.shaderStorageBufferArrayDynamicIndexing = info->requiredFeatures.bindlessStorageBufferArrays;
-	deviceEnabledFeatures.shaderStorageImageArrayDynamicIndexing = info->requiredFeatures.bindlessStorageTextureArrays;
+	deviceEnabledFeatures.features.fillModeNonSolid = true;
+	deviceEnabledFeatures.features.multiDrawIndirect = info->requiredFeatures.multiDrawIndirect;
+	deviceEnabledFeatures.features.depthClamp = info->requiredFeatures.depthClamp;
+	deviceEnabledFeatures.features.fillModeNonSolid = info->requiredFeatures.fillModeNonSolid;
+	deviceEnabledFeatures.features.wideLines = info->requiredFeatures.wideLines;
+	deviceEnabledFeatures.features.textureCompressionETC2 = info->requiredFeatures.textureCompressionETC2;
+	deviceEnabledFeatures.features.textureCompressionASTC_LDR = info->requiredFeatures.textureCompressionASTC;
+	deviceEnabledFeatures.features.textureCompressionBC = info->requiredFeatures.textureCompressionBC;
+	deviceEnabledFeatures.features.vertexPipelineStoresAndAtomics = info->requiredFeatures.vertexShaderCanStoreDataAndAtomics;
+	deviceEnabledFeatures.features.fragmentStoresAndAtomics = info->requiredFeatures.fragmentShaderCanStoreDataAndAtomics;
+	deviceEnabledFeatures.features.shaderFloat64 = info->requiredFeatures.shaderFloat64;
+	deviceEnabledFeatures.features.shaderInt64 = info->requiredFeatures.shaderInt64;
+	deviceEnabledFeatures.features.shaderInt16 = info->requiredFeatures.shaderInt16;
+	deviceEnabledFeatures.features.sparseBinding = info->requiredFeatures.sparseBinding;
+	deviceEnabledFeatures.features.shaderUniformBufferArrayDynamicIndexing = info->requiredFeatures.bindlessUniformBufferArrays;
+	deviceEnabledFeatures.features.shaderSampledImageArrayDynamicIndexing = info->requiredFeatures.bindlessSamplerAndTextureArrays;
+	deviceEnabledFeatures.features.shaderStorageBufferArrayDynamicIndexing = info->requiredFeatures.bindlessStorageBufferArrays;
+	deviceEnabledFeatures.features.shaderStorageImageArrayDynamicIndexing = info->requiredFeatures.bindlessStorageTextureArrays;
 
 	VkDeviceCreateInfo logicalDeviceInfo = {0};
 	logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -973,8 +1033,8 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	logicalDeviceInfo.ppEnabledExtensionNames = extensionNames;
 	logicalDeviceInfo.enabledLayerCount = 0; //these basically dont exist
 	logicalDeviceInfo.ppEnabledLayerNames = NULL;
-	logicalDeviceInfo.pNext = NULL;
-	logicalDeviceInfo.pEnabledFeatures = &deviceEnabledFeatures;
+	logicalDeviceInfo.pNext = &deviceEnabledFeatures;
+	//logicalDeviceInfo.pEnabledFeatures = &deviceEnabledFeatures;
 
 	VkDevice logicalDevice;
 	VkResult vkResult = vkCreateDevice(bestPhysicalDevice, &logicalDeviceInfo, NULL, &logicalDevice);
@@ -2129,7 +2189,8 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 
 		free(createInfo.textures);
 	}
-	VkLGFXBeginRenderProgram(program, commandBuffer, program->targets[index], clearColor, autoTransitionTargetTextures);
+	LGFXRenderTarget forced = program->targets[index];
+	VkLGFXBeginRenderProgram(program, commandBuffer, forced, clearColor, autoTransitionTargetTextures);
 }
 void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures)
 {
@@ -2838,36 +2899,56 @@ void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer)
 }
 void VkLGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXSemaphore awaitSemaphore, LGFXSemaphore signalSemaphore)
 {
-	VkSubmitInfo submitInfo = {0};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &(VkCommandBuffer)buffer->cmdBuffer;
+	VkCommandBufferSubmitInfo commandBufferInfo = {0};
+	commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+	commandBufferInfo.commandBuffer = (VkCommandBuffer)buffer->cmdBuffer;
+
+	VkSubmitInfo2 submitInfo = {0};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+	submitInfo.commandBufferInfoCount = 1; // commandBufferCount = 1;
+	submitInfo.pCommandBufferInfos = &commandBufferInfo;
+
+	VkSemaphoreSubmitInfo awaitSemaphoreInfo = {0};
+	VkSemaphoreSubmitInfo signalSemaphoreInfo = {0};
+
 	if (awaitSemaphore != NULL)
 	{
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = (VkSemaphore *)&awaitSemaphore->semaphore;
+		awaitSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+		awaitSemaphoreInfo.semaphore = (VkSemaphore)awaitSemaphore->semaphore;
+		awaitSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+
+		submitInfo.waitSemaphoreInfoCount = 1;
+		submitInfo.pWaitSemaphoreInfos = &awaitSemaphoreInfo;
+		//submitInfo.waitSemaphoreCount = 1;
+		//submitInfo.pWaitSemaphores = (VkSemaphore *)&awaitSemaphore->semaphore;
 	}
 	if (signalSemaphore != NULL)
 	{
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = (VkSemaphore *)&signalSemaphore->semaphore;
+		signalSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+		signalSemaphoreInfo.semaphore = (VkSemaphore)signalSemaphore->semaphore;
+		signalSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+
+		submitInfo.signalSemaphoreInfoCount = 1;
+		submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
+		// submitInfo.signalSemaphoreCount = 1;
+		// submitInfo.pSignalSemaphores = (VkSemaphore *)&signalSemaphore->semaphore;
 	}
 
 	//if we are on the graphics queue, the queue may also be used for presenting
     //hence, we need to wait for the queue to finish presenting before we can transition the image
-    // if (buffer->queue == device->graphicsQueue)
+    // if (buffer->queue == buffer->queue->inDevice->graphicsQueue)
     // {
-	// 	EnterLock(device->graphicsQueue->queueLock);
+	// 	EnterLock(buffer->queue->inDevice->graphicsQueue->queueLock);
 
-	// 	vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
+	// 	vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
 
-	// 	ExitLock(device->graphicsQueue->queueLock);
+	// 	ExitLock(buffer->queue->inDevice->graphicsQueue->queueLock);
 	// }
 
 	//submit the queue
     EnterLock(buffer->queue->queueLock);
 
-    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, fence == NULL ? NULL : (VkFence)fence->fence) != VK_SUCCESS)
+	if (vkQueueSubmit2((VkQueue)buffer->queue->queue, 1, &submitInfo, fence == NULL ? NULL : (VkFence)fence->fence) != VK_SUCCESS)
     {
 		LGFX_ERROR("Failed to submit queue\n");
     }

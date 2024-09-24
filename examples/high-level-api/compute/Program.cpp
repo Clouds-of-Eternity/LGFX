@@ -52,6 +52,9 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     LGFXUseShaderState(mainCmds, computeShaderState);
     LGFXDispatchCompute(mainCmds, PARTICLES_COUNT / 256, 1, 1);
 
+    //then run draw :>
+    LGFXAwaitComputeWrite(mainCmds, LGFXFunctionOperationType_VertexBufferRead);
+
     LGFXBeginRenderProgramSwapchain(rp, mainCmds, window->swapchain, {0, 0, 0, 255}, true);
 
     Maths::Matrix4x4 matrices[2];

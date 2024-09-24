@@ -27,6 +27,8 @@ void VkLGFXDestroyFence(LGFXFence fence);
 LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device);
 void VkLGFXDestroySemaphore(LGFXSemaphore semaphore);
 
+void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
+
 LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void VkLGFXDestroyDevice(LGFXDevice device);
 

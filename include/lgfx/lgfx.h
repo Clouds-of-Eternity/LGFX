@@ -69,6 +69,15 @@ typedef enum
 
 typedef enum
 {
+    LGFXFunctionOperationType_IndexBufferRead = 1,
+    LGFXFunctionOperationType_VertexBufferRead = 2,
+    LGFXFunctionOperationType_IndirectBufferRead = 4,
+    LGFXFunctionOperationType_ComputeBufferRead = 8,
+    LGFXFunctionOperationType_UniformBufferRead = 16
+} LGFXFunctionOperationType;
+
+typedef enum
+{
     LGFXFilterType_Point,
     LGFXFilterType_Linear
 } LGFXFilterType;
@@ -603,6 +612,8 @@ void LGFXDestroyFence(LGFXFence fence);
 
 LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
 void LGFXDestroySemaphore(LGFXSemaphore semaphore);
+
+void LGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
 
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
