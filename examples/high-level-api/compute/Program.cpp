@@ -113,6 +113,7 @@ void Init()
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
+    rpCreateInfo.outputToBackbuffer = true;
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //compute buffer

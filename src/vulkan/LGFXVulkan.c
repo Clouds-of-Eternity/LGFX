@@ -2187,16 +2187,21 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 		}
 		program->targets[index] = LGFXCreateRenderTarget(program->device, &createInfo);
 
+		//printf("created target: %p\n", program->targets[index]);
 		free(createInfo.textures);
 	}
-	LGFXRenderTarget forced = program->targets[index];
-	VkLGFXBeginRenderProgram(program, commandBuffer, forced, clearColor, autoTransitionTargetTextures);
+	VkLGFXBeginRenderProgram(program, commandBuffer, program->targets[index], clearColor, autoTransitionTargetTextures);
 }
 void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures)
 {
 	if (autoTransitionTargetTextures)
 	{
+		// if (vkQueueWaitIdle((VkQueue)program->device->graphicsQueue->queue) != VK_SUCCESS)
+		// {
+		// 	printf("Await queue idle failed\n");
+		// }
 		LGFXCommandBuffer temp = VkLGFXCreateTemporaryCommandBuffer(program->device, program->device->graphicsQueue, true);
+		
 		for (u32 i = 0; i < outputTarget->texturesCount; i++)
 		{
 			LGFXTexture *textures = outputTarget->textures;
