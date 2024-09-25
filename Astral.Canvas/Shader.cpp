@@ -36,7 +36,7 @@ namespace AstralCanvas
     }
     void Shader::deinit()
     {
-        LGFXDestroyFunction(this->gpuFunction);
+        LGFXDestroyFunction(gpuFunction);
         if (uniforms.ptr != NULL)
         {
             for (u32 i = 0; i < uniforms.capacity; i++)
@@ -48,6 +48,14 @@ namespace AstralCanvas
                 uniforms.ptr[i].deinit();
             }
             uniforms.deinit();
+        }
+        if (usedMaterials.data != NULL)
+        {
+            for (usize i = 0; i < usedMaterials.length; i++)
+            {
+                usedMaterials.data[i].deinit();
+            }
+            usedMaterials.deinit();
         }
     }
 
@@ -140,6 +148,17 @@ namespace AstralCanvas
         this->SetShaderVariableSamplers(variableName, &sampler, 1);
     }
 
+    i32 Shader::GetVariableBinding(text variableName)
+    {
+        for (i32 i = 0; i < this->uniforms.capacity; i++)
+        {
+            if (uniforms.ptr[i].nameStr == variableName)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
     void Shader::CheckDescriptorSetAvailability(bool forceAddNewDescriptor)
     {
         bool added = false;
@@ -398,6 +417,39 @@ namespace AstralCanvas
 
         JsonElement *computeElement = root.GetProperty("compute");
 
+        Json::JsonElement *materialsElement = root.GetProperty("materials");
+        if (materialsElement != NULL)
+        {
+            result->usedMaterials = collections::Array<ShaderMaterialExport>(result->allocator, materialsElement->childObjects.count);
+            u32 materialIndex = 0;
+            for (usize i = 0; i < materialsElement->childObjects.bucketsCount; i++)
+            {
+                if (materialsElement->childObjects.buckets[i].initialized)
+                {
+                    for (usize j = 0; j < materialsElement->childObjects.buckets[i].entries.count; j++)
+                    {
+                        Json::JsonElement *materialElement = &materialsElement->childObjects.buckets[i].entries.ptr[j].value;
+                        result->usedMaterials.data[materialIndex].name = string(result->allocator, materialsElement->childObjects.buckets[i].entries.ptr[j].key.buffer);
+                        result->usedMaterials.data[materialIndex].params = collections::Array<ShaderMaterialExportParam>(result->allocator, materialElement->childObjects.count);
+                        u32 paramIndex = 0;
+                        for (usize c = 0; c < materialElement->childObjects.bucketsCount; c++)
+                        {
+                            if (materialElement->childObjects.buckets[c].initialized)
+                            {
+                                for (usize d = 0; d < materialElement->childObjects.buckets[c].entries.count; d++)
+                                {
+                                    result->usedMaterials.data[materialIndex].params.data[paramIndex].name = string(result->allocator, materialElement->childObjects.buckets[c].entries.ptr[d].key.buffer);
+                                    result->usedMaterials.data[materialIndex].params.data[paramIndex].size = materialElement->childObjects.buckets[c].entries.ptr[d].value.GetUint32();
+                                    paramIndex++;
+                                }
+                            }
+                        }
+                        materialIndex++;
+                    }
+                }
+            }
+        }
+
         if (computeElement != NULL)
         {
             u32 uniformsCount = ParseShaderVariables(computeElement, &result->uniforms, LGFXShaderInputAccess_Compute);
@@ -424,6 +476,7 @@ namespace AstralCanvas
             info.uniforms = inputResources;
             info.type = LGFXFunctionType_Compute;
             result->gpuFunction = LGFXCreateFunction(device, &info);
+            result->functionType = LGFXFunctionType_Compute;
 
             free(inputResources);
         }
@@ -468,6 +521,7 @@ namespace AstralCanvas
                 info.uniforms = inputResources;
                 info.type = (LGFXFunctionType)(LGFXFunctionType_Fragment | LGFXFunctionType_Vertex);
                 result->gpuFunction = LGFXCreateFunction(device, &info);
+                result->functionType = (LGFXFunctionType)(LGFXFunctionType_Vertex | LGFXFunctionType_Fragment);
 
                 free(inputResources);
             }

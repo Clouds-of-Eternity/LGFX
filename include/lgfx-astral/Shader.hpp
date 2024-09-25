@@ -7,6 +7,26 @@
 
 namespace AstralCanvas
 {
+    struct ShaderMaterialExportParam
+    {
+        string name;
+        usize size;
+    };
+    struct ShaderMaterialExport
+    {
+        string name;
+        collections::Array<ShaderMaterialExportParam> params;
+
+        inline void deinit()
+        {
+            name.deinit();
+            for (usize i = 0; i < params.length; i++)
+            {
+                params.data[i].name.deinit();
+            }
+            params.deinit();
+        }
+    };
     struct ShaderResource
     {
         string nameStr;
@@ -23,10 +43,12 @@ namespace AstralCanvas
         IAllocator allocator;
         LGFXDevice device;
         LGFXFunction gpuFunction;
+        LGFXFunctionType functionType;
         ShaderVariables uniforms;
 
         usize descriptorForThisDrawCall;
         collections::vector<LGFXFunctionVariableBatch> variableBatches;
+        collections::Array<ShaderMaterialExport> usedMaterials;
 
         Shader();
         Shader(IAllocator allocator);
