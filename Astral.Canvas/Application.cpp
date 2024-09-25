@@ -5,6 +5,7 @@
 #include "GLFW/glfw3.h"
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
+#include "lgfx-astral/Shader.hpp"
 
 using namespace collections;
 
@@ -147,10 +148,15 @@ namespace AstralCanvas
             			LGFXCommandBufferEndSwapchain(windows.ptr[i].mainCommandBuffer, windows.ptr[i].swapchain);
 						LGFXSubmitFrame(device, windows.ptr[i].swapchain);
 
-						if (postEndDrawFunc != NULL)
+						for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
 						{
-							postEndDrawFunc(deltaTime);
+							AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
 						}
+
+							if (postEndDrawFunc != NULL)
+							{
+								postEndDrawFunc(deltaTime);
+							}
 					}
 				}
 				if (windows.count == 0)

@@ -57,6 +57,7 @@ typedef struct LGFXSwapchainImpl
     u32 width;
     u32 height;
     LGFXTexture *backbufferTextures;
+    LGFXTexture *backDepthbuffers;
     u32 backbufferTexturesCount;
 
     LGFXFence fence;

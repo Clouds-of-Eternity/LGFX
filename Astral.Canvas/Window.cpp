@@ -77,6 +77,18 @@ namespace AstralCanvas
 		glfwSetWindowShouldClose((GLFWwindow *)this->handle, GLFW_TRUE);
 		deinit();
 	}
+	void Window::SetResolution(u32 width, u32 height)
+	{
+		glfwSetWindowSize((GLFWwindow *)handle, (u32)width, (u32)height);
+	}
+	void Window::SetPosition(float posX, float posY)
+	{
+		glfwSetWindowPos((GLFWwindow *)handle, posX, posY);
+	}
+	void Window::SetMousePosition(float posX, float posY)
+	{
+		glfwSetCursorPos((GLFWwindow*)handle, (double)posX, (double)posY);
+	}
 	void Window::SetMouseState(WindowMouseState state)
 	{
 		if (state == AstralCanvas::WindowMouseState_Default)

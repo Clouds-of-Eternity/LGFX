@@ -87,7 +87,9 @@ inline VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
             return VK_FORMAT_R32G32B32_SFLOAT;
         case LGFXVertexElementFormat_Vector4:
             return VK_FORMAT_R32G32B32A32_SFLOAT;
-        case LGFXVertexElementFormat_Int:
+		case LGFXVertexElementFormat_Color:
+			return VK_FORMAT_R8G8B8A8_UNORM;
+		case LGFXVertexElementFormat_Int:
             return VK_FORMAT_R32_SINT;
         case LGFXVertexElementFormat_Uint:
             return VK_FORMAT_R32_UINT;
@@ -1212,12 +1214,14 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		return NULL;
     }
 	result->backbufferTextures = Allocate(LGFXTexture, result->backbufferTexturesCount);
+	result->backDepthbuffers = Allocate(LGFXTexture, result->backbufferTexturesCount);
 	VkImage *backbufferImageHandles = Allocate(VkImage, result->backbufferTexturesCount);
 	vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, backbufferImageHandles);
 
 	for (u32 i = 0; i < result->backbufferTexturesCount; i++)
 	{
 		LGFXTextureCreateInfo textureCreateInfo = {0};
+
 		textureCreateInfo.externalTextureHandle = backbufferImageHandles[i];
 		textureCreateInfo.format = LGFXTextureFormat_BGRA8Unorm;
 		textureCreateInfo.width = result->width;
@@ -1227,6 +1231,17 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		textureCreateInfo.sampleCount = 1;
 		textureCreateInfo.usage = LGFXTextureUsage_ColorAttachment;
 		result->backbufferTextures[i] = LGFXCreateTexture(device, &textureCreateInfo);
+
+		textureCreateInfo.depth = 1;
+		textureCreateInfo.externalTextureHandle = NULL;
+		textureCreateInfo.width = result->width;
+		textureCreateInfo.height = result->height;
+		textureCreateInfo.format = LGFXTextureFormat_Depth32Float;
+		textureCreateInfo.mipLevels = 1;
+		textureCreateInfo.sampleCount = 1;
+		textureCreateInfo.usage = (LGFXTextureUsage)(LGFXTextureUsage_DepthAttachment | LGFXTextureUsage_Sampled);
+		result->backDepthbuffers[i] = LGFXCreateTexture(device, &textureCreateInfo);
+		assert(result->backDepthbuffers[i]->imageView != NULL);
 	}
 
 	if (info->oldSwapchain != NULL)
@@ -1261,7 +1276,7 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 		if (!currentSwapchain->invalidated)
 		{
 		
-			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 1000000000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
+			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 4000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
 		}
 		else
 		{
@@ -1380,6 +1395,8 @@ LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
 		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		createInfo.samples = (VkSampleCountFlags)info->sampleCount;
 		createInfo.imageType = imageType;
+		createInfo.arrayLayers = 1;
+		createInfo.mipLevels = 1;
 		createInfo.flags = 0;
 
 		if (vkCreateImage((VkDevice)device->logicalDevice, &createInfo, NULL, &image) != VK_SUCCESS)
@@ -1402,6 +1419,11 @@ LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
 	result.device = device;
 	result.sampleCount = info->sampleCount;
 	result.ownsHandle = info->externalTextureHandle == NULL;
+
+	if (result.ownsHandle)
+	{
+		result.textureMemory = VkLGFXAllocMemoryForTexture(device, &result, LGFXMemoryUsage_GPU_ONLY);
+	}
 
 	VkImageAspectFlags imageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 	if (result.format == LGFXTextureFormat_Depth16Unorm || result.format == LGFXTextureFormat_Depth32Float)
@@ -1625,11 +1647,6 @@ LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture textu
 }
 void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length)
 {
-	if (texture->textureMemory->vkAllocation == NULL)
-	{
-		VkLGFXAllocMemoryForTexture(device, texture, LGFXMemoryUsage_GPU_ONLY);
-	}
-
 	LGFXBufferCreateInfo stagingBufferInfo = {0};
 	stagingBufferInfo.bufferUsage = LGFXBufferUsage_TransferSource;
 	stagingBufferInfo.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
@@ -1639,7 +1656,7 @@ void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usi
 
 	memcpy(stagingBuffer->bufferMemory->vkAllocationInfo.pMappedData, bytes, length);
 
-	LGFXCommandBuffer cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
+	LGFXCommandBuffer cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->graphicsQueue, true);
 
 	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_TransferDstOptimal, cmdBuffer, 0, 1);
 
@@ -1811,6 +1828,10 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
     createInfo.usage = usageFlags;
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+	if (info->size == 0)
+	{
+		LGFX_ERROR("Attempted to create empty buffer!");
+	}
     if (vkCreateBuffer((VkDevice)device->logicalDevice, &createInfo, NULL, (VkBuffer *)&result.handle) != VK_SUCCESS)
     {
 		LGFX_ERROR("Failed to create buffer\n");
@@ -2183,6 +2204,14 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 				{
 					createInfo.textures[i] = outputSwapchain->backbufferTextures[index];
 				}
+				else
+				{
+					LGFX_ERROR("NOT IMPLEMENTED");
+				}
+			}
+			else
+			{
+				createInfo.textures[i] = outputSwapchain->backDepthbuffers[index]; // LGFXCreateTexture(program->device, &textureInfo);
 			}
 		}
 		program->targets[index] = LGFXCreateRenderTarget(program->device, &createInfo);
@@ -3024,7 +3053,7 @@ void VkLGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParams
 	{
 		drawParamsStride = sizeof(VkDrawIndexedIndirectCommand);
 	}
-	vkCmdDrawIndexedIndirect((VkCommandBuffer)commands->cmdBuffer, (VkBuffer)drawParamsBuffer->handle, bufferOffset, drawCount, drawParamsStride);
+	vkCmdDrawIndexedIndirect((VkCommandBuffer)commands->cmdBuffer, (VkBuffer)drawParamsBuffer->handle, bufferOffset, (u32)drawCount, (u32)drawParamsStride);
 }
 
 void VkLGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ)
@@ -3138,12 +3167,13 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 	vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 	if (swapchain->swapchain != NULL)
 	{
-		for (u32 i = 0;  i< swapchain->backbufferTexturesCount; i++)
+		for (u32 i = 0; i < swapchain->backbufferTexturesCount; i++)
 		{
 			LGFXDestroyTexture(swapchain->backbufferTextures[i]);
+			LGFXDestroyTexture(swapchain->backDepthbuffers[i]);
 		}
 		free(swapchain->backbufferTextures);
-
+		free(swapchain->backDepthbuffers);
 
 		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, (VkSwapchainKHR)swapchain->swapchain, NULL);
 	}

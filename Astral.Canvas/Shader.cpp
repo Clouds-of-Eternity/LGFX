@@ -6,6 +6,8 @@ using namespace Json;
 
 namespace AstralCanvas
 {
+    collections::vector<Shader *> allUsedShaders = collections::vector<Shader *>(GetCAllocator());
+
     Shader::Shader()
     {
         this->allocator = IAllocator{};
@@ -199,6 +201,8 @@ namespace AstralCanvas
         LGFXFunctionVariableBatch batch = this->variableBatches.ptr[this->descriptorForThisDrawCall];
         LGFXFunctionSendVariablesToGPU(this->device, batch, variables, variablesCount);
         LGFXUseFunctionVariables(commandBuffer, batch, variables, variablesCount);
+
+        allUsedShaders.Add(this);
     }
 
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)

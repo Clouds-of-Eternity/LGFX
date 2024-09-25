@@ -23,6 +23,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 total += 4;
                 break;
             }
+            case LGFXVertexElementFormat_Color:
             case LGFXVertexElementFormat_Uint:
             case LGFXVertexElementFormat_Int:
             {
@@ -88,6 +89,10 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             default:
                 break;
         }
+    }
+    if (!tightlyPacked)
+    {
+        total = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
     }
 
     result.packedSize = total;
@@ -647,6 +652,15 @@ void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, 
         return;
     }
     LGFX_ERROR("LGFXDrawIndexed: Unknown backend\n");
+}
+void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, usize bufferOffset, usize drawCount, usize drawParamsStride)
+{
+    if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDrawIndexedIndirect(commands, drawParamsBuffer, bufferOffset, drawCount, drawParamsStride);
+        return;
+    }
+    LGFX_ERROR("LGFXDrawIndexedIndirect: Unknown backend\n");
 }
 
 void LGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ)

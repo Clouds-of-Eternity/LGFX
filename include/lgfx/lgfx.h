@@ -127,6 +127,7 @@ typedef enum
     LGFXVertexElementFormat_Vector2,
     LGFXVertexElementFormat_Vector3,
     LGFXVertexElementFormat_Vector4,
+    LGFXVertexElementFormat_Color,
     LGFXVertexElementFormat_Int,
     LGFXVertexElementFormat_Uint
 } LGFXVertexElementFormat;
@@ -677,6 +678,7 @@ void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
 void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);
 void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance);
+void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, usize bufferOffset, usize drawCount, usize drawParamsStride);
 
 void LGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ);
 void LGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, usize offset);

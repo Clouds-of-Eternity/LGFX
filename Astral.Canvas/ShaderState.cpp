@@ -4,7 +4,8 @@ namespace AstralCanvas
 {
     ShaderState::ShaderState()
     {
-        this->createInfo = {0};
+        this->device = NULL;
+        this->createInfo = {};
         this->zoneToInstance = collections::hashmap<AstralCanvas::ShaderStateBindZone, LGFXShaderState>();
     }
     ShaderState::ShaderState(IAllocator allocator, LGFXDevice device, LGFXShaderStateCreateInfo createInfo)
@@ -15,7 +16,15 @@ namespace AstralCanvas
     }
     void ShaderState::deinit()
     {
-        free(this->createInfo.vertexDeclarations);
+        if (this->createInfo.vertexDeclarations != NULL)
+        {
+            free(this->createInfo.vertexDeclarations);
+        }
+        auto iterator = this->zoneToInstance.GetIterator();
+        foreach (kvp, iterator)
+        {
+            LGFXDestroyShaderState(kvp->value);
+        }
         this->zoneToInstance.deinit();
     }
     
