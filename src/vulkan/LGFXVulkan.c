@@ -1751,8 +1751,13 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	if (commandBuffer == NULL)
 	{
-		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
+		EnterLock(device->graphicsQueue->commandPoolLock);
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->graphicsQueue, true);
 	}
+
+	LGFXTextureLayout originalLayout = from->layout;
+	LGFXTextureTransitionLayout(device, from, LGFXTextureLayout_TransferSrcOptimal, transientCmdBuffer, 0, 1);
+
     VkBufferImageCopy bufferImageCopy = {0};
     
     bufferImageCopy.bufferOffset = 0;
@@ -1774,9 +1779,12 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 
     vkCmdCopyImageToBuffer((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)from->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, (VkBuffer)to->handle, 1, &bufferImageCopy);
 
+	LGFXTextureTransitionLayout(device, from, originalLayout, transientCmdBuffer, 0, 1);
+
 	if (commandBuffer == NULL)
 	{
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
+		ExitLock(device->graphicsQueue->commandPoolLock);
 	}
     //AstralCanvasVk_EndTransientCommandBuffer(gpu, &gpu->DedicatedTransferQueue, transientCmdBuffer);
 }
@@ -2040,7 +2048,7 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 			attachmentInfo.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			if (info->attachments[i].readByRenderTarget)
 			{
-				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
 			else 
 			{
@@ -2357,7 +2365,7 @@ void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer command
 				}
 				else
 				{
-					textures[i]->layout = LGFXTextureLayout_DepthStencilReadOptimal;
+					textures[i]->layout = LGFXTextureLayout_ShaderReadOptimal; // LGFXTextureLayout_DepthStencilReadOptimal;
 				}
 				//createInfo.textures[i] = outputSwapchain->backDepthbuffers[index]; // LGFXCreateTexture(program->device, &textureInfo);
 			}
