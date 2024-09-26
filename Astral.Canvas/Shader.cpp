@@ -200,7 +200,9 @@ namespace AstralCanvas
         }
         LGFXFunctionVariableBatch batch = this->variableBatches.ptr[this->descriptorForThisDrawCall];
         LGFXFunctionSendVariablesToGPU(this->device, batch, variables, variablesCount);
-        LGFXUseFunctionVariables(commandBuffer, batch, variables, variablesCount);
+        LGFXUseFunctionVariables(commandBuffer, batch, gpuFunction);
+
+        descriptorForThisDrawCall += 1;
 
         allUsedShaders.Add(this);
     }

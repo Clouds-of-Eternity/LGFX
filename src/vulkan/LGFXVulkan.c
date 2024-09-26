@@ -492,7 +492,7 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
 		result->begun = true;
 
 		vkBeginCommandBuffer((VkCommandBuffer)result->cmdBuffer, &beginInfo);
-    }
+	}
     return result;
 }
 void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer)
@@ -588,6 +588,23 @@ LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device)
 	return result;
 }
 
+void VkLGFXAwaitDraw(LGFXCommandBuffer commandBuffer)
+{
+	VkMemoryBarrier2 memoryBarrier = {0};
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+	memoryBarrier.srcAccessMask = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+	memoryBarrier.dstAccessMask = VK_PIPELINE_STAGE_2_NONE;
+	memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+	memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+
+	VkDependencyInfo dependency = {0};
+	dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependency.memoryBarrierCount = 1;
+	dependency.pMemoryBarriers = &memoryBarrier;
+	dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	vkCmdPipelineBarrier2((VkCommandBuffer)commandBuffer->cmdBuffer, &dependency);
+}
 void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType)
 {
 	VkMemoryBarrier2 memoryBarrier = {0};
@@ -1492,7 +1509,7 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 
     LGFXCommandQueue cmdQueue = device->graphicsQueue;
 	LGFXCommandBuffer cmdBuffer = commandBuffer;
-	if (cmdBuffer == NULL)
+	if (commandBuffer == NULL)
     {
         cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, cmdQueue, true);
     }
@@ -1883,6 +1900,10 @@ void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer comma
 void VkLGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength)
 {
 	memcpy(buffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
+}
+void VkLGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, u32 value)
+{
+	vkCmdFillBuffer(cmdBuffer, (VkBuffer)buffer->handle, 0, buffer->size, value);
 }
 void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize))
 {
@@ -2589,23 +2610,23 @@ void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBat
 
 	vkUpdateDescriptorSets((VkDevice)device->logicalDevice, shaderVariableCount, setWrites, 0, NULL);
 }
-void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *variables, u32 variablesCount)
+void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction)
 {
 	VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	if (variables[0].forFunction->type == LGFXFunctionType_Compute)
+	if (forFunction->type == LGFXFunctionType_Compute)
 	{
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
-	for (u32 i = 0; i < variablesCount; i++)
-	{
-		vkCmdBindDescriptorSets(
-			(VkCommandBuffer)commandBuffer->cmdBuffer, 
-			bindPoint, 
-			(VkPipelineLayout)variables[0].forFunction->pipelineLayout, 
-			0, 1, //descriptor set count
-			(VkDescriptorSet *)&batch,
-			0, NULL); //dynamic offsets count
-	}
+	// for (u32 i = 0; i < variablesCount; i++)
+	// {
+	vkCmdBindDescriptorSets(
+		(VkCommandBuffer)commandBuffer->cmdBuffer, 
+		bindPoint, 
+		(VkPipelineLayout)forFunction->pipelineLayout, 
+		0, 1, //descriptor set count
+		(VkDescriptorSet *)&batch,
+		0, NULL); //dynamic offsets count
+	//}
 	// VkDescriptorSet sets[32];
 	// for (u32 i = 0; i < variablesCount; i++)
 	// {
