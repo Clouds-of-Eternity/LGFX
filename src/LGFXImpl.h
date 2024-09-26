@@ -93,6 +93,8 @@ typedef struct LGFXRenderProgramImpl
     LGFXRenderTarget *targets;
     u32 targetsCount;
 
+    LGFXRenderTarget currentTarget;
+
     LGFXRenderAttachmentInfo *attachments;
     u32 attachmentsCount;
 

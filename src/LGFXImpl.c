@@ -448,11 +448,11 @@ void LGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer)
     }
     LGFX_ERROR("LGFXRenderProgramNextPass: Unknown backend\n");
 }
-void LGFXEndRenderProgram(LGFXCommandBuffer commandBuffer)
+void LGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer)
 {
     if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXEndRenderProgram(commandBuffer);
+        VkLGFXEndRenderProgram(program, commandBuffer);
         return;
     }
     LGFX_ERROR("LGFXEndRenderProgram: Unknown backend\n");

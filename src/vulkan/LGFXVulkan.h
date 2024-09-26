@@ -66,7 +66,7 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void VkLGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
-void VkLGFXEndRenderProgram(LGFXCommandBuffer commandBuffer);
+void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer);
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);

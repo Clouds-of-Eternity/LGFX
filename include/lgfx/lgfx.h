@@ -659,7 +659,7 @@ LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCr
 void LGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void LGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void LGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
-void LGFXEndRenderProgram(LGFXCommandBuffer commandBuffer);
+void LGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer);
 void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);

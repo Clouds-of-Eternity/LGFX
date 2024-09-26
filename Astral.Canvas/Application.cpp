@@ -153,10 +153,10 @@ namespace AstralCanvas
 							AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
 						}
 
-							if (postEndDrawFunc != NULL)
-							{
-								postEndDrawFunc(deltaTime);
-							}
+						if (postEndDrawFunc != NULL)
+						{
+							postEndDrawFunc(deltaTime);
+						}
 					}
 				}
 				if (windows.count == 0)
