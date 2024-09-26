@@ -182,7 +182,6 @@ namespace AstralCanvas
         {
             LGFXFunctionVariableBatch batch = LGFXFunctionGetVariableBatch(this->gpuFunction);
             this->variableBatches.Add(batch);
-            printf("Added new variable batch\n");
         }
     }
     void Shader::SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer)

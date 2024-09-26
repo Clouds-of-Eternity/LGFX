@@ -1290,6 +1290,7 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 	{
 		if (!currentSwapchain->invalidated)
 		{
+			LGFXAwaitFence(currentSwapchain->fence);
 			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, UINT64_MAX, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
 		}
 		else
@@ -1323,7 +1324,6 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 			return false;
         }
     }
-	LGFXAwaitFence(currentSwapchain->fence);
 	LGFXResetFence(currentSwapchain->fence);
     return false;
 }
@@ -2257,7 +2257,6 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 		}
 		program->targets[index] = LGFXCreateRenderTarget(program->device, &createInfo);
 
-		printf("created target %p for frame %u\n", program->targets[index], index);
 		free(createInfo.textures);
 	}
 	VkLGFXBeginRenderProgram(program, commandBuffer, program->targets[index], clearColor, autoTransitionTargetTextures);
