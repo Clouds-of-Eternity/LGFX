@@ -148,15 +148,16 @@ namespace AstralCanvas
             			LGFXCommandBufferEndSwapchain(windows.ptr[i].mainCommandBuffer, windows.ptr[i].swapchain);
 						LGFXSubmitFrame(device, windows.ptr[i].swapchain);
 
-						for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
-						{
-							AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
-						}
-
 						if (postEndDrawFunc != NULL)
 						{
 							postEndDrawFunc(deltaTime);
 						}
+
+						for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
+						{
+							AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
+						}
+						AstralCanvas::allUsedShaders.Clear();
 					}
 				}
 				if (windows.count == 0)

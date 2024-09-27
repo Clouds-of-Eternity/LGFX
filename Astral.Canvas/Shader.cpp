@@ -402,6 +402,43 @@ namespace AstralCanvas
                 }
             }
         }
+        JsonElement *storageTextures = json->GetProperty("storageTextures");
+        if (storageTextures != NULL)
+        {
+            for (usize i = 0; i < storageTextures->arrayElements.length; i++)
+            {
+                string name = storageTextures->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
+                u32 set = storageTextures->arrayElements.data[i].GetProperty("set")->GetUint32();
+                u32 binding = storageTextures->arrayElements.data[i].GetProperty("binding")->GetUint32();
+
+                if ((i32)binding > length)
+                {
+                    length = binding;
+                }
+
+                AstralCanvas::ShaderResource *resource = results->Get(binding);
+                if (resource != NULL && resource->resource.variableName != NULL)
+                {
+                    resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
+                    name.deinit();
+                }
+                else
+                {
+                    ShaderResource newResource;
+                    newResource.resource.binding = binding;
+                    newResource.resource.set = set;
+                    newResource.resource.variableName = name.buffer;
+                    newResource.resource.arrayLength = 0;
+                    newResource.resource.accessedBy = accessedByShaderOfType;
+                    newResource.resource.type = LGFXShaderResourceType_StorageTexture;
+                    newResource.resource.size = 0;
+
+                    newResource.nameStr = name;
+                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    results->Insert((usize)binding, newResource);
+                }
+            }
+        }
 
         return (u32)(length + 1);
     }

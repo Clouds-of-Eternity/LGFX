@@ -73,7 +73,8 @@ typedef enum
     LGFXFunctionOperationType_VertexBufferRead = 2,
     LGFXFunctionOperationType_IndirectBufferRead = 4,
     LGFXFunctionOperationType_ComputeBufferRead = 8,
-    LGFXFunctionOperationType_UniformBufferRead = 16
+    LGFXFunctionOperationType_UniformBufferRead = 16,
+    LGFXFunctionOperationType_ComputeTextureRead = 32
 } LGFXFunctionOperationType;
 
 typedef enum

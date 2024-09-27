@@ -75,7 +75,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     LGFXDrawIndexed(mainCmds, 6, PARTICLES_COUNT, 0, 0,0 );
 
-    LGFXEndRenderProgram(mainCmds);
+    LGFXEndRenderProgram(rp, mainCmds);
 
     computeShader.descriptorForThisDrawCall = 0;
     renderShader.descriptorForThisDrawCall = 0;

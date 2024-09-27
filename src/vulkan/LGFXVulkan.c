@@ -635,7 +635,12 @@ void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperat
 	if ((opType & LGFXFunctionOperationType_ComputeBufferRead) != 0)
 	{
 		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-		memoryBarrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_ComputeTextureRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
 	}
 
 	VkDependencyInfo dependency = {0};
@@ -2653,7 +2658,7 @@ void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBat
 				setWrite.dstArrayElement = 0;
 				setWrite.descriptorCount = 1;
 				setWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-				setWrite.pBufferInfo = (VkDescriptorBufferInfo *)shaderVariables[i].infos;
+				setWrite.pImageInfo = (VkDescriptorImageInfo *)shaderVariables[i].infos;
 
 				break;
 			}

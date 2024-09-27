@@ -41,6 +41,7 @@ namespace AstralCanvas
             this->createInfo.forRenderProgram = program;
             this->createInfo.forRenderPass = renderPassToUse;
             state = LGFXCreateShaderState(this->device, &this->createInfo);
+            this->zoneToInstance.Add(zone, state);
         }
         return state;
     }
