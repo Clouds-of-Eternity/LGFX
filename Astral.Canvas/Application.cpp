@@ -28,6 +28,7 @@ namespace AstralCanvas
 		result.engineName = engineName;
 		result.appVersion = appVersion;
 		result.engineVersion = engineVersion;
+		result.timeScale = 1.0f;
 		applicationInstance = result;
 
 		u32 extensionsCount;
@@ -117,7 +118,7 @@ namespace AstralCanvas
 
 			if (framesPerSecond < 1.0f || deltaTime >= 1.0f / framesPerSecond)
 			{
-				updateFunc(deltaTime);
+				updateFunc(deltaTime * this->timeScale);
 
 				for (usize i = 0; i < windows.count; i++)
 				{

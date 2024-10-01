@@ -30,6 +30,7 @@ namespace AstralCanvas
 		bool shouldResetDeltaTimer;
 
 		float framesPerSecond;
+		float timeScale;
 
 		Application();
 		bool AddWindow(text name, i32 width, i32 height, bool resizeable = true, void *iconData = NULL, u32 iconWidth = 0, u32 iconHeight = 0);
