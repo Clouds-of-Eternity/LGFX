@@ -43,4 +43,5 @@ namespace AstralCanvas
 	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond);
 	text GetClipboardText();
 	void SetClipboardText(text text);
+	double GetElapsedTime();
 }

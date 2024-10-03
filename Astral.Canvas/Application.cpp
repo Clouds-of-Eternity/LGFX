@@ -14,6 +14,10 @@ namespace AstralCanvas
 	Application applicationInstance;
 	float refreshTimer = 0.0f;
 
+	double GetElapsedTime()
+	{
+		return glfwGetTime();
+	}
 	Application::Application()
 	{
 	}
