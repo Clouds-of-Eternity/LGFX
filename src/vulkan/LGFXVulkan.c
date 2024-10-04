@@ -651,6 +651,10 @@ void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperat
 
 	vkCmdPipelineBarrier2((VkCommandBuffer)commandBuffer->cmdBuffer, &dependency);
 }
+void VkLGFXAwaitGraphicsIdle(LGFXDevice device)
+{
+	vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
+}
 
 LGFXCommandQueue VkLGFXCreateCommandQueue(LGFXDevice device, u32 queueFamilyID, VkQueue vkQueue)
 {
@@ -1939,7 +1943,7 @@ void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize
 	{
 		allocateFunction = &malloc;
 	}
-	assert((buffer->usage & LGFXBufferUsage_TransferSource) != 0);
+
 	void *result = allocateFunction(buffer->size);
 
 	LGFXBufferCreateInfo info;

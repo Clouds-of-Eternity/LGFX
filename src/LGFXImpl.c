@@ -195,6 +195,15 @@ void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer)
     }
     LGFX_ERROR("LGFXAwaitDraw: Unknown backend\n");
 }
+void LGFXAwaitGraphicsIdle(LGFXDevice device)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXAwaitGraphicsIdle(device);
+        return;
+    }
+    LGFX_ERROR("LGFXAwaitGraphicsIdle: Unknown backend\n");
+}
 
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 {

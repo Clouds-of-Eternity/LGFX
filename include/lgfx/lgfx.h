@@ -617,6 +617,7 @@ void LGFXDestroySemaphore(LGFXSemaphore semaphore);
 
 void LGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
+void LGFXAwaitGraphicsIdle();
 
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
@@ -654,7 +655,7 @@ void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength);
 void LGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, u32 value);
 void LGFXDestroyBuffer(LGFXBuffer buffer);
 void *LGFXGetBufferData(LGFXBuffer buffer, usize *bytesLength);
-void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize));
+void *LGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize));
 
 LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
 void LGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);

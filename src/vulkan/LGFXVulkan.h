@@ -29,6 +29,7 @@ void VkLGFXDestroySemaphore(LGFXSemaphore semaphore);
 
 void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
 void VkLGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
+void VkLGFXAwaitGraphicsIdle(LGFXDevice device);
 
 LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void VkLGFXDestroyDevice(LGFXDevice device);
