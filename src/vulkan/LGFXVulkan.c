@@ -473,6 +473,7 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
     allocInfo.commandPool = queueToUse->transientCommandPool;
     allocInfo.pNext = NULL;
 
+	EnterLock(queueToUse->commandPoolLock);
 	EnterLock(queueToUse->queueLock);
 
     if (vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &allocInfo, (VkCommandBuffer *)&result->cmdBuffer) != VK_SUCCESS)
@@ -481,8 +482,9 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
     }
 
 	ExitLock(queueToUse->queueLock);
+	ExitLock(queueToUse->commandPoolLock);
 
-    if (alsoBeginBuffer && result != NULL)
+	if (alsoBeginBuffer && result != NULL)
     {
         VkCommandBufferBeginInfo beginInfo = {0};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
