@@ -56,7 +56,7 @@ namespace AstralCanvas
 
         i32 GetVariableBinding(text variableName);
         void CheckDescriptorSetAvailability(bool forceAddNewDescriptor = false);
-        void SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer);
+        void SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer, bool pushToUsedShaderStack = true);
 
         void SetShaderVariable(const char* variableName, void* ptr, usize size);
         void SetShaderVariableTexture(const char* variableName, LGFXTexture texture);

@@ -474,14 +474,12 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
     allocInfo.pNext = NULL;
 
 	EnterLock(queueToUse->commandPoolLock);
-	EnterLock(queueToUse->queueLock);
 
     if (vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &allocInfo, (VkCommandBuffer *)&result->cmdBuffer) != VK_SUCCESS)
     {
         result = NULL;
     }
 
-	ExitLock(queueToUse->queueLock);
 	ExitLock(queueToUse->commandPoolLock);
 
 	if (alsoBeginBuffer && result != NULL)
@@ -505,17 +503,6 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &(VkCommandBuffer)buffer->cmdBuffer;
-
-    //if we are on the graphics queue, the queue may also be used for presenting
-    //hence, we need to wait for the queue to finish presenting before we can transition the image
-    if (buffer->queue == device->graphicsQueue)
-    {
-		EnterLock(device->graphicsQueue->queueLock);
-
-		vkQueueWaitIdle((VkQueue)device->graphicsQueue->queue);
-
-		ExitLock(device->graphicsQueue->queueLock);
-	}
 
 	//LGFXFence tempFence = VkLGFXCreateFence(device, false);
 
@@ -607,12 +594,26 @@ void VkLGFXAwaitDraw(LGFXCommandBuffer commandBuffer)
 
 	vkCmdPipelineBarrier2((VkCommandBuffer)commandBuffer->cmdBuffer, &dependency);
 }
-void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType)
+void VkLGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
 {
 	VkMemoryBarrier2 memoryBarrier = {0};
 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-	memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-	memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+	
+	if (funcType == LGFXFunctionType_Compute)
+	{
+		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+		memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+	}
+	else if (funcType == LGFXFunctionType_Fragment || funcType == LGFXFunctionType_Vertex)
+	{
+		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+		memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+	}
+	else
+	{
+		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+		memoryBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+	}
 
 	if ((opType & LGFXFunctionOperationType_IndexBufferRead) != 0)
 	{
@@ -643,6 +644,11 @@ void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperat
 	{
 		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 		memoryBarrier.dstAccessMask |= VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_FragmentFunctionRead) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
 	}
 
 	VkDependencyInfo dependency = {0};
@@ -1361,7 +1367,6 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 	presentInfo.pWaitSemaphores = &awaitRender;
 	presentInfo.pImageIndices = &swapchain->currentImageIndex;
 
-	//gpu->DedicatedGraphicsQueue.queueMutex.EnterLock();
 	EnterLock(device->graphicsQueue->queueLock);
 	VkResult presentResults = vkQueuePresentKHR((VkQueue)device->graphicsQueue->queue, &presentInfo);
 	//swapchain->renderTargets.data[swapchain->currentImageIndex].textures.data[0]->imageLayout = (u32)VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -1640,10 +1645,8 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 		dependencyInfo.pImageMemoryBarriers = &memBarrier;
 		dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-		//cmdQueue->commandPoolLock.EnterLock();
 		EnterLock(cmdQueue->commandPoolLock);
 		vkCmdPipelineBarrier2((VkCommandBuffer)cmdBuffer->cmdBuffer, &dependencyInfo);
-		//vkCmdPipelineBarrier((VkCommandBuffer)cmdBuffer->cmdBuffer, sourceStage, destinationStage, 0, 0, NULL, 0, NULL, 1, &memBarrier);
 		ExitLock(cmdQueue->commandPoolLock);
 
 		texture->layout = targetLayout;
@@ -2179,8 +2182,20 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	}
 	else
 	{
+		// VkSubpassDependency *subpassDependencies = Allocate(VkSubpassDependency, 1);
+
+		// subpassDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+		// subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		// subpassDependencies[0].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+		// subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		// subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		// subpassDependencies[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		// subpassDependencies[0].dstSubpass = 0;
+
 		renderPassInfo.dependencyCount = 0;
+		//1;
 		renderPassInfo.pDependencies = NULL;
+		//subpassDependencies;
 	}
 
 	if (vkCreateRenderPass((VkDevice)device->logicalDevice, &renderPassInfo, NULL, (VkRenderPass *)&program.handle) != VK_SUCCESS)
@@ -2495,10 +2510,10 @@ LGFXFunctionVariableBatch VkLGFXFunctionGetVariableBatch(LGFXFunction function)
 	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&function->functionVariablesLayout;
 
 	VkDescriptorSet set;
-	u32 errorCode = vkAllocateDescriptorSets((VkDevice)function->device->logicalDevice, &allocInfo, &set);
+	i32 errorCode = vkAllocateDescriptorSets((VkDevice)function->device->logicalDevice, &allocInfo, &set);
 	if (errorCode != VK_SUCCESS)
 	{
-		LGFX_ERROR("Failed to allocate descriptor set, error code %u\n", errorCode);
+		LGFX_ERROR("Failed to allocate descriptor set, error code %i\n", errorCode);
 		return NULL;
 	}
 
@@ -3064,14 +3079,14 @@ void VkLGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXS
 
 	//if we are on the graphics queue, the queue may also be used for presenting
     //hence, we need to wait for the queue to finish presenting before we can transition the image
-    // if (buffer->queue == buffer->queue->inDevice->graphicsQueue)
-    // {
-	// 	EnterLock(buffer->queue->inDevice->graphicsQueue->queueLock);
+    /*if (buffer->queue == buffer->queue->inDevice->graphicsQueue)
+    {
+		EnterLock(buffer->queue->inDevice->graphicsQueue->queueLock);
 
-	// 	vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
+		vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
 
-	// 	ExitLock(buffer->queue->inDevice->graphicsQueue->queueLock);
-	// }
+		ExitLock(buffer->queue->inDevice->graphicsQueue->queueLock);
+	}*/
 
 	//submit the queue
     EnterLock(buffer->queue->queueLock);
@@ -3259,6 +3274,9 @@ void VkLGFXDestroyBuffer(LGFXBuffer buffer)
 }
 void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 {
+	EnterLock(swapchain->device->graphicsQueue->queueLock);
+	vkQueueWaitIdle((VkQueue)swapchain->device->graphicsQueue->queue);
+	ExitLock(swapchain->device->graphicsQueue->queueLock);
 	vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 	if (swapchain->swapchain != NULL)
 	{

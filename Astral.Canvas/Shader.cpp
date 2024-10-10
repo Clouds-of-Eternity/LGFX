@@ -184,7 +184,7 @@ namespace AstralCanvas
             this->variableBatches.Add(batch);
         }
     }
-    void Shader::SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer)
+    void Shader::SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer, bool pushToUsedShaderStack)
     {
         LGFXFunctionVariable variables[32];
         u32 variablesCount = 0;

@@ -74,7 +74,8 @@ typedef enum
     LGFXFunctionOperationType_IndirectBufferRead = 4,
     LGFXFunctionOperationType_ComputeBufferRead = 8,
     LGFXFunctionOperationType_UniformBufferRead = 16,
-    LGFXFunctionOperationType_ComputeTextureRead = 32
+    LGFXFunctionOperationType_ComputeTextureRead = 32,
+    LGFXFunctionOperationType_FragmentFunctionRead = 64
 } LGFXFunctionOperationType;
 
 typedef enum
@@ -114,6 +115,7 @@ typedef enum
 
 typedef enum
 {
+    LGFXFunctionType_Invalid = 0,
     LGFXFunctionType_Vertex = 1,
     LGFXFunctionType_Fragment = 2,
     LGFXFunctionType_Compute = 4,
@@ -615,7 +617,7 @@ void LGFXDestroyFence(LGFXFence fence);
 LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
 void LGFXDestroySemaphore(LGFXSemaphore semaphore);
 
-void LGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
+void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
 void LGFXAwaitGraphicsIdle();
 

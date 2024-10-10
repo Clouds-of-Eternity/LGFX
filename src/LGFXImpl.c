@@ -177,14 +177,14 @@ void LGFXDestroySemaphore(LGFXSemaphore semaphore)
     LGFX_ERROR("LGFXDestroySemaphore: Unknown backend\n");
 }
 
-void LGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType)
+void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
 {
     if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXAwaitComputeWrite(commandBuffer, opType);
+        VkLGFXAwaitWriteFunction(commandBuffer, funcType, opType);
         return;
     }
-    LGFX_ERROR("LGFXAwaitComputeWrite: Unknown backend\n");
+    LGFX_ERROR("LGFXAwaitWriteFunction: Unknown backend\n");
 }
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer)
 {
