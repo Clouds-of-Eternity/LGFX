@@ -56,6 +56,8 @@ namespace AstralCanvas
 
 		//create device
 		LGFXDeviceCreateInfo deviceCreateInfo = {0};
+		deviceCreateInfo.requiredFeatures.fillModeNonSolid = true;
+		deviceCreateInfo.requiredFeatures.wideLines = true;
 		applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
 	}
 	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, void *iconData, u32 iconWidth, u32 iconHeight)
