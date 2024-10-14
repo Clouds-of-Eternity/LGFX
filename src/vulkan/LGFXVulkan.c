@@ -1689,6 +1689,12 @@ LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture textu
 
     vmaBindImageMemory(vma, memoryAllocated.vkAllocation, (VkImage)texture->imageHandle);
 
+	char chars[100];
+	i32 len = sprintf(chars, "Texture: %u, %u", texture->width, texture->height);
+	chars[len] = '\0';
+
+	vmaSetAllocationName(vma, memoryAllocated.vkAllocation, chars);
+
 	LGFXMemoryBlock result = Allocate(LGFXMemoryBlockImpl, 1);
 	*result = memoryAllocated;
 	return result;
@@ -2006,6 +2012,7 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
     }
 
     vmaBindBufferMemory((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, (VkBuffer)buffer->handle);
+	vmaSetAllocationName((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, "buffer");
 
 	LGFXMemoryBlock result = Allocate(LGFXMemoryBlockImpl, 1);
 	*result = memoryAllocated;
