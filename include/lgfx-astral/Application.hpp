@@ -27,14 +27,17 @@ namespace AstralCanvas
 		u32 engineVersion;
 		float startTime;
 		float endTime;
+		float updateTimer;
+		float fixedUpdateTimer;
 		bool shouldResetDeltaTimer;
 
 		float framesPerSecond;
+		float fixedTimeStep;
 		float timeScale;
 
 		Application();
 		bool AddWindow(text name, i32 width, i32 height, bool resizeable = true, void *iconData = NULL, u32 iconWidth = 0, u32 iconHeight = 0);
-		void Run(ApplicationUpdateFunction updateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc);
+		void Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc);
 		void ResetDeltaTimer();
 	};
 

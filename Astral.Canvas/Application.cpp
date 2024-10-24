@@ -20,6 +20,25 @@ namespace AstralCanvas
 	}
 	Application::Application()
 	{
+		windows = collections::vector<Window>();
+		allocator = IAllocator{};
+
+		instance = NULL;
+		device = NULL;
+
+		appName = string();
+		engineName = string();
+		appVersion = 0;
+		engineVersion = 0;
+		startTime = 0.0f;
+		endTime = 0.0f;
+		updateTimer = 0.0f;
+		fixedUpdateTimer = 0.0f;
+		shouldResetDeltaTimer = 0.0f;
+
+		framesPerSecond = 0.0f;
+		fixedTimeStep = 0.0f;
+		timeScale = 1.0f;
 	}
 	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond)
 	{
@@ -33,6 +52,7 @@ namespace AstralCanvas
 		result.appVersion = appVersion;
 		result.engineVersion = engineVersion;
 		result.timeScale = 1.0f;
+		result.fixedTimeStep = 0.02f;
 		applicationInstance = result;
 
 		u32 extensionsCount;
@@ -78,7 +98,7 @@ namespace AstralCanvas
 		glfwSetTime(0.0);
 		shouldResetDeltaTimer = true;
 	}
-	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc)
+	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc)
 	{
 		if (initFunc != NULL)
 		{
@@ -121,11 +141,26 @@ namespace AstralCanvas
 				refreshTimer = 0.0f;
 				glfwPollEvents();
 			}
+			updateTimer += deltaTime;
+			fixedUpdateTimer += deltaTime;
 
-			if (framesPerSecond < 1.0f || deltaTime >= 1.0f / framesPerSecond)
+			bool runUpdate = framesPerSecond < 1.0f || updateTimer >= 1.0f / framesPerSecond;
+
+			//fixed update
+			if (fixedUpdateTimer > fixedTimeStep * 4.0f) //cap to avoid death spiral
 			{
-				updateFunc(deltaTime * this->timeScale);
+				fixedUpdateTimer = fixedTimeStep * 4.0f;
+			}
+			while (fixedUpdateTimer > fixedTimeStep)
+			{
+				fixedUpdateFunc(fixedTimeStep);
+				fixedUpdateTimer -= fixedTimeStep;
+			}
 
+			if (runUpdate)
+			{
+				updateFunc(updateTimer * this->timeScale);
+				
 				for (usize i = 0; i < windows.count; i++)
 				{
 					if (windows.ptr[i].resolution.X == 0 || windows.ptr[i].resolution.Y == 0)
@@ -167,12 +202,14 @@ namespace AstralCanvas
 						AstralCanvas::allUsedShaders.Clear();
 					}
 				}
+
 				if (windows.count == 0)
 				{
 					break;
 				}
-				startTime = endTime;
+				updateTimer = 0.0f;
 			}
+			startTime = endTime;
 			endTime = (float)glfwGetTime();
 			if (this->shouldResetDeltaTimer)
 			{
