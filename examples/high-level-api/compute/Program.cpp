@@ -53,7 +53,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     LGFXDispatchCompute(mainCmds, PARTICLES_COUNT / 256, 1, 1);
 
     //then run draw :>
-    LGFXAwaitComputeWrite(mainCmds, LGFXFunctionOperationType_VertexBufferRead);
+    LGFXAwaitWriteFunction(mainCmds, LGFXFunctionType_Compute, LGFXFunctionOperationType_VertexBufferRead);
 
     LGFXBeginRenderProgramSwapchain(rp, mainCmds, window->swapchain, {0, 0, 0, 255}, true);
 
@@ -75,7 +75,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     LGFXDrawIndexed(mainCmds, 6, PARTICLES_COUNT, 0, 0,0 );
 
-    LGFXEndRenderProgram(mainCmds);
+    LGFXEndRenderProgram(rp, mainCmds);
 
     computeShader.descriptorForThisDrawCall = 0;
     renderShader.descriptorForThisDrawCall = 0;

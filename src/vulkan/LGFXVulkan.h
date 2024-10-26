@@ -27,7 +27,9 @@ void VkLGFXDestroyFence(LGFXFence fence);
 LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device);
 void VkLGFXDestroySemaphore(LGFXSemaphore semaphore);
 
-void VkLGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
+void VkLGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
+void VkLGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
+void VkLGFXAwaitGraphicsIdle(LGFXDevice device);
 
 LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void VkLGFXDestroyDevice(LGFXDevice device);
@@ -56,6 +58,7 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
 void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to);
 void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength);
 void VkLGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength);
+void VkLGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, u32 value);
 void VkLGFXDestroyBuffer(LGFXBuffer buffer);
 void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize));
 void *VkLGFXGetBufferData(LGFXBuffer buffer);
@@ -64,7 +67,7 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void VkLGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
-void VkLGFXEndRenderProgram(LGFXCommandBuffer commandBuffer);
+void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer);
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
@@ -72,7 +75,7 @@ void VkLGFXDestroyFunction(LGFXFunction func);
 LGFXFunctionVariableBatch VkLGFXFunctionGetVariableBatch(LGFXFunction function);
 LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
 void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *shaderVariables, u32 shaderVariableCount);
-void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *variables, u32 variablesCount);
+void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction);
 void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
