@@ -73,7 +73,9 @@ typedef enum
     LGFXFunctionOperationType_VertexBufferRead = 2,
     LGFXFunctionOperationType_IndirectBufferRead = 4,
     LGFXFunctionOperationType_ComputeBufferRead = 8,
-    LGFXFunctionOperationType_UniformBufferRead = 16
+    LGFXFunctionOperationType_UniformBufferRead = 16,
+    LGFXFunctionOperationType_ComputeTextureRead = 32,
+    LGFXFunctionOperationType_FragmentFunctionRead = 64
 } LGFXFunctionOperationType;
 
 typedef enum
@@ -113,6 +115,7 @@ typedef enum
 
 typedef enum
 {
+    LGFXFunctionType_Invalid = 0,
     LGFXFunctionType_Vertex = 1,
     LGFXFunctionType_Fragment = 2,
     LGFXFunctionType_Compute = 4,
@@ -127,6 +130,7 @@ typedef enum
     LGFXVertexElementFormat_Vector2,
     LGFXVertexElementFormat_Vector3,
     LGFXVertexElementFormat_Vector4,
+    LGFXVertexElementFormat_Color,
     LGFXVertexElementFormat_Int,
     LGFXVertexElementFormat_Uint
 } LGFXVertexElementFormat;
@@ -613,7 +617,9 @@ void LGFXDestroyFence(LGFXFence fence);
 LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
 void LGFXDestroySemaphore(LGFXSemaphore semaphore);
 
-void LGFXAwaitComputeWrite(LGFXCommandBuffer commandBuffer, LGFXFunctionOperationType opType);
+void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
+void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
+void LGFXAwaitGraphicsIdle();
 
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
@@ -648,15 +654,16 @@ LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
 void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to);
 void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength);
 void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength);
+void LGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, u32 value);
 void LGFXDestroyBuffer(LGFXBuffer buffer);
 void *LGFXGetBufferData(LGFXBuffer buffer, usize *bytesLength);
-void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize));
+void *LGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize));
 
 LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
 void LGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void LGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures);
 void LGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
-void LGFXEndRenderProgram(LGFXCommandBuffer commandBuffer);
+void LGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer);
 void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
@@ -664,7 +671,7 @@ void LGFXDestroyFunction(LGFXFunction func);
 LGFXFunctionVariableBatch LGFXFunctionGetVariableBatch(LGFXFunction function);
 LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
 void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, u32 variablesCount);
-void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *variables, u32 variablesCount);
+void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction);
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
@@ -677,6 +684,7 @@ void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset);
 void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount);
 void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance);
+void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, usize bufferOffset, usize drawCount, usize drawParamsStride);
 
 void LGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ);
 void LGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, usize offset);

@@ -57,6 +57,7 @@ typedef struct LGFXSwapchainImpl
     u32 width;
     u32 height;
     LGFXTexture *backbufferTextures;
+    LGFXTexture *backDepthbuffers;
     u32 backbufferTexturesCount;
 
     LGFXFence fence;
@@ -91,6 +92,8 @@ typedef struct LGFXRenderProgramImpl
 
     LGFXRenderTarget *targets;
     u32 targetsCount;
+
+    LGFXRenderTarget currentTarget;
 
     LGFXRenderAttachmentInfo *attachments;
     u32 attachmentsCount;
