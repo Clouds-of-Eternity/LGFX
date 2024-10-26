@@ -7,7 +7,7 @@
             "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -18,7 +18,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -29,7 +29,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -40,7 +40,18 @@
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release",
+            "environment": [],
+            "console": "externalTerminal"
+        },
+        {
+            "name": "Run High-Level SDFs Example",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Debug/AstralCanvasSDFs.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Debug",
             "environment": [],
             "console": "externalTerminal"
         }
