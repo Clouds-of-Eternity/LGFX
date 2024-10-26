@@ -4,9 +4,14 @@
 #include "lgfx-astral/Shader.hpp"
 #include "random.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 LGFXRenderProgram rp;
 
 LGFXBuffer indexBuffer;
+LGFXTexture texture;
+LGFXSamplerState samplerState;
 
 AstralCanvas::Shader renderShader;
 LGFXShaderState renderShaderState;
@@ -39,11 +44,13 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     
     Maths::Matrix4x4 matrices[2];
     //projection
-    matrices[0] = Maths::Matrix4x4::CreateOrthographic(80.0f, 45.0f, -1000.0f, 1000.0f);
+    matrices[0] = Maths::Matrix4x4::CreateOrthographic(40.0f, 22.5f, -1000.0f, 1000.0f);
     //view
-    matrices[1] = Maths::Matrix4x4::Identity();
+    matrices[1] = Maths::Matrix4x4::Identity(); // Maths::Matrix4x4::CreateLookAt(Maths::Vec3(0.0f, 0.0f, -10.0f), Maths::Vec3(0.0f, 0.0f, 1.0f), Maths::Vec3(0.0f, -1.0f, 0.0f));
 
     renderShader.SetShaderVariable("ShaderGlobalData", matrices, sizeof(matrices));
+    renderShader.SetShaderVariableSampler("samplerState", samplerState);
+    renderShader.SetShaderVariableTexture("noiseMap", texture);
     renderShader.SyncUniformsWithGPU(mainCmds);
 
     LGFXSetViewport(mainCmds, {0, 0, (float)window->resolution.X, (float)window->resolution.Y});
@@ -100,6 +107,9 @@ void Init()
     bufferCreateInfo.size = sizeof(u32) * 6;
     indexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
 
+    u32 indices[] = {0, 1, 2, 3, 0, 2};
+    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8*)indices, 6 * sizeof(u32));
+
     //shader state
     LGFXShaderStateCreateInfo stateCreateInfo = {0};
     stateCreateInfo.function = renderShader.gpuFunction;
@@ -115,6 +125,34 @@ void Init()
     stateCreateInfo.forRenderProgram = rp;
     stateCreateInfo.forRenderPass = 0;
     renderShaderState = LGFXCreateShaderState(device, &stateCreateInfo);
+
+    //sampler state
+    LGFXSamplerStateCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.repeatModeU = LGFXSamplerRepeatMode_Repeat;
+    samplerCreateInfo.repeatModeV = LGFXSamplerRepeatMode_Repeat;
+    samplerCreateInfo.repeatModeW = LGFXSamplerRepeatMode_Repeat;
+    samplerCreateInfo.minimizationFilter = LGFXFilterType_Linear;
+    samplerCreateInfo.magnificationFilter = LGFXFilterType_Linear;
+    samplerState = LGFXCreateSamplerState(device, &samplerCreateInfo);
+
+    //texture
+    i32 w = 0;
+    i32 h = 0;
+    i32 comp = 0;
+    stbi_uc *bytes = stbi_load("Noise.png", &w, &h, &comp, 4);
+    LGFXTextureCreateInfo textureCreateInfo = {};
+    textureCreateInfo.depth = 1;
+    textureCreateInfo.format = LGFXTextureFormat_RGBA8UnormSrgb;
+    textureCreateInfo.width = w;
+    textureCreateInfo.height = h;
+    textureCreateInfo.mipLevels = 1;
+    textureCreateInfo.sampleCount = 1;
+    textureCreateInfo.usage = (LGFXTextureUsage)(LGFXTextureUsage_Sampled | LGFXTextureUsage_TransferDest);
+    texture = LGFXCreateTexture(device, &textureCreateInfo);
+
+    LGFXTextureSetData(device, texture, bytes, w * h * comp);
+
+    stbi_image_free(bytes);
 }
 void Deinit()
 {
@@ -124,6 +162,8 @@ void Deinit()
     LGFXDestroyShaderState(renderShaderState);
     renderShader.deinit();
     LGFXDestroyRenderProgram(rp);
+    LGFXDestroySamplerState(samplerState);
+    LGFXDestroyTexture(texture);
 }
 
 i32 main()
@@ -132,7 +172,7 @@ i32 main()
         GetCAllocator(),
         string(GetCAllocator(), "SDFs"), 
         string(GetCAllocator(), "Astral.Canvas"),
-        0, 0, 0.0f);
+        0, 0, 165.0f);
 
     AstralCanvas::applicationInstance.AddWindow("SDFs", 1920, 1080);
     AstralCanvas::applicationInstance.Run(&Update, &Draw, &PostEndDraw, &Init, &Deinit);
