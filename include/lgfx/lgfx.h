@@ -81,7 +81,8 @@ typedef enum
 typedef enum
 {
     LGFXFilterType_Point,
-    LGFXFilterType_Linear
+    LGFXFilterType_Linear,
+    LGFXFilterType_Cubic
 } LGFXFilterType;
 
 typedef enum

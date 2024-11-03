@@ -194,6 +194,10 @@ void Deinit()
     LGFXDestroyBuffer(outputBuffer);
     LGFXDestroyRenderProgram(rp);
 }
+void FixedUpdate(float deltaTime)
+{
+    
+}
 
 i32 main()
 {
@@ -204,5 +208,5 @@ i32 main()
         0, 0, 0.0f);
 
     AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080);
-    AstralCanvas::applicationInstance.Run(&Update, &Draw, &PostEndDraw, &Init, &Deinit);
+    AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

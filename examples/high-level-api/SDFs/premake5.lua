@@ -13,7 +13,8 @@ project "AstralCanvasSDFs"
 
     files {
         "Program.cpp",
-        "Json.cpp"
+        "Json.cpp",
+        "ModelLoader.cpp"
     }
 
     -- postbuildcommands { 

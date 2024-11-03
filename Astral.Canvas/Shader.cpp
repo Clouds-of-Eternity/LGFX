@@ -258,7 +258,14 @@ namespace AstralCanvas
                 u32 arrayLength = textures->arrayElements.data[i].GetProperty("arrayLength")->GetUint32();
                 u32 set = textures->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = textures->arrayElements.data[i].GetProperty("binding")->GetUint32();
-                
+                u32 dimensions = 2;
+
+                Json::JsonElement *dimensionsProp = textures->arrayElements.data[i].GetProperty("dimensions");
+                if (dimensionsProp != NULL)
+                {
+                    dimensions = dimensionsProp->GetUint32();
+                }
+
                 if ((i32)binding > length)
                 {
                     length = binding;
@@ -410,6 +417,13 @@ namespace AstralCanvas
                 string name = storageTextures->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
                 u32 set = storageTextures->arrayElements.data[i].GetProperty("set")->GetUint32();
                 u32 binding = storageTextures->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                u32 dimensions = 2;
+
+                Json::JsonElement *dimensionsProp = storageTextures->arrayElements.data[i].GetProperty("dimensions");
+                if (dimensionsProp != NULL)
+                {
+                    dimensions = dimensionsProp->GetUint32();
+                }
 
                 if ((i32)binding > length)
                 {
