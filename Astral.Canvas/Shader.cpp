@@ -206,6 +206,61 @@ namespace AstralCanvas
         allUsedShaders.Add(this);
     }
 
+    void ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::denseset<AstralCanvas::ShaderResource> &result)
+    {
+        for (usize i = 0; i < variables->arrayElements.length; i++)
+        {
+            AstralCanvas::ShaderResource newResource = {};
+            Json::JsonElement *elem = &variables->arrayElements.data[i];
+
+            newResource.nameStr = elem->GetProperty("name")->GetStringRaw(allocator);
+            newResource.resource.variableName = newResource.nameStr.buffer;
+            newResource.resource.binding = elem->GetProperty("binding")->GetUint32();
+            newResource.resource.set = elem->GetProperty("set")->GetUint32();
+            newResource.resource.accessedBy = (LGFXShaderInputAccessFlags)(elem->GetProperty("accessed")->GetUint32());
+            newResource.states = collections::vector<LGFXFunctionVariable>(allocator);
+
+            Json::JsonElement *optElem = elem->GetProperty("arrayLength");
+            if (optElem != NULL)
+            {
+                newResource.resource.arrayLength = optElem->GetUint32();
+            }
+            optElem = elem->GetProperty("stride");
+            if (optElem != NULL)
+            {
+                newResource.resource.size = optElem->GetUint32();
+            }
+
+            string typeName = elem->GetProperty("type")->value;
+            if (typeName == "UniformBuffer")
+            {
+                newResource.resource.type = LGFXShaderResourceType_Uniform;
+            }
+            else if (typeName == "SampledImage")
+            {
+                newResource.resource.type = LGFXShaderResourceType_Texture;
+            }
+            else if (typeName == "Sampler")
+            {
+                newResource.resource.type = LGFXShaderResourceType_Sampler;
+            }
+            else if (typeName == "StorageBuffer")
+            {
+                newResource.resource.type = LGFXShaderResourceType_StructuredBuffer;
+            }
+            else if (typeName == "StorageImage")
+            {
+                newResource.resource.type = LGFXShaderResourceType_StorageTexture;
+            }
+            else if (typeName == "InputAttachment")
+            {
+                newResource.resource.type = LGFXShaderResourceType_InputAttachment;
+            }
+
+            result.Insert(newResource.resource.binding, newResource);
+        }
+    }
+
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)
     {
         i32 length = -1;
