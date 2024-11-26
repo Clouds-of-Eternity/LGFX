@@ -3232,7 +3232,7 @@ void VkLGFXDestroyFunction(LGFXFunction func)
 	{
 		vkDestroyShaderModule((VkDevice)func->device->logicalDevice, (VkShaderModule)func->module1, NULL);
 	}
-	if (func->module2 != NULL)
+	if (func->module2 != NULL && func->module1 != func->module2)
 	{
 		vkDestroyShaderModule((VkDevice)func->device->logicalDevice, (VkShaderModule)func->module2, NULL);
 	}

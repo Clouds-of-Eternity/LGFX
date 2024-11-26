@@ -1,6 +1,7 @@
 #include "lgfx-astral/Shader.hpp"
 #include <math.h>
 #include <stdio.h>
+#include "scope.hpp"
 
 using namespace Json;
 
@@ -206,59 +207,75 @@ namespace AstralCanvas
         allUsedShaders.Add(this);
     }
 
-    void ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::denseset<AstralCanvas::ShaderResource> &result)
+    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::denseset<AstralCanvas::ShaderResource> &result, LGFXShaderInputAccessFlags accessedBy)
     {
+        u32 maxBinding = 0;
         for (usize i = 0; i < variables->arrayElements.length; i++)
         {
-            AstralCanvas::ShaderResource newResource = {};
             Json::JsonElement *elem = &variables->arrayElements.data[i];
 
-            newResource.nameStr = elem->GetProperty("name")->GetStringRaw(allocator);
-            newResource.resource.variableName = newResource.nameStr.buffer;
-            newResource.resource.binding = elem->GetProperty("binding")->GetUint32();
-            newResource.resource.set = elem->GetProperty("set")->GetUint32();
-            newResource.resource.accessedBy = (LGFXShaderInputAccessFlags)(elem->GetProperty("accessed")->GetUint32());
-            newResource.states = collections::vector<LGFXFunctionVariable>(allocator);
-
-            Json::JsonElement *optElem = elem->GetProperty("arrayLength");
-            if (optElem != NULL)
+            u32 binding = elem->GetProperty("binding")->GetUint32();
+            if (binding + 1 > maxBinding)
             {
-                newResource.resource.arrayLength = optElem->GetUint32();
-            }
-            optElem = elem->GetProperty("stride");
-            if (optElem != NULL)
-            {
-                newResource.resource.size = optElem->GetUint32();
+                maxBinding = binding + 1;
             }
 
-            string typeName = elem->GetProperty("type")->value;
-            if (typeName == "UniformBuffer")
+            AstralCanvas::ShaderResource *existingResource = result.Get(binding);
+            if (existingResource != NULL && existingResource->nameStr.buffer != NULL)
             {
-                newResource.resource.type = LGFXShaderResourceType_Uniform;
+                existingResource->resource.accessedBy = (LGFXShaderInputAccessFlags)(existingResource->resource.accessedBy | accessedBy);
             }
-            else if (typeName == "SampledImage")
+            else
             {
-                newResource.resource.type = LGFXShaderResourceType_Texture;
-            }
-            else if (typeName == "Sampler")
-            {
-                newResource.resource.type = LGFXShaderResourceType_Sampler;
-            }
-            else if (typeName == "StorageBuffer")
-            {
-                newResource.resource.type = LGFXShaderResourceType_StructuredBuffer;
-            }
-            else if (typeName == "StorageImage")
-            {
-                newResource.resource.type = LGFXShaderResourceType_StorageTexture;
-            }
-            else if (typeName == "InputAttachment")
-            {
-                newResource.resource.type = LGFXShaderResourceType_InputAttachment;
-            }
+                AstralCanvas::ShaderResource newResource = {};
+                newResource.nameStr = elem->GetProperty("name")->GetStringRaw(allocator);
+                newResource.resource.variableName = newResource.nameStr.buffer;
+                newResource.resource.binding = binding;
+                newResource.resource.set = elem->GetProperty("set")->GetUint32();
+                newResource.resource.accessedBy = accessedBy;
+                newResource.states = collections::vector<LGFXFunctionVariable>(allocator);
 
-            result.Insert(newResource.resource.binding, newResource);
+                Json::JsonElement *optElem = elem->GetProperty("arrayLength");
+                if (optElem != NULL)
+                {
+                    newResource.resource.arrayLength = optElem->GetUint32();
+                }
+                optElem = elem->GetProperty("size");
+                if (optElem != NULL)
+                {
+                    newResource.resource.size = optElem->GetUint32();
+                }
+
+                string typeName = elem->GetProperty("type")->value;
+                if (typeName == "UniformBuffer")
+                {
+                    newResource.resource.type = LGFXShaderResourceType_Uniform;
+                }
+                else if (typeName == "Image")
+                {
+                    newResource.resource.type = LGFXShaderResourceType_Texture;
+                }
+                else if (typeName == "Sampler")
+                {
+                    newResource.resource.type = LGFXShaderResourceType_Sampler;
+                }
+                else if (typeName == "StorageBuffer")
+                {
+                    newResource.resource.type = LGFXShaderResourceType_StructuredBuffer;
+                }
+                else if (typeName == "StorageImage")
+                {
+                    newResource.resource.type = LGFXShaderResourceType_StorageTexture;
+                }
+                else if (typeName == "InputAttachment")
+                {
+                    newResource.resource.type = LGFXShaderResourceType_InputAttachment;
+                }
+
+                result.Insert(newResource.resource.binding, newResource);
+            }
         }
+        return maxBinding;
     }
 
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)
@@ -498,6 +515,82 @@ namespace AstralCanvas
         return (u32)(length + 1);
     }
 
+    usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result)
+    {
+        *result = Shader(allocator);
+        result->device = device;
+        ArenaAllocator localArena = ArenaAllocator(GetCAllocator());
+        Scope(ArenaAllocator, localArena);
+
+        JsonElement root;
+        usize parseJsonResult = ParseJsonDocument(localArena.AsAllocator(), jsonString, &root);
+        if (parseJsonResult != 0)
+        {
+            return parseJsonResult;
+        }
+
+        JsonElement *spvElem = root.GetProperty("spv");
+        collections::Array<u32> spirvData = collections::Array<u32>(localArena.AsAllocator(), spvElem->arrayElements.length);
+        for (usize i = 0; i < spvElem->arrayElements.length; i++)
+        {
+            spirvData.data[i] = spvElem->arrayElements.data[i].GetUint32();
+        }
+
+        JsonElement *computeElement = root.GetProperty("compute");
+        if (computeElement != NULL)
+        {
+            u32 uniformsCount = ParseShaderVariables2(allocator, computeElement, result->uniforms, LGFXShaderInputAccess_Compute);
+
+            LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
+            for (usize i = 0; i < uniformsCount; i++)
+            {
+                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
+            }
+
+            LGFXFunctionCreateInfo info;
+            info.module1Data = spirvData.data;
+            info.module1DataLength = spirvData.length;
+            info.module2Data = NULL;
+            info.module2DataLength = 0;
+            info.uniformsCount = uniformsCount;
+            info.uniforms = inputResources;
+            info.type = LGFXFunctionType_Compute;
+            result->gpuFunction = LGFXCreateFunction(device, &info);
+            result->functionType = LGFXFunctionType_Compute;
+
+            free(inputResources);
+        }
+        else
+        {
+            JsonElement *vertexElement = root.GetProperty("vertex");
+            JsonElement *fragmentElement = root.GetProperty("fragment");
+
+            u32 maxVertexBinding = ParseShaderVariables2(allocator, vertexElement, result->uniforms, LGFXShaderInputAccess_Vertex);
+            u32 maxFragmentBinding = ParseShaderVariables2(allocator, fragmentElement, result->uniforms, LGFXShaderInputAccess_Fragment);
+            u32 uniformsCount = maxVertexBinding > maxFragmentBinding ? maxVertexBinding : maxFragmentBinding;
+
+            LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
+            for (usize i = 0; i < uniformsCount; i++)
+            {
+                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
+            }
+
+            LGFXFunctionCreateInfo info;
+            info.module1Data = spirvData.data;
+            info.module1DataLength = spirvData.length;
+            info.module2Data = spirvData.data;
+            info.module2DataLength = spirvData.length;
+            info.uniformsCount = uniformsCount;
+            info.uniforms = inputResources;
+            info.type = (LGFXFunctionType)(LGFXFunctionType_Fragment | LGFXFunctionType_Vertex);
+            result->gpuFunction = LGFXCreateFunction(device, &info);
+            result->functionType = (LGFXFunctionType)(LGFXFunctionType_Fragment | LGFXFunctionType_Vertex);
+
+            free(inputResources);
+        }
+
+        return 0;
+    }
     usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader* result)
     {
         *result = Shader(allocator);
