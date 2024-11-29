@@ -2449,7 +2449,21 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 			layoutBinding.binding = info->uniforms[i].binding;
 			layoutBinding.descriptorCount = max(info->uniforms[i].arrayLength, 1);
 			layoutBinding.descriptorType = LGFXShaderResourceType2Vulkan(info->uniforms[i].type);
-			layoutBinding.stageFlags = LGFXShaderInputAccess2Vulkan(info->uniforms[i].accessedBy);
+			if (info->uniforms[i].type == LGFXShaderResourceType_InputAttachment)
+			{
+				layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+			else if (info->type == LGFXFunctionType_Compute)
+			{
+				layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+			}
+			else
+			{
+				layoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+			}
+			//layoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+
+			//LGFXShaderInputAccess2Vulkan(info->uniforms[i].accessedBy);
 			layoutBinding.pImmutableSamplers = NULL;
 
 			bindings[layoutBinding.binding] = layoutBinding;

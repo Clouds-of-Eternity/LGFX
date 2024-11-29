@@ -558,7 +558,7 @@ typedef struct LGFXShaderResource
     u32 arrayLength;
     u32 inputAttachmentIndex;
     u32 size;
-    LGFXShaderInputAccessFlags accessedBy;
+    //LGFXShaderInputAccessFlags accessedBy;
 } LGFXShaderResource;
 typedef struct
 {
