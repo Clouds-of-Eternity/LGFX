@@ -604,6 +604,9 @@ typedef struct LGFXShaderStateCreateInfo
 
     LGFXRenderProgram forRenderProgram;
     u32 forRenderPass;
+
+    const char *entryPoint1Name;
+    const char *entryPoint2Name;
 } LGFXShaderStateCreateInfo;
 
 LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);

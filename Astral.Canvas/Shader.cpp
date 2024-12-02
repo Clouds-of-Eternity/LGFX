@@ -529,13 +529,6 @@ namespace AstralCanvas
             return parseJsonResult;
         }
 
-        JsonElement *spvElem = root.GetProperty("spv");
-        collections::Array<u32> spirvData = collections::Array<u32>(localArena.AsAllocator(), spvElem->arrayElements.length);
-        for (usize i = 0; i < spvElem->arrayElements.length; i++)
-        {
-            spirvData.data[i] = spvElem->arrayElements.data[i].GetUint32();
-        }
-
         LGFXFunctionType type = LGFXFunctionType_Vertex;
         JsonElement *typeElem = root.GetProperty("type");
         if (typeElem != NULL)
@@ -556,8 +549,6 @@ namespace AstralCanvas
 
         LGFXShaderResource *inputResources = NULL;
         LGFXFunctionCreateInfo info = {};
-        info.module1Data = spirvData.data;
-        info.module1DataLength = spirvData.length;
         info.type = type;
 
         JsonElement *uniforms = root.GetProperty("uniforms");
@@ -575,10 +566,51 @@ namespace AstralCanvas
             info.uniforms = inputResources;
         }
 
-        if (type == LGFXFunctionType_Vertex)
+        JsonElement *spvElem = root.GetProperty("spv");
+        if (spvElem != NULL)
         {
-            info.module2Data = spirvData.data;
-            info.module2DataLength = spirvData.length;
+            collections::Array<u32> spirvData = collections::Array<u32>(localArena.AsAllocator(), spvElem->arrayElements.length);
+            for (usize i = 0; i < spvElem->arrayElements.length; i++)
+            {
+                spirvData.data[i] = spvElem->arrayElements.data[i].GetUint32();
+            }
+            info.module1Data = spirvData.data;
+            info.module1DataLength = spirvData.length;
+
+            if (type == LGFXFunctionType_Vertex)
+            {
+                info.module2Data = spirvData.data;
+                info.module2DataLength = spirvData.length;
+            }
+        }
+        else
+        {
+            JsonElement *vertElem = root.GetProperty("vertex");
+            JsonElement *fragElem = root.GetProperty("fragment");
+
+            if (vertElem != NULL && fragElem != NULL)
+            {
+                collections::Array<u32> vertData = collections::Array<u32>(localArena.AsAllocator(), vertElem->arrayElements.length);
+                for (usize i = 0; i < vertElem->arrayElements.length; i++)
+                {
+                    vertData.data[i] = vertElem->arrayElements.data[i].GetUint32();
+                }
+                collections::Array<u32> fragData = collections::Array<u32>(localArena.AsAllocator(), fragElem->arrayElements.length);
+                for (usize i = 0; i < fragElem->arrayElements.length; i++)
+                {
+                    fragData.data[i] = fragElem->arrayElements.data[i].GetUint32();
+                }
+
+                info.module1Data = vertData.data;
+                info.module1DataLength = vertData.length;
+
+                info.module2Data = fragData.data;
+                info.module2DataLength = fragData.length;
+            }
+            else
+            {
+                return 1;
+            }
         }
 
         result->gpuFunction = LGFXCreateFunction(device, &info);
@@ -588,59 +620,6 @@ namespace AstralCanvas
         {
             free(inputResources);
         }
-        
-        /*JsonElement *computeElement = root.GetProperty("compute");
-        if (computeElement != NULL)
-        {
-            u32 uniformsCount = ParseShaderVariables2(allocator, computeElement, result->uniforms);//, LGFXShaderInputAccess_Compute);
-
-            LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
-            for (usize i = 0; i < uniformsCount; i++)
-            {
-                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
-            }
-
-            LGFXFunctionCreateInfo info;
-            info.module1Data = spirvData.data;
-            info.module1DataLength = spirvData.length;
-            info.module2Data = NULL;
-            info.module2DataLength = 0;
-            info.uniformsCount = uniformsCount;
-            info.uniforms = inputResources;
-            info.type = LGFXFunctionType_Compute;
-            result->gpuFunction = LGFXCreateFunction(device, &info);
-            result->functionType = LGFXFunctionType_Compute;
-
-            free(inputResources);
-        }
-        else
-        {
-            JsonElement *vertexElement = root.GetProperty("vertex");
-            JsonElement *fragmentElement = root.GetProperty("fragment");
-
-            u32 maxVertexBinding = ParseShaderVariables2(allocator, vertexElement, result->uniforms);//, LGFXShaderInputAccess_Vertex);
-            u32 maxFragmentBinding = ParseShaderVariables2(allocator, fragmentElement, result->uniforms);//, LGFXShaderInputAccess_Fragment);
-            u32 uniformsCount = maxVertexBinding > maxFragmentBinding ? maxVertexBinding : maxFragmentBinding;
-
-            LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
-            for (usize i = 0; i < uniformsCount; i++)
-            {
-                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
-            }
-
-            LGFXFunctionCreateInfo info;
-            info.module1Data = spirvData.data;
-            info.module1DataLength = spirvData.length;
-            info.module2Data = spirvData.data;
-            info.module2DataLength = spirvData.length;
-            info.uniformsCount = uniformsCount;
-            info.uniforms = inputResources;
-            info.type = (LGFXFunctionType)(LGFXFunctionType_Fragment | LGFXFunctionType_Vertex);
-            result->gpuFunction = LGFXCreateFunction(device, &info);
-            result->functionType = (LGFXFunctionType)(LGFXFunctionType_Fragment | LGFXFunctionType_Vertex);
-
-            free(inputResources);
-        }*/
 
         return 0;
     }

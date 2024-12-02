@@ -2759,7 +2759,7 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 		shaderStageInfo.module = (VkShaderModule)info->function->module1;
-		shaderStageInfo.pName = "main"; //entry point
+		shaderStageInfo.pName = info->entryPoint1Name == NULL ? "main" : info->entryPoint1Name; //entry point
 
 		VkComputePipelineCreateInfo computeInfo = {0};
 		computeInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -2935,12 +2935,12 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 		shaderStageInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 		shaderStageInfos[0].module = (VkShaderModule)info->function->module1;
-		shaderStageInfos[0].pName = "main"; //entry point
+		shaderStageInfos[0].pName = info->entryPoint1Name == NULL ? "main" : info->entryPoint1Name; //entry point
 
 		shaderStageInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		shaderStageInfos[1].module = (VkShaderModule)info->function->module2;
-		shaderStageInfos[1].pName = "main"; //entry point
+		shaderStageInfos[1].pName = info->entryPoint2Name == NULL ? "main" : info->entryPoint2Name; //entry point
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {0};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
