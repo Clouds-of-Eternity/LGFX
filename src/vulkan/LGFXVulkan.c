@@ -502,7 +502,7 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 	VkSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &(VkCommandBuffer)buffer->cmdBuffer;
+    submitInfo.pCommandBuffers = (VkCommandBuffer *)(&buffer->cmdBuffer);
 
 	//LGFXFence tempFence = VkLGFXCreateFence(device, false);
 
@@ -538,7 +538,7 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 	VkFenceCreateInfo fenceCreateInfo = {0};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceCreateInfo.pNext = NULL;
-	fenceCreateInfo.flags = signalled ? VK_FENCE_CREATE_SIGNALED_BIT : NULL;
+	fenceCreateInfo.flags = signalled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 
 	VkFence fence;
 	if (vkCreateFence((VkDevice)device->logicalDevice, &fenceCreateInfo, NULL, &fence) != VK_SUCCESS)
@@ -756,7 +756,7 @@ void VkLGFXGetQueueCreateInfos(VkLGFXQueueProperties *properties, VkPhysicalDevi
 	info->queueFamilyIndex = (u32)properties->dedicatedGraphicsQueueIndex;
 	info->pQueuePriorities = nilPriorityTodo;
 	info->pNext = NULL;
-	info->flags = NULL;
+	info->flags = 0;
 	*outInfoCount += 1;
 
 	if (properties->dedicatedComputeQueueIndex != properties->dedicatedGraphicsQueueIndex)
@@ -767,7 +767,7 @@ void VkLGFXGetQueueCreateInfos(VkLGFXQueueProperties *properties, VkPhysicalDevi
 		info->queueFamilyIndex = (u32)properties->dedicatedComputeQueueIndex;
 		info->pQueuePriorities = nilPriorityTodo;
 		info->pNext = NULL;
-		info->flags = NULL;
+		info->flags = 0;
 		*outInfoCount += 1;
 	}
 	if (properties->dedicatedTransferQueueIndex != properties->dedicatedGraphicsQueueIndex)
@@ -778,7 +778,7 @@ void VkLGFXGetQueueCreateInfos(VkLGFXQueueProperties *properties, VkPhysicalDevi
 		info->queueFamilyIndex = (u32)properties->dedicatedTransferQueueIndex;
 		info->pQueuePriorities = nilPriorityTodo;
 		info->pNext = NULL;
-		info->flags = NULL;
+		info->flags = 0;
 		*outInfoCount += 1;
 	}
 }
@@ -1854,7 +1854,7 @@ LGFXRenderTarget VkLGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCre
 	createInfo.layers = 1;
 	createInfo.attachmentCount = info->texturesCount;
 	createInfo.pAttachments = views;
-	createInfo.flags = NULL;
+	createInfo.flags = 0;
 	createInfo.renderPass = (VkRenderPass)info->forRenderProgram->handle;
 
 	VkFramebuffer frameBuffer;
@@ -3032,7 +3032,7 @@ void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmissio
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.pInheritanceInfo = NULL;
 	beginInfo.pNext = NULL;
-	beginInfo.flags = resetAfterSubmission ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : NULL;
+	beginInfo.flags = resetAfterSubmission ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0;
 
 	if (vkBeginCommandBuffer((VkCommandBuffer)buffer->cmdBuffer, &beginInfo) != VK_SUCCESS)
 	{
