@@ -853,7 +853,7 @@ VkBool32 VkLGFXErrorFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	if (messageSeverity | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+	if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)
 	{
 		LGFX_ERROR("ERROR: %s\n", pCallbackData->pMessage);
 	}
