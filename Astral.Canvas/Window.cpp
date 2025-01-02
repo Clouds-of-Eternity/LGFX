@@ -104,6 +104,12 @@ namespace AstralCanvas
 			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 		}
 	}
+	Maths::Vec2 Window::GetOSContentScale()
+	{
+		Maths::Vec2 result = {};
+		glfwGetWindowContentScale((GLFWwindow *)this->handle, &result.X, &result.Y);
+		return result;
+	}
 	WindowMouseState Window::GetMouseState()
 	{
 		i32 mouseState = glfwGetInputMode((GLFWwindow *)handle, GLFW_CURSOR);

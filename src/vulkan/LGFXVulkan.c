@@ -497,7 +497,7 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
 }
 void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer)
 {
-    vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer);
+    assert(vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS);
 
 	VkSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1308,7 +1308,7 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 		if (!currentSwapchain->invalidated)
 		{
 			LGFXAwaitFence(currentSwapchain->fence);
-			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, UINT64_MAX, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
+			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 3000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
 		}
 		else
 		{
@@ -3057,7 +3057,7 @@ void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swa
 void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer)
 {
 	LGFXDevice device = buffer->queue->inDevice;
-	vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer);
+	assert(vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS);
 
 	buffer->begun = false;
 }
