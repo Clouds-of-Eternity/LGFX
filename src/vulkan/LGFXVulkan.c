@@ -497,35 +497,33 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
 }
 void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer)
 {
-    assert(vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS);
+	assert(buffer->begun);
+	assert(vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS);
+	buffer->begun = false;
 
 	VkSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = (VkCommandBuffer *)(&buffer->cmdBuffer);
 
-	//LGFXFence tempFence = VkLGFXCreateFence(device, false);
-
 	//submit the queue
     EnterLock(buffer->queue->queueLock);
 
-    if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, NULL) != VK_SUCCESS)
+	LGFXFence tempFence = LGFXFencePool_Rent(&device->fencePool, device, false);
+
+	if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)tempFence->fence) != VK_SUCCESS)
     {
 		LGFX_ERROR("Failed to submit queue\n");
     }
 
 	ExitLock(buffer->queue->queueLock);
 
-	vkQueueWaitIdle((VkQueue)buffer->queue->queue);
-	//todo: see if can transfer this to a fence or something
-    //vkWaitForFences(gpu->logicalDevice, 1, &queueToUse->queueFence, true, UINT64_MAX);
-    //vkResetFences(gpu->logicalDevice, 1, &queueToUse->queueFence);
-	//LGFXAwaitFence();
+	LGFXAwaitFence(tempFence);
+	LGFXFencePool_Return(&device->fencePool, tempFence);
 
 	//finally, free the command buffer
 	EnterLock(buffer->queue->commandPoolLock);
 
-	//LGFXDestroyFence(tempFence);
 	vkFreeCommandBuffers((VkDevice)device->logicalDevice, (VkCommandPool)buffer->queue->transientCommandPool, 1, (VkCommandBuffer *)&buffer->cmdBuffer);
 	//vkFreeCommandBuffers(gpu->logicalDevice, queueToUse->transientCommandPool, 1, &commandBuffer);
 
@@ -553,11 +551,25 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 }
 void VkLGFXAwaitFence(LGFXFence fence)
 {
-	vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, UINT64_MAX);
-}
+	VkResult result = vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, 1000000000);
+	#if DEBUG
+	if (result != VK_SUCCESS)
+	{
+		printf("Failed to await fence, %u\n", result);
+	}
+	assert(result == VK_SUCCESS);
+	#endif
+}	
 void VkLGFXResetFence(LGFXFence fence)
 {
-	vkResetFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence);
+	VkResult result = vkResetFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence);
+	#if DEBUG
+	if (result != VK_SUCCESS)
+	{
+		printf("Failed to await fence, %u\n", result);
+	}
+	assert(result == VK_SUCCESS);
+	#endif
 }
 
 LGFXSemaphore VkLGFXCreateSemaphore(LGFXDevice device)
@@ -853,7 +865,8 @@ VkBool32 VkLGFXErrorFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)
+	if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)// || 
+		//(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0)
 	{
 		LGFX_ERROR("ERROR: %s\n", pCallbackData->pMessage);
 	}
@@ -1082,10 +1095,12 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	volkLoadDevice(logicalDevice);
 
 	LGFXDevice result = Allocate(LGFXDeviceImpl, 1);
+	LGFXFencePool emptyFencePool = {0};
 	result->instance = instance;
 	result->physicalDevice = bestPhysicalDevice;
 	result->logicalDevice = logicalDevice;
 	result->backend = instance->backend;
+	result->fencePool = emptyFencePool;
 
 	{
 		VkQueue graphicsQueue;
@@ -1315,6 +1330,7 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 			printf("Invalid swapchain detected, recreating\n");
 		}
 	}
+	LGFXResetFence(currentSwapchain->fence);
     if (result != VK_SUCCESS)
     {
         if (result == VK_ERROR_OUT_OF_DATE_KHR)// && !currentSwapchain->recreatedAtFrameEnd)
@@ -1341,7 +1357,6 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 			return false;
         }
     }
-	LGFXResetFence(currentSwapchain->fence);
     return false;
 }
 
@@ -1533,131 +1548,128 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
         cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, cmdQueue, true);
     }
 
-    if (cmdBuffer != NULL)
-    {
-        VkPipelineStageFlags depthStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-        VkPipelineStageFlags sampledStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+	VkPipelineStageFlags depthStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+	VkPipelineStageFlags sampledStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 
-        switch (memBarrier.oldLayout)
-        {
-            case VK_IMAGE_LAYOUT_UNDEFINED:
-                break;
+	switch (memBarrier.oldLayout)
+	{
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			break;
 
-            case VK_IMAGE_LAYOUT_GENERAL:
-                sourceStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-                memBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-                break;
+		case VK_IMAGE_LAYOUT_GENERAL:
+			sourceStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+			memBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+			break;
 
-            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-                sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-                memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-                break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
 
-            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-                sourceStage = depthStageMask;
-                memBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			sourceStage = depthStageMask;
+			memBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
 
-            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-                sourceStage = depthStageMask | sampledStageMask;
-                break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+			sourceStage = depthStageMask | sampledStageMask;
+			break;
 
-            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                sourceStage = sampledStageMask;
-                break;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			sourceStage = sampledStageMask;
+			break;
 
-            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-                sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-                break;
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			break;
 
-            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-                sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-                memBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			memBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			break;
 
-            case VK_IMAGE_LAYOUT_PREINITIALIZED:
-                sourceStage = VK_PIPELINE_STAGE_2_HOST_BIT;
-                memBarrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
-                break;
+		case VK_IMAGE_LAYOUT_PREINITIALIZED:
+			sourceStage = VK_PIPELINE_STAGE_2_HOST_BIT;
+			memBarrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
+			break;
 
-            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-				sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-				memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
 
-            default:
-				LGFX_ERROR("Invalid source layout: %u\n", (u32)memBarrier.oldLayout);
-                break;
-        }
+		default:
+			LGFX_ERROR("Invalid source layout: %u\n", (u32)memBarrier.oldLayout);
+			break;
+	}
 
-		switch (memBarrier.newLayout)
-		{
-			case VK_IMAGE_LAYOUT_GENERAL:
-				destinationStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-				memBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-				break;
+	switch (memBarrier.newLayout)
+	{
+		case VK_IMAGE_LAYOUT_GENERAL:
+			destinationStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+			memBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-				destinationStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-				memBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			destinationStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			memBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-				destinationStage = depthStageMask;
-				memBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			destinationStage = depthStageMask;
+			memBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-				destinationStage = depthStageMask | sampledStageMask;
-				memBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+			destinationStage = depthStageMask | sampledStageMask;
+			memBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-				destinationStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-				memBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			destinationStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			memBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-				destinationStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-				memBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			destinationStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			memBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-				destinationStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-				memBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-				break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			destinationStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			memBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			break;
 
-			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-				// vkQueuePresentKHR performs automatic visibility operations
-				break;
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			// vkQueuePresentKHR performs automatic visibility operations
+			break;
 
-			default:
-				LGFX_ERROR("Invalid destination layout: %u\n", (u32)memBarrier.oldLayout);
-				break;
-		}
+		default:
+			LGFX_ERROR("Invalid destination layout: %u\n", (u32)memBarrier.oldLayout);
+			break;
+	}
 
-		memBarrier.srcStageMask = sourceStage;
-		memBarrier.dstStageMask = destinationStage;
+	memBarrier.srcStageMask = sourceStage;
+	memBarrier.dstStageMask = destinationStage;
 
-		VkDependencyInfo dependencyInfo = {0};
-		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfo.imageMemoryBarrierCount = 1;
-		dependencyInfo.pImageMemoryBarriers = &memBarrier;
-		dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+	VkDependencyInfo dependencyInfo = {0};
+	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependencyInfo.imageMemoryBarrierCount = 1;
+	dependencyInfo.pImageMemoryBarriers = &memBarrier;
+	dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-		EnterLock(cmdQueue->commandPoolLock);
-		vkCmdPipelineBarrier2((VkCommandBuffer)cmdBuffer->cmdBuffer, &dependencyInfo);
-		ExitLock(cmdQueue->commandPoolLock);
+	EnterLock(cmdQueue->commandPoolLock);
+	vkCmdPipelineBarrier2((VkCommandBuffer)cmdBuffer->cmdBuffer, &dependencyInfo);
+	ExitLock(cmdQueue->commandPoolLock);
 
-		texture->layout = targetLayout;
+	texture->layout = targetLayout;
 
-		//only end and submit the buffer if the user did not provide one.
-        //If the user did, then it's their role to end and submit
-        if (commandBuffer == NULL)
-        {
-            VkLGFXEndTemporaryCommandBuffer(device, cmdBuffer);
-        }
-    }
+	//only end and submit the buffer if the user did not provide one.
+	//If the user did, then it's their role to end and submit
+	if (commandBuffer == NULL)
+	{
+		VkLGFXEndTemporaryCommandBuffer(device, cmdBuffer);
+	}
 }
 LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage)
 {
@@ -3115,7 +3127,7 @@ void VkLGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXS
 	VkResult submitResult = vkQueueSubmit2((VkQueue)buffer->queue->queue, 1, &submitInfo, fence == NULL ? NULL : (VkFence)fence->fence);
 	if (submitResult != VK_SUCCESS)
     {
-		LGFX_ERROR("Failed to submit queue, error code %u\n", submitResult);
+		LGFX_ERROR("Failed to submit queue, error code %i\n", submitResult);
     }
 	ExitLock(buffer->queue->queueLock);
 }

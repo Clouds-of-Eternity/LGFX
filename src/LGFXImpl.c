@@ -130,6 +130,34 @@ LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled)
     LGFX_ERROR("LGFXCreateFence: Unknown backend\n");
     return NULL;
 }
+LGFXFence LGFXFencePool_Rent(LGFXFencePool *pool, LGFXDevice device, bool initiallySignalled)
+{
+    if (pool->numFences == 0)
+    {
+        LGFXFence result = LGFXCreateFence(device, initiallySignalled);
+        return result;
+    }
+    else
+    {
+        pool->numFences--;
+        LGFXFence result = pool->fences[pool->numFences];
+        pool->fences[pool->numFences] = NULL;
+        return result;
+    }
+}
+void LGFXFencePool_Return(LGFXFencePool *pool, LGFXFence fence)
+{
+    if (pool->numFences < LGFX_FENCE_POOL_SIZE)
+    {
+        LGFXResetFence(fence);
+        pool->fences[pool->numFences] = fence;
+        pool->numFences++;
+    }
+    else
+    {
+        LGFXDestroyFence(fence);
+    }
+}
 void LGFXAwaitFence(LGFXFence fence)
 {
     if (fence->device->backend == LGFXBackendType_Vulkan)
