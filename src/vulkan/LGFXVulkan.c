@@ -3363,6 +3363,10 @@ void VkLGFXDestroyDevice(LGFXDevice device)
 {
 	if (device->logicalDevice != NULL)
 	{
+		for (u32 i = 0; i < device->fencePool.numFences; i++)
+		{
+			VkLGFXDestroyFence(device->fencePool.fences[i]);
+		}
 		if (device->computeQueue != device->graphicsQueue)
 		{
 			VkLGFXDestroyCommandQueue(device, device->computeQueue);

@@ -550,7 +550,7 @@ inline bool LGFXBlendStateEquals(const LGFXBlendState left, LGFXBlendState right
 #define OPAQUE_BLEND {LGFXBlend_One, LGFXBlend_One, LGFXBlend_Zero, LGFXBlend_Zero}
 
 #ifndef LGFX_FENCE_POOL_SIZE
-#define LGFX_FENCE_POOL_SIZE 4
+#define LGFX_FENCE_POOL_SIZE 8
 #endif
 
 typedef struct LGFXShaderResource
