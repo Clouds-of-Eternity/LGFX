@@ -511,9 +511,10 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 
 	LGFXFence tempFence = LGFXFencePool_Rent(&device->fencePool, device, false);
 
-	if (vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)tempFence->fence) != VK_SUCCESS)
+	VkResult queueSubmitResult = vkQueueSubmit((VkQueue)buffer->queue->queue, 1, &submitInfo, (VkFence)tempFence->fence);
+	if (queueSubmitResult != VK_SUCCESS)
     {
-		LGFX_ERROR("Failed to submit queue\n");
+		LGFX_ERROR("Failed to submit queue, %i\n", queueSubmitResult);
     }
 
 	ExitLock(buffer->queue->queueLock);
@@ -551,11 +552,11 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 }
 void VkLGFXAwaitFence(LGFXFence fence)
 {
-	VkResult result = vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, 1000000000);
+	VkResult result = vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, UINT64_MAX); //3000000000
 	#if DEBUG
 	if (result != VK_SUCCESS)
 	{
-		printf("Failed to await fence, %u\n", result);
+		printf("Failed to await fence, %i\n", result);
 	}
 	assert(result == VK_SUCCESS);
 	#endif
@@ -566,7 +567,7 @@ void VkLGFXResetFence(LGFXFence fence)
 	#if DEBUG
 	if (result != VK_SUCCESS)
 	{
-		printf("Failed to await fence, %u\n", result);
+		printf("Failed to await fence, %i\n", result);
 	}
 	assert(result == VK_SUCCESS);
 	#endif
@@ -1353,7 +1354,7 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
         }
         else if (result != VK_SUBOPTIMAL_KHR)
         {
-			LGFX_ERROR("Failed to acquire next swapchain image, error code %u\n", result);
+			LGFX_ERROR("Failed to acquire next swapchain image, error code %i\n", result);
 			return false;
         }
     }
@@ -1676,20 +1677,25 @@ LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture textu
 	VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
 
 	VmaAllocationCreateInfo allocationCreateInfo = {0};
-    allocationCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+	//allocationCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
     if (memoryUsage == LGFXMemoryUsage_GPU_ONLY)
 	{
-		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		//allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	}
 	else if (memoryUsage == LGFXMemoryUsage_CPU_TO_GPU)
 	{
-		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		//allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		//allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	}
 	else if (memoryUsage == LGFXMemoryUsage_GPU_TO_CPU)
 	{
-		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+		allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		//allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		//allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 	}
 
     LGFXMemoryBlockImpl memoryAllocated;
@@ -1995,25 +2001,26 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
 {
     VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
     
-    VmaAllocationCreateInfo allocationCreateInfo = {0};
-    allocationCreateInfo.usage = memoryUsage;
-    //if (createMapped)
-    {
-        allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    }
+	VmaAllocationCreateInfo allocationCreateInfo = {0};
+	//allocationCreateInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
     if (memoryUsage == LGFXMemoryUsage_GPU_ONLY)
 	{
-		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		//allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	}
 	else if (memoryUsage == LGFXMemoryUsage_CPU_TO_GPU)
 	{
-		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		//allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		//allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	}
 	else if (memoryUsage == LGFXMemoryUsage_GPU_TO_CPU)
 	{
-		allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-		allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+		allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		//allocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+		//allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 	}
 
     LGFXMemoryBlockImpl memoryAllocated;
