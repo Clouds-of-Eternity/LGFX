@@ -1293,18 +1293,18 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		assert(result->backDepthbuffers[i]->imageView != NULL);
 	}
 
-	if (info->oldSwapchain != NULL)
-	{
-		//take ownership of old swapchain synchronization primitives
-		result->fence = info->oldSwapchain->fence;
-		result->awaitPresentComplete = info->oldSwapchain->awaitPresentComplete;
-		result->awaitRenderComplete = info->oldSwapchain->awaitRenderComplete;
+	// if (info->oldSwapchain != NULL)
+	// {
+	// 	//take ownership of old swapchain synchronization primitives
+	// 	result->fence = info->oldSwapchain->fence;
+	// 	result->awaitPresentComplete = info->oldSwapchain->awaitPresentComplete;
+	// 	result->awaitRenderComplete = info->oldSwapchain->awaitRenderComplete;
 
-		info->oldSwapchain->fence = NULL;
-		info->oldSwapchain->awaitPresentComplete = NULL;
-		info->oldSwapchain->awaitRenderComplete = NULL;
-	}
-	else
+	// 	info->oldSwapchain->fence = NULL;
+	// 	info->oldSwapchain->awaitPresentComplete = NULL;
+	// 	info->oldSwapchain->awaitRenderComplete = NULL;
+	// }
+	// else
 	{
 		result->fence = LGFXCreateFence(device, true);
 		result->awaitPresentComplete = LGFXCreateSemaphore(device);

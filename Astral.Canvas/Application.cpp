@@ -160,7 +160,7 @@ namespace AstralCanvas
 			if (runUpdate)
 			{
 				updateFunc(updateTimer * this->timeScale);
-				
+
 				for (usize i = 0; i < windows.count; i++)
 				{
 					if (windows.ptr[i].resolution.X == 0 || windows.ptr[i].resolution.Y == 0)
