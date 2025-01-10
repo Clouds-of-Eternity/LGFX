@@ -624,6 +624,8 @@ LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
 
 LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled);
+LGFXFence LGFXRentFence(LGFXDevice device, bool signalled);
+void LGFXReturnRentedFence(LGFXDevice device, LGFXFence fence);
 void LGFXAwaitFence(LGFXFence fence);
 void LGFXResetFence(LGFXFence fence);
 void LGFXDestroyFence(LGFXFence fence);

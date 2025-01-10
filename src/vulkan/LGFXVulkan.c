@@ -1867,8 +1867,14 @@ void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuff
 
 	if (autoTransition)
 	{
-		LGFXTextureTransitionLayout(device, from, srcOriginalLayout, transientCmdBuffer, fromMip, 1);
-		LGFXTextureTransitionLayout(device, to, dstOriginalLayout, transientCmdBuffer, toMip, 1);
+		if (srcOriginalLayout != LGFXTextureLayout_Undefined)
+		{
+			LGFXTextureTransitionLayout(device, from, srcOriginalLayout, transientCmdBuffer, fromMip, 1);
+		}
+		if (dstOriginalLayout != LGFXTextureLayout_Undefined)
+		{
+			LGFXTextureTransitionLayout(device, to, dstOriginalLayout, transientCmdBuffer, toMip, 1);
+		}
 	}
 
 	if (commandBuffer == NULL)

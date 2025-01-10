@@ -158,6 +158,14 @@ void LGFXFencePool_Return(LGFXFencePool *pool, LGFXFence fence)
         LGFXDestroyFence(fence);
     }
 }
+LGFXFence LGFXRentFence(LGFXDevice device, bool signalled)
+{
+    return LGFXFencePool_Rent(&device->fencePool, device, signalled);
+}
+void LGFXReturnRentedFence(LGFXDevice device, LGFXFence fence)
+{
+    LGFXFencePool_Return(&device->fencePool, fence);
+}
 void LGFXAwaitFence(LGFXFence fence)
 {
     if (fence->device->backend == LGFXBackendType_Vulkan)
