@@ -27,6 +27,13 @@ typedef struct
 
 typedef struct
 {
+    i32 X;
+    i32 Y;
+    i32 Z;
+} LGFXPoint3;
+
+typedef struct
+{
     float X;
     float Y;
     float width;
@@ -641,6 +648,7 @@ void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTex
 void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length);
 void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip);
 void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
+void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition);
 void LGFXDestroyTexture(LGFXTexture texture);
 
 LGFXSamplerState LGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info);

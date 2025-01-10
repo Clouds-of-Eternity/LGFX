@@ -324,6 +324,15 @@ void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer,
     }
     LGFX_ERROR("LGFXCopyTextureToBuffer: Unknown backend\n");
 }
+void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCopyTextureToTexture(device, commandBuffer, from, to, fromOffset, fromMip, toOffset, toMip, copyAreaSize, autoTransition);
+        return;
+    }
+    LGFX_ERROR("LGFXCopyTextureToBuffer: Unknown backend\n");
+}
 void LGFXDestroyTexture(LGFXTexture texture)
 {
     if (texture->device->backend == LGFXBackendType_Vulkan)

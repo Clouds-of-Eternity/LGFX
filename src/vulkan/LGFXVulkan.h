@@ -45,6 +45,7 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length);
 void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip);
 void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
+void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition);
 void VkLGFXDestroyTexture(LGFXTexture texture);
 // void VkLGFXTextureBlit(LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to);
 
