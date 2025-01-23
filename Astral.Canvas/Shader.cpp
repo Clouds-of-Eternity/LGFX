@@ -246,7 +246,7 @@ namespace AstralCanvas
                 newResource.resource.size = optElem->GetUint32();
             }
 
-            string typeName = elem->GetProperty("type")->value;
+            string typeName = elem->GetProperty("type")->AsString();
             if (typeName == "UniformBuffer")
             {
                 newResource.resource.type = LGFXShaderResourceType_Uniform;
@@ -533,11 +533,11 @@ namespace AstralCanvas
         JsonElement *typeElem = root.GetProperty("type");
         if (typeElem != NULL)
         {
-            if (typeElem->value == "Vertex-Fragment")
+            if (typeElem->AsString() == "Vertex-Fragment")
             {
                 type = LGFXFunctionType_Vertex;
             }
-            else if (typeElem->value == "Compute")
+            else if (typeElem->AsString() == "Compute")
             {
                 type = LGFXFunctionType_Compute;
             }
