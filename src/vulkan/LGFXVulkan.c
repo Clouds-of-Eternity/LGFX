@@ -2114,14 +2114,18 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	{
 		VkAttachmentDescription attachmentInfo = {0};
 		attachmentInfo.format = LGFXTextureFormat2Vulkan(info->attachments[i].format);
-		attachmentInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		attachmentInfo.samples = (VkSampleCountFlagBits)info->attachments[i].samples;
 		attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachmentInfo.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachmentInfo.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		if (info->attachments[i].format < LGFXTextureFormat_Depth16Unorm)
 		{
 			attachmentInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			if (info->attachments[i].readByRenderTarget)
+			if (info->attachments[i].outputType == LGFXRenderAttachmentOutput_ToNextPass)
+			{
+				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			else if (info->attachments[i].outputType == LGFXRenderAttachmentOutput_ToRenderTarget)
 			{
 				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
@@ -2143,7 +2147,7 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 		else
 		{
 			attachmentInfo.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			if (info->attachments[i].readByRenderTarget)
+			if (info->attachments[i].outputType == LGFXRenderAttachmentOutput_ToRenderTarget)
 			{
 				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
@@ -2228,7 +2232,18 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 		}
 		passInfo.pPreserveAttachments = NULL;
 		passInfo.preserveAttachmentCount = 0;
-		passInfo.pResolveAttachments = NULL;
+		if (info->renderPasses[i].resolveAttachmentID != -1)
+		{
+			VkAttachmentReference *resolveAttachment = Allocate(VkAttachmentReference, 1);
+			resolveAttachment->attachment = (u32)info->renderPasses[i].resolveAttachmentID;
+			resolveAttachment->layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			passInfo.pResolveAttachments = resolveAttachment;
+		}
+		else
+		{
+			passInfo.pResolveAttachments = NULL;
+		}
 
 		passInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		passInfos[i] = passInfo;
@@ -2301,6 +2316,10 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 			{
 				free(renderPassInfo.pSubpasses[i].pInputAttachments);
 			}
+			if (renderPassInfo.pSubpasses[i].pResolveAttachments != NULL)
+			{
+				free(renderPassInfo.pSubpasses[i].pResolveAttachments);
+			}
 		}
 		free(renderPassInfo.pSubpasses);
 	}
@@ -2358,7 +2377,7 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 		{
 			if (program->attachments[i].format < LGFXTextureFormat_Depth16Unorm)
 			{
-				if (!program->attachments[i].readByRenderTarget)
+				if (program->attachments[i].outputType != LGFXRenderAttachmentOutput_ToRenderTarget)
 				{
 					createInfo.textures[i] = outputSwapchain->backbufferTextures[index];
 				}
@@ -2456,27 +2475,30 @@ void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer command
 		{
 			if (program->attachments[i].format < LGFXTextureFormat_Depth16Unorm)
 			{
-				if (!program->attachments[i].readByRenderTarget)
+				if (program->attachments[i].outputType == LGFXRenderAttachmentOutput_ToNextPass)
 				{
-					textures[i]->layout = LGFXTextureLayout_PresentSource;
+					textures[i]->layout = LGFXTextureLayout_ColorAttachmentOptimal;
+				}
+				else if (program->attachments[i].outputType == LGFXRenderAttachmentOutput_ToRenderTarget)
+				{
+					textures[i]->layout = LGFXTextureLayout_ShaderReadOptimal;
 					//createInfo.textures[i] = outputSwapchain->backbufferTextures[index];
 				}
 				else
 				{
-					textures[i]->layout = LGFXTextureLayout_ShaderReadOptimal;
+					textures[i]->layout = LGFXTextureLayout_PresentSource;
 				}
 			}
 			else
 			{
-				if (!program->attachments[i].readByRenderTarget)
+				if (program->attachments[i].outputType == LGFXRenderAttachmentOutput_ToRenderTarget)
 				{
-					textures[i]->layout = LGFXTextureLayout_DepthStencilAttachmentOptimal;
+					textures[i]->layout = LGFXTextureLayout_ShaderReadOptimal;
 				}
 				else
 				{
-					textures[i]->layout = LGFXTextureLayout_ShaderReadOptimal; // LGFXTextureLayout_DepthStencilReadOptimal;
+					textures[i]->layout = LGFXTextureLayout_DepthStencilAttachmentOptimal;
 				}
-				//createInfo.textures[i] = outputSwapchain->backDepthbuffers[index]; // LGFXCreateTexture(program->device, &textureInfo);
 			}
 		}
 	}
@@ -2953,7 +2975,15 @@ LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreate
 		VkPipelineMultisampleStateCreateInfo multisamplingInfo = {0};
 		multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisamplingInfo.sampleShadingEnable = false;
-		multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		for (u32 i = 0; i < info->forRenderProgram->attachmentsCount; i++)
+		{
+			if (info->forRenderProgram->attachments[i].samples)
+			{
+				multisamplingInfo.rasterizationSamples = (VkSampleCountFlagBits)info->forRenderProgram->attachments[i].samples;
+				break;
+			}
+		}
+		//multisamplingInfo.rasterizationSamples = (VkSampleCountFlagBits)info;
 		multisamplingInfo.minSampleShading = 1.0f;
 		multisamplingInfo.pSampleMask = NULL;
 		multisamplingInfo.alphaToCoverageEnable = false;

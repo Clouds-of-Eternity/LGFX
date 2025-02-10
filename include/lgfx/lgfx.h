@@ -245,6 +245,13 @@ typedef enum
 
 typedef enum
 {
+    LGFXRenderAttachmentOutput_ToRenderTarget,
+    LGFXRenderAttachmentOutput_ToNextPass,
+    LGFXRenderAttachmentOutput_ToScreen
+} LGFXRenderAttachmentOutput;
+
+typedef enum
+{
     LGFXMemoryUsage_CPU_TO_GPU,
     LGFXMemoryUsage_GPU_TO_CPU,
     LGFXMemoryUsage_GPU_ONLY
@@ -496,8 +503,9 @@ typedef struct LGFXRenderTargetImpl
 typedef struct
 {
     LGFXTextureFormat format;
+    LGFXRenderAttachmentOutput outputType;
+    u32 samples;
     bool clear;
-    bool readByRenderTarget;
 } LGFXRenderAttachmentInfo;
 /// @brief A pass is a stage of the render program. Currently, all passes in a program execute sequentially, and depend on the completion of the previous pass to execute.
 typedef struct
@@ -505,6 +513,8 @@ typedef struct
     i32 *colorAttachmentIDs;
     u32 colorAttachmentsCount;
     i32 depthAttachmentID;
+    /// @brief The index of the multi-sample-enabled render pass to resolve for
+    i32 resolveAttachmentID;
 
     i32 *readAttachmentIDs;
     u32 readAttachmentsCount;
