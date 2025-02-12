@@ -9,16 +9,25 @@ project "AstralCanvasTriangle"
         "../../../Astral.Core/Astral.Core",
         "../../../dependencies/glfw/include"
     }
-    links {"Astral.Canvas.LGFX", "GLFW"}
+    links {"LGFX", "Astral.Canvas.LGFX", "GLFW"}
 
     files {
         "Program.cpp",
         "Json.cpp"
     }
 
-    -- postbuildcommands { 
-    --     "{COPYFILE}	 \"Triangle.shaderobj\" \"bin/%{cfg.buildcfg}/Triangle.shaderobj\""
-    -- }
+    postbuildcommands { 
+        "{COPYFILE}	 \"Triangle.shaderobj\" \"bin/%{cfg.buildcfg}/Triangle.shaderobj\""
+    }
+
+    filter "system:windows"
+        links {
+            "gdi32",
+            "user32",
+            "shell32",
+            "comdlg32",
+            "ws2_32"
+        }
 
     filter "configurations:Debug"
         defines { "DEBUG" }

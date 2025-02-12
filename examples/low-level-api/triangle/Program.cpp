@@ -112,7 +112,8 @@ i32 main()
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
-    attachments.readByRenderTarget = false;
+    attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
+    attachments.samples = 1;
 
     i32 firstAttachment = 0;
 
@@ -122,12 +123,14 @@ i32 main()
     passes.depthAttachmentID = -1;
     passes.readAttachmentIDs = NULL;
     passes.readAttachmentsCount = 0;
+    passes.resolveAttachmentID = -1;
 
     LGFXRenderProgramCreateInfo rpCreateInfo;
     rpCreateInfo.attachmentsCount = 1;
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
+    rpCreateInfo.outputToBackbuffer = true;
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //shadah
@@ -181,7 +184,7 @@ i32 main()
 
             LGFXDrawIndexed(mainCommands, 3, 1, 0, 0, 0);
 
-            LGFXEndRenderProgram(mainCommands);
+            LGFXEndRenderProgram(rp, mainCommands);
 
             LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
             LGFXSubmitFrame(device, swapchain);

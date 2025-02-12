@@ -29,7 +29,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
 
-    LGFXEndRenderProgram(window->mainCommandBuffer);
+    LGFXEndRenderProgram(rp, window->mainCommandBuffer);
 }
 void PostEndDraw(float deltaTime)
 {
@@ -43,7 +43,8 @@ void Init()
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
-    attachments.readByRenderTarget = false;
+    attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
+    attachments.samples = 1;
 
     i32 firstAttachment = 0;
 
@@ -53,12 +54,14 @@ void Init()
     passes.depthAttachmentID = -1;
     passes.readAttachmentIDs = NULL;
     passes.readAttachmentsCount = 0;
+    passes.resolveAttachmentID = -1;
 
     LGFXRenderProgramCreateInfo rpCreateInfo;
     rpCreateInfo.attachmentsCount = 1;
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
+    rpCreateInfo.outputToBackbuffer = true;
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //vertex buffer
@@ -129,6 +132,11 @@ void Deinit()
     LGFXDestroyRenderProgram(rp);
 }
 
+void FixedUpdate(float deltaTime)
+{
+
+}
+
 i32 main()
 {
     AstralCanvas::ApplicationInit(
@@ -138,5 +146,5 @@ i32 main()
         0, 0, 0.0f);
 
     AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480);
-    AstralCanvas::applicationInstance.Run(&Update, &Draw, &PostEndDraw, &Init, &Deinit);
+    AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }
