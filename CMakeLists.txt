@@ -20,5 +20,5 @@ add_subdirectory(dependencies/volk)
 add_subdirectory(Astral.Canvas)
 
 add_subdirectory(src)
-# add_subdirectory(examples/high-level-api/triangle)
+add_subdirectory(examples/high-level-api/triangle)
 add_subdirectory(examples/high-level-api/compute)
