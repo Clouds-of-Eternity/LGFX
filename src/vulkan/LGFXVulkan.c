@@ -504,7 +504,7 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 	VkSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &(VkCommandBuffer)buffer->cmdBuffer;
+    submitInfo.pCommandBuffers = (VkCommandBuffer*)(&buffer->cmdBuffer);
 
 	//LGFXFence tempFence = VkLGFXCreateFence(device, false);
 
