@@ -1,5 +1,7 @@
 add_library(LGFX STATIC)
 
+set_target_properties(LGFX PROPERTIES C_STANDARD 99)
+
 target_sources(LGFX PRIVATE
     "LGFXImpl.c"
     "vulkan/LGFXVulkan.c"
@@ -32,8 +34,6 @@ target_include_directories(LGFX PUBLIC
 
 target_link_libraries(LGFX PRIVATE ${Vulkan_LIBRARY})
 target_include_directories(LGFX PRIVATE ${Vulkan_INCLUDE_DIR})
-
-# target_compile_options(LGFX PUBLIC -DNULL=0)
 
 if(WIN32)
     target_compile_definitions(LGFX PUBLIC
