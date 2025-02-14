@@ -29,7 +29,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
 
-    LGFXEndRenderProgram(window->mainCommandBuffer);
+    LGFXEndRenderProgram(rp, window->mainCommandBuffer);
 }
 void PostEndDraw(float deltaTime)
 {
@@ -138,5 +138,5 @@ i32 main()
         0, 0, 0.0f);
 
     AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480);
-    AstralCanvas::applicationInstance.Run(&Update, &Draw, &PostEndDraw, &Init, &Deinit);
+    AstralCanvas::applicationInstance.Run(&Update, [](float){}, &Draw, &PostEndDraw, &Init, &Deinit);
 }
