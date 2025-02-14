@@ -201,11 +201,6 @@ void FixedUpdate(float deltaTime)
     
 }
 
-void FixedUpdate(float deltaTime)
-{
-
-}
-
 i32 main()
 {
     AstralCanvas::ApplicationInit(
