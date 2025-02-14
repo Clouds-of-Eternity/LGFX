@@ -32,3 +32,5 @@ workspace "LGFX"
     include("examples/high-level-api/triangle")
 
     include("examples/high-level-api/compute")
+
+    include("examples/high-level-api/SDFs")

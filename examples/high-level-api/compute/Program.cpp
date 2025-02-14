@@ -196,10 +196,9 @@ void Deinit()
     LGFXDestroyBuffer(outputBuffer);
     LGFXDestroyRenderProgram(rp);
 }
-
 void FixedUpdate(float deltaTime)
 {
-
+    
 }
 
 i32 main()
