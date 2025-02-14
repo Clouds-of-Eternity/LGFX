@@ -16,9 +16,7 @@ add_custom_command(
     TARGET AstralCanvasSDFs  
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_CURRENT_SOURCE_DIR}/DrawSDFs.shader"
-        "${CMAKE_CURRENT_SOURCE_DIR}/CreateMeshSDF.shader"
-        "${CMAKE_CURRENT_SOURCE_DIR}/Grass_Diffuse.png"
-        "${CMAKE_CURRENT_SOURCE_DIR}/Grass_Displacement.png"
+        "${CMAKE_CURRENT_SOURCE_DIR}/DrawSDFs.shaderobj"
+        "${CMAKE_CURRENT_SOURCE_DIR}/CreateMeshSDF.shaderobj"
         $<TARGET_FILE_DIR:AstralCanvasSDFs>
 )
