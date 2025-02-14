@@ -27,6 +27,13 @@ typedef struct
 
 typedef struct
 {
+    i32 X;
+    i32 Y;
+    i32 Z;
+} LGFXPoint3;
+
+typedef struct
+{
     float X;
     float Y;
     float width;
@@ -236,6 +243,13 @@ typedef enum
     LGFXCullMode_Front,
     LGFXCullMode_Back
 } LGFXCullMode;
+
+typedef enum
+{
+    LGFXRenderAttachmentOutput_ToRenderTarget,
+    LGFXRenderAttachmentOutput_ToNextPass,
+    LGFXRenderAttachmentOutput_ToScreen
+} LGFXRenderAttachmentOutput;
 
 typedef enum
 {
@@ -490,8 +504,9 @@ typedef struct LGFXRenderTargetImpl
 typedef struct
 {
     LGFXTextureFormat format;
+    LGFXRenderAttachmentOutput outputType;
+    u32 samples;
     bool clear;
-    bool readByRenderTarget;
 } LGFXRenderAttachmentInfo;
 /// @brief A pass is a stage of the render program. Currently, all passes in a program execute sequentially, and depend on the completion of the previous pass to execute.
 typedef struct
@@ -499,6 +514,8 @@ typedef struct
     i32 *colorAttachmentIDs;
     u32 colorAttachmentsCount;
     i32 depthAttachmentID;
+    /// @brief The index of the multi-sample-enabled render pass to resolve for
+    i32 resolveAttachmentID;
 
     i32 *readAttachmentIDs;
     u32 readAttachmentsCount;
@@ -550,6 +567,10 @@ inline bool LGFXBlendStateEquals(const LGFXBlendState left, LGFXBlendState right
 #define NON_PREMULTIPLIED_BLEND {LGFXBlend_SourceAlpha, LGFXBlend_SourceAlpha, LGFXBlend_InverseSourceAlpha, LGFXBlend_InverseSourceAlpha}
 #define OPAQUE_BLEND {LGFXBlend_One, LGFXBlend_One, LGFXBlend_Zero, LGFXBlend_Zero}
 
+#ifndef LGFX_FENCE_POOL_SIZE
+#define LGFX_FENCE_POOL_SIZE 8
+#endif
+
 typedef struct LGFXShaderResource
 {
     const char* variableName;
@@ -559,7 +580,7 @@ typedef struct LGFXShaderResource
     u32 arrayLength;
     u32 inputAttachmentIndex;
     u32 size;
-    LGFXShaderInputAccessFlags accessedBy;
+    //LGFXShaderInputAccessFlags accessedBy;
 } LGFXShaderResource;
 typedef struct
 {
@@ -605,12 +626,17 @@ typedef struct LGFXShaderStateCreateInfo
 
     LGFXRenderProgram forRenderProgram;
     u32 forRenderPass;
+
+    const char *entryPoint1Name;
+    const char *entryPoint2Name;
 } LGFXShaderStateCreateInfo;
 
 LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
 
 LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled);
+LGFXFence LGFXRentFence(LGFXDevice device, bool signalled);
+void LGFXReturnRentedFence(LGFXDevice device, LGFXFence fence);
 void LGFXAwaitFence(LGFXFence fence);
 void LGFXResetFence(LGFXFence fence);
 void LGFXDestroyFence(LGFXFence fence);
@@ -620,7 +646,7 @@ void LGFXDestroySemaphore(LGFXSemaphore semaphore);
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
-void LGFXAwaitGraphicsIdle();
+void LGFXAwaitGraphicsIdle(LGFXDevice device);
 
 LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
@@ -635,6 +661,7 @@ void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTex
 void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length);
 void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip);
 void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
+void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition);
 void LGFXDestroyTexture(LGFXTexture texture);
 
 LGFXSamplerState LGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info);

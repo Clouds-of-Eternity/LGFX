@@ -130,6 +130,42 @@ LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled)
     LGFX_ERROR("LGFXCreateFence: Unknown backend\n");
     return NULL;
 }
+LGFXFence LGFXFencePool_Rent(LGFXFencePool *pool, LGFXDevice device, bool initiallySignalled)
+{
+    if (pool->numFences == 0)
+    {
+        LGFXFence result = LGFXCreateFence(device, initiallySignalled);
+        return result;
+    }
+    else
+    {
+        pool->numFences--;
+        LGFXFence result = pool->fences[pool->numFences];
+        pool->fences[pool->numFences] = NULL;
+        return result;
+    }
+}
+void LGFXFencePool_Return(LGFXFencePool *pool, LGFXFence fence)
+{
+    if (pool->numFences < LGFX_FENCE_POOL_SIZE)
+    {
+        LGFXResetFence(fence);
+        pool->fences[pool->numFences] = fence;
+        pool->numFences++;
+    }
+    else
+    {
+        LGFXDestroyFence(fence);
+    }
+}
+LGFXFence LGFXRentFence(LGFXDevice device, bool signalled)
+{
+    return LGFXFencePool_Rent(&device->fencePool, device, signalled);
+}
+void LGFXReturnRentedFence(LGFXDevice device, LGFXFence fence)
+{
+    LGFXFencePool_Return(&device->fencePool, fence);
+}
 void LGFXAwaitFence(LGFXFence fence)
 {
     if (fence->device->backend == LGFXBackendType_Vulkan)
@@ -292,6 +328,15 @@ void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer,
     if (device->backend == LGFXBackendType_Vulkan)
     {
         VkLGFXCopyTextureToBuffer(device, commandBuffer, from, to, toMip);
+        return;
+    }
+    LGFX_ERROR("LGFXCopyTextureToBuffer: Unknown backend\n");
+}
+void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXCopyTextureToTexture(device, commandBuffer, from, to, fromOffset, fromMip, toOffset, toMip, copyAreaSize, autoTransition);
         return;
     }
     LGFX_ERROR("LGFXCopyTextureToBuffer: Unknown backend\n");

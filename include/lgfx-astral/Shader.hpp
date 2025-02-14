@@ -68,6 +68,7 @@ namespace AstralCanvas
 
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
 
+    usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
     usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
 
     extern collections::vector<Shader *> allUsedShaders;

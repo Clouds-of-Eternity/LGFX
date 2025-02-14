@@ -3,6 +3,11 @@ VULKAN_SDK = os.getenv("VULKAN_SDK")
 workspace "LGFX"
     configurations { "Debug", "Release" }
 
+    filter "action:gmake2"
+        toolset "clang"
+        buildoptions { "-fpermissive", "-g", "-gcodeview" }
+        linkoptions { "-fuse-ld=lld", "-g"}
+
     filter "system:windows"
         defines { "WINDOWS", "GLFW_EXPOSE_NATIVE_WIN32" }
         system "windows"

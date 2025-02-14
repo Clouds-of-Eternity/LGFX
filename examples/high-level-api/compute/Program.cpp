@@ -97,7 +97,8 @@ void Init()
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
-    attachments.readByRenderTarget = false;
+    attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
+    attachments.samples = 1;
 
     i32 firstAttachment = 0;
 
@@ -107,6 +108,7 @@ void Init()
     passes.depthAttachmentID = -1;
     passes.readAttachmentIDs = NULL;
     passes.readAttachmentsCount = 0;
+    passes.resolveAttachmentID = -1;
 
     LGFXRenderProgramCreateInfo rpCreateInfo;
     rpCreateInfo.attachmentsCount = 1;
@@ -197,6 +199,11 @@ void Deinit()
 void FixedUpdate(float deltaTime)
 {
     
+}
+
+void FixedUpdate(float deltaTime)
+{
+
 }
 
 i32 main()
