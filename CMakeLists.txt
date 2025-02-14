@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
 project(LGFX)
 
+set(CMAKE_C_STANDARD 99)
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+    add_compile_options("-Wno-int-conversion")
+    add_link_options("-fuse-ld=lld")
+endif()
+
 find_package(Vulkan REQUIRED)
 
 if(Vulkan_FOUND)
