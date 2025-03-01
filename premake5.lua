@@ -4,7 +4,7 @@ workspace "LGFX"
     configurations { "Debug", "Release" }
 
     filter "action:gmake2"
-        toolset "clang"
+        toolset "gcc"
         buildoptions { "-fpermissive", "-g", "-gcodeview" }
         linkoptions { "-fuse-ld=lld", "-g"}
 
@@ -16,6 +16,7 @@ workspace "LGFX"
     filter "system:linux"
         defines { "LINUX", "POSIX", "GLFW_EXPOSE_NATIVE_X11" }
         system "linux"
+        architecture "x86_64"
 
     filter "system:macosx"
         defines { "MACOS", "POSIX", "GLFW_EXPOSE_NATIVE_COCOA" }

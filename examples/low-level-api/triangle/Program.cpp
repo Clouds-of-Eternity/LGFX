@@ -31,6 +31,7 @@ void WindowFramebufferResized(GLFWwindow *window, i32 width, i32 height)
 
 i32 main()
 {
+    glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
     glfwInit();
 
     //create window
@@ -46,7 +47,9 @@ i32 main()
     instanceCreateInfo.appVersion = 0;
     instanceCreateInfo.engineName = "None";
     instanceCreateInfo.engineVersion = 0;
+    #ifdef DEBUG
     instanceCreateInfo.runtimeErrorChecking = true;
+    #endif
     instanceCreateInfo.backend = LGFXBackendType_Vulkan;
     instanceCreateInfo.enabledExtensionsCount = extensionsCount;
     instanceCreateInfo.enabledExtensions = extensions;
@@ -67,6 +70,7 @@ i32 main()
     swapchainCreateInfo.width = (u32)w;
     swapchainCreateInfo.height = (u32)h;
     swapchainCreateInfo.nativeWindowHandle = LGFXGetNativeWindowHandle(window);
+    swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay();
 
     swapchain = LGFXCreateSwapchain(device, &swapchainCreateInfo);
 

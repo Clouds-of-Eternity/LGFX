@@ -372,6 +372,7 @@ typedef struct
 typedef struct
 {
     void *nativeWindowHandle;
+    void *displayHandle;
     LGFXSwapchainPresentationMode presentationMode;
     u32 width;
     u32 height;
@@ -552,7 +553,7 @@ typedef struct LGFXBlendState
     LGFXBlend destinationAlphaBlend;
 } LGFXBlendState;
 
-inline bool LGFXBlendStateEquals(const LGFXBlendState left, LGFXBlendState right)
+static inline bool LGFXBlendStateEquals(const LGFXBlendState left, LGFXBlendState right)
 {
     return left.sourceAlphaBlend == right.sourceAlphaBlend
         && left.sourceColorBlend == right.sourceColorBlend

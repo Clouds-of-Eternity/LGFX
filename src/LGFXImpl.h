@@ -2,7 +2,7 @@
 #define LGFXINSTANCE_H
 
 #include "lgfx/lgfx.h"
-#include "sync.h"
+#include "lgfx/sync.h"
 
 typedef struct LGFXInstanceImpl
 {

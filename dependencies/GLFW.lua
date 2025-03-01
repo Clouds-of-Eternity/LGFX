@@ -56,6 +56,7 @@ project "GLFW"
             "glfw/src/cocoa_time.c",
             "glfw/src/nsgl_context.m",
             "glfw/src/posix_thread.c",
+            "glfw/src/posix_poll.c",
             "glfw/src/osmesa_context.c",
             "glfw/src/egl_context.c"
         }
@@ -70,6 +71,7 @@ project "GLFW"
             "glfw/src/xkb_unicode.c",
             "glfw/src/posix_time.c",
             "glfw/src/posix_thread.c",
+            "glfw/src/posix_poll.c",
             "glfw/src/glx_context.c",
             "glfw/src/egl_context.c",
             "glfw/src/osmesa_context.c",

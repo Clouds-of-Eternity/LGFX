@@ -8,9 +8,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-inline HWND LGFXGetNativeWindowHandle(GLFWwindow *window)
+static inline HWND LGFXGetNativeWindowHandle(GLFWwindow *window)
 {
     return glfwGetWin32Window(window);
+}
+static inline void *LGFXGetNativeWindowDisplay()
+{
+    return NULL;
 }
 
 #undef WIN32_LEAN_AND_MEAN
@@ -21,7 +25,17 @@ inline HWND LGFXGetNativeWindowHandle(GLFWwindow *window)
 #endif
 
 #ifdef LINUX
-#error TODO
+
+inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
+{
+    Window handle = glfwGetX11Window(window);
+    return (void *)handle;
+}
+static inline void *LGFXGetNativeWindowDisplay()
+{
+    Display *display = glfwGetX11Display();
+    return (void *)display;
+}
 #endif
 
 #endif

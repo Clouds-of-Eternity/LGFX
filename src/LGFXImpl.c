@@ -66,7 +66,9 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 {
                     if (total % 12 != 0 && total % 16 != 0)
                     {
-                        total = min((u32)ceilf((float)total / 12.0f - 0.01f) * 12, (u32)ceilf((float)total / 16.0f - 0.01f) * 16);
+                        u32 a = (u32)ceilf((float)total / 12.0f - 0.01f) * 12;
+                        u32 b = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
+                        total = a < b ? a : b;
                     }
                 }
                 result.elements[i].offset = total;

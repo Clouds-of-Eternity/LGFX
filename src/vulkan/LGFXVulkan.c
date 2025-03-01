@@ -3,7 +3,7 @@
 #include "volk.h"
 #include "Logging.h"
 #include "memory.h"
-#include "sync.h"
+#include "lgfx/sync.h"
 #include <string.h>
 #include <math.h>
 #include "vulkan/vk_mem_alloc.h"
@@ -22,7 +22,7 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
 // END
 
 // HELPER FUNCTIONS
-inline VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
+VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
 {
     switch (blend)
     {
@@ -54,7 +54,7 @@ inline VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
     }
 }
 
-inline VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
+VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
 {
 	switch (type)
 	{
@@ -75,7 +75,7 @@ inline VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
 	}
 }
 
-inline VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
+VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
 {
     switch (format)
     {
@@ -98,12 +98,12 @@ inline VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
 	}
 }
 
-inline VkBufferUsageFlags LGFXBufferUsage2Vulkan(LGFXBufferUsage usage)
+VkBufferUsageFlags LGFXBufferUsage2Vulkan(LGFXBufferUsage usage)
 {
 	return (VkBufferUsageFlags)usage;
 }
 
-inline VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationMode mode)
+VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationMode mode)
 {
 	switch (mode)
 	{
@@ -115,7 +115,7 @@ inline VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresen
 			return VK_PRESENT_MODE_MAILBOX_KHR;
 	}
 }
-inline VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMode)
+VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMode)
 {
 	switch (repeatMode)
 	{
@@ -127,7 +127,7 @@ inline VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode r
 			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
 	}
 }
-inline VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
+VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
 {
 	switch (type)
 	{
@@ -137,7 +137,7 @@ inline VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
 			return VK_FILTER_NEAREST;
 	}
 }
-inline VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
+VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
 {
 	switch (color)
 	{
@@ -158,12 +158,12 @@ inline VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
 	}
 }
 
-inline VkImageUsageFlags LGFXTextureUsage2Vulkan(LGFXTextureUsage usage)
+VkImageUsageFlags LGFXTextureUsage2Vulkan(LGFXTextureUsage usage)
 {
 	//these map 1:1
 	return (VkImageUsageFlags)usage;
 }
-inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
+VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 {
 	switch (layout)
 	{
@@ -197,7 +197,7 @@ inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 			return VK_IMAGE_LAYOUT_UNDEFINED;
 	}
 }
-inline VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags)
+VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags)
 {
 	VkShaderStageFlags result = 0;
 	if ((flags & LGFXShaderInputAccess_Vertex) != 0)
@@ -214,7 +214,7 @@ inline VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlag
 	}
 	return result;
 }
-inline VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType type)
+VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType type)
 {
 	switch (type)
 	{
@@ -1201,7 +1201,13 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	vkCreateWin32SurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
 #elif defined(LINUX)
 	VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-	#error TODO
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+	surfaceCreateInfo.window = (Window)info->nativeWindowHandle;
+	surfaceCreateInfo.dpy = info->displayHandle;
+
+	vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
+	//PFN_vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
+
 #elif defined(MACOS)
 	VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {0};
 	#error TODO
@@ -2545,7 +2551,11 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 		{
 			VkDescriptorSetLayoutBinding layoutBinding = {0};
 			layoutBinding.binding = info->uniforms[i].binding;
-			layoutBinding.descriptorCount = max(info->uniforms[i].arrayLength, 1);
+			layoutBinding.descriptorCount = info->uniforms[i].arrayLength;//max(info->uniforms[i].arrayLength, 1);
+			if (layoutBinding.descriptorCount == 0)
+			{
+				layoutBinding.descriptorCount = 1;
+			}
 			layoutBinding.descriptorType = LGFXShaderResourceType2Vulkan(info->uniforms[i].type);
 			if (info->uniforms[i].type == LGFXShaderResourceType_InputAttachment)
 			{
