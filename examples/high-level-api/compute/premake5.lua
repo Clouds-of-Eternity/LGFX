@@ -37,3 +37,4 @@ project "AstralCanvasCompute"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
+        symbols "On"

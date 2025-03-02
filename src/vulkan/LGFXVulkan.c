@@ -498,7 +498,8 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
 void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer)
 {
 	assert(buffer->begun);
-	assert(vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS);
+	bool endResult = vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS;
+	assert(endResult);
 	buffer->begun = false;
 
 	VkSubmitInfo submitInfo = {0};
@@ -1199,7 +1200,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	surfaceCreateInfo.hinstance = GetModuleHandle(NULL);
 
 	vkCreateWin32SurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
-#elif defined(LINUX)
+#elif defined(X11)
 	VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {0};
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
 	surfaceCreateInfo.window = (Window)info->nativeWindowHandle;
@@ -1207,7 +1208,11 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 
 	vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
 	//PFN_vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
-
+#elif defined(WAYLAND)
+	VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
+	surfaceCreateInfo = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+	surfaceCreateInfo.surface = (wl_surface*)info->nativeWindowHandle;
+	surfaceCreateInfo.display = (wl_display*)info->displayHandle;
 #elif defined(MACOS)
 	VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {0};
 	#error TODO
@@ -3180,7 +3185,8 @@ void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swa
 void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer)
 {
 	LGFXDevice device = buffer->queue->inDevice;
-	assert(vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS);
+	bool endedCommandBufferSuccessfully = vkEndCommandBuffer((VkCommandBuffer)buffer->cmdBuffer) == VK_SUCCESS;
+	assert(endedCommandBufferSuccessfully);
 
 	buffer->begun = false;
 }

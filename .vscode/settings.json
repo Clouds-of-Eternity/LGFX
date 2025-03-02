@@ -80,6 +80,8 @@
         "glfw3native.h": "c",
         "memory.h": "c",
         "logging.h": "c",
-        "vulkan.h": "c"
+        "vulkan.h": "c",
+        "text_encoding": "c",
+        "typeinfo": "c"
     }
 }

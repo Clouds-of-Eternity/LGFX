@@ -51,13 +51,38 @@
             ]
         },
         {
-            "name": "Run High-Level Compute Particles Example (Linux)",
+            "name": "Run High-Level Compute Example (Linux)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Run High-Level Compute Example (Release, Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

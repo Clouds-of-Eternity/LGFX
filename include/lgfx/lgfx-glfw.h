@@ -24,8 +24,7 @@ static inline void *LGFXGetNativeWindowDisplay()
 #error TODO
 #endif
 
-#ifdef LINUX
-
+#ifdef X11
 inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
 {
     Window handle = glfwGetX11Window(window);
@@ -34,6 +33,17 @@ inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
 static inline void *LGFXGetNativeWindowDisplay()
 {
     Display *display = glfwGetX11Display();
+    return (void *)display;
+}
+#elif defined(WAYLAND)
+inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
+{
+    wl_surface *handle = glfwGetWaylandWindow(window);
+    return (void *)handle;
+}
+static inline void *LGFXGetNativeWindowDisplay()
+{
+    wl_display *display = glfwGetWaylandDisplay();
     return (void *)display;
 }
 #endif

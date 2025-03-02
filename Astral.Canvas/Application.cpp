@@ -42,7 +42,7 @@ namespace AstralCanvas
 	}
 	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond)
 	{
-		#ifdef LINUX
+		#ifdef X11
 		glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
 		#endif
 		glfwInit();
@@ -69,7 +69,7 @@ namespace AstralCanvas
 #if DEBUG
 		instanceCreateInfo.runtimeErrorChecking = true;
 #else
-		instanceCreateInfo.runtimeErrorChecking = false;
+		instanceCreateInfo.runtimeErrorChecking = true;
 #endif
 		instanceCreateInfo.backend = LGFXBackendType_Vulkan;
 		instanceCreateInfo.enabledExtensionsCount = extensionsCount;
