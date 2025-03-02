@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Run Low-Level Triangle Example (Posix)",
+            "name": "Run Low-Level Triangle Example (Linux)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle",
@@ -26,13 +26,63 @@
             ]
         },
         {
+            "name": "Run High-Level Triangle Example (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Run High-Level Compute Particles Example (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "Run Low-Level Triangle Example",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -43,7 +93,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -54,7 +104,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -65,7 +115,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
             "environment": [],
             "console": "externalTerminal"
         }

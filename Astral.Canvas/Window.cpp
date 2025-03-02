@@ -313,6 +313,7 @@ namespace AstralCanvas
 			swapchainCreateInfo.width = (u32)w;
 			swapchainCreateInfo.height = (u32)h;
 			swapchainCreateInfo.nativeWindowHandle = LGFXGetNativeWindowHandle(handle);
+			swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay();
 
 			result->swapchain = LGFXCreateSwapchain(applicationInstance.device, &swapchainCreateInfo);
 			result->mainCommandBuffer = LGFXCreateCommandBuffer(applicationInstance.device, false);

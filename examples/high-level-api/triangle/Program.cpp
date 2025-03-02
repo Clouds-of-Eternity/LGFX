@@ -62,6 +62,7 @@ void Init()
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
     rpCreateInfo.outputToBackbuffer = true;
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0].swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //vertex buffer

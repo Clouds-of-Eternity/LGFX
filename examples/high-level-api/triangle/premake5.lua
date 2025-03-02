@@ -28,6 +28,8 @@ project "AstralCanvasTriangle"
             "comdlg32",
             "ws2_32"
         }
+    filter "system:linux"
+        defines "_GLFW_X11"
 
     filter "configurations:Debug"
         defines { "DEBUG" }
