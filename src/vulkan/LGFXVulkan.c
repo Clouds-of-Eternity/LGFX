@@ -473,14 +473,14 @@ LGFXCommandBuffer VkLGFXCreateTemporaryCommandBuffer(LGFXDevice device, LGFXComm
     allocInfo.commandPool = queueToUse->transientCommandPool;
     allocInfo.pNext = NULL;
 
-	EnterLock(queueToUse->commandPoolLock);
+	EnterLock(&queueToUse->commandPoolLock);
 
     if (vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &allocInfo, (VkCommandBuffer *)&result->cmdBuffer) != VK_SUCCESS)
     {
         result = NULL;
     }
 
-	ExitLock(queueToUse->commandPoolLock);
+	ExitLock(&queueToUse->commandPoolLock);
 
 	if (alsoBeginBuffer && result != NULL)
     {
@@ -508,7 +508,7 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
     submitInfo.pCommandBuffers = (VkCommandBuffer *)(&buffer->cmdBuffer);
 
 	//submit the queue
-    EnterLock(buffer->queue->queueLock);
+    EnterLock(&buffer->queue->queueLock);
 
 	LGFXFence tempFence = LGFXFencePool_Rent(&device->fencePool, device, false);
 
@@ -518,18 +518,18 @@ void VkLGFXEndTemporaryCommandBuffer(LGFXDevice device, LGFXCommandBuffer buffer
 		LGFX_ERROR("Failed to submit queue, %i\n", queueSubmitResult);
     }
 
-	ExitLock(buffer->queue->queueLock);
+	ExitLock(&buffer->queue->queueLock);
 
 	LGFXAwaitFence(tempFence);
 	LGFXFencePool_Return(&device->fencePool, tempFence);
 
 	//finally, free the command buffer
-	EnterLock(buffer->queue->commandPoolLock);
+	EnterLock(&buffer->queue->commandPoolLock);
 
 	vkFreeCommandBuffers((VkDevice)device->logicalDevice, (VkCommandPool)buffer->queue->transientCommandPool, 1, (VkCommandBuffer *)&buffer->cmdBuffer);
 	//vkFreeCommandBuffers(gpu->logicalDevice, queueToUse->transientCommandPool, 1, &commandBuffer);
 
-	ExitLock(buffer->queue->commandPoolLock);
+	ExitLock(&buffer->queue->commandPoolLock);
 	free(buffer);
 }
 
@@ -1399,10 +1399,10 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 	presentInfo.pWaitSemaphores = &awaitRender;
 	presentInfo.pImageIndices = &swapchain->currentImageIndex;
 
-	EnterLock(device->graphicsQueue->queueLock);
+	EnterLock(&device->graphicsQueue->queueLock);
 	VkResult presentResults = vkQueuePresentKHR((VkQueue)device->graphicsQueue->queue, &presentInfo);
 	//swapchain->renderTargets.data[swapchain->currentImageIndex].textures.data[0]->imageLayout = (u32)VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	ExitLock(device->graphicsQueue->queueLock);
+	ExitLock(&device->graphicsQueue->queueLock);
 
 	if (swapchain->justCreated)
 	{
@@ -1675,9 +1675,9 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 	dependencyInfo.pImageMemoryBarriers = &memBarrier;
 	dependencyInfo.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-	EnterLock(cmdQueue->commandPoolLock);
+	EnterLock(&cmdQueue->commandPoolLock);
 	vkCmdPipelineBarrier2((VkCommandBuffer)cmdBuffer->cmdBuffer, &dependencyInfo);
-	ExitLock(cmdQueue->commandPoolLock);
+	ExitLock(&cmdQueue->commandPoolLock);
 
 	texture->layout = targetLayout;
 
@@ -1805,7 +1805,7 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	if (commandBuffer == NULL)
 	{
-		EnterLock(device->graphicsQueue->commandPoolLock);
+		EnterLock(&device->graphicsQueue->commandPoolLock);
 		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->graphicsQueue, true);
 	}
 
@@ -1838,7 +1838,7 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 	if (commandBuffer == NULL)
 	{
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
-		ExitLock(device->graphicsQueue->commandPoolLock);
+		ExitLock(&device->graphicsQueue->commandPoolLock);
 	}
     //AstralCanvasVk_EndTransientCommandBuffer(gpu, &gpu->DedicatedTransferQueue, transientCmdBuffer);
 }
@@ -1847,7 +1847,7 @@ void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuff
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	if (commandBuffer == NULL)
 	{
-		EnterLock(device->graphicsQueue->commandPoolLock);
+		EnterLock(&device->graphicsQueue->commandPoolLock);
 		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->graphicsQueue, true);
 	}
 
@@ -1896,7 +1896,7 @@ void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuff
 	if (commandBuffer == NULL)
 	{
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
-		ExitLock(device->graphicsQueue->commandPoolLock);
+		ExitLock(&device->graphicsQueue->commandPoolLock);
 	}
 }
 void VkLGFXDestroyTexture(LGFXTexture texture)
@@ -3136,7 +3136,7 @@ LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute)
 	LGFXCommandBuffer result = Allocate(LGFXCommandBufferImpl, 1);
 	result->queue = forCompute ? device->computeQueue : device->graphicsQueue;
 
-	EnterLock(result->queue->commandPoolLock);
+	EnterLock(&result->queue->commandPoolLock);
 
 	VkCommandBufferAllocateInfo cmdBufferInfo = {0};
 	cmdBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -3145,7 +3145,7 @@ LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute)
 	cmdBufferInfo.commandBufferCount = 1;
 	VkResult opResult = vkAllocateCommandBuffers((VkDevice)device->logicalDevice, &cmdBufferInfo, (VkCommandBuffer *)&result->cmdBuffer);
 
-	ExitLock(result->queue->commandPoolLock);
+	ExitLock(&result->queue->commandPoolLock);
 
 	if (opResult != VK_SUCCESS)
 	{
@@ -3174,11 +3174,11 @@ void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swa
 {
 	VkLGFXCommandBufferEnd(buffer);
 
-	EnterLock(buffer->queue->inDevice->graphicsQueue->queueLock);
+	EnterLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 
 	vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
 
-	ExitLock(buffer->queue->inDevice->graphicsQueue->queueLock);
+	ExitLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 
 	VkLGFXCommandBufferExecute(buffer, swapchain->fence, swapchain->awaitPresentComplete, swapchain->awaitRenderComplete);
 }
@@ -3232,22 +3232,22 @@ void VkLGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXS
     //hence, we need to wait for the queue to finish presenting before we can transition the image
     /*if (buffer->queue == buffer->queue->inDevice->graphicsQueue)
     {
-		EnterLock(buffer->queue->inDevice->graphicsQueue->queueLock);
+		EnterLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 
 		vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
 
-		ExitLock(buffer->queue->inDevice->graphicsQueue->queueLock);
+		ExitLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 	}*/
 
 	//submit the queue
-    EnterLock(buffer->queue->queueLock);
+    EnterLock(&buffer->queue->queueLock);
 
 	VkResult submitResult = vkQueueSubmit2((VkQueue)buffer->queue->queue, 1, &submitInfo, fence == NULL ? NULL : (VkFence)fence->fence);
 	if (submitResult != VK_SUCCESS)
     {
 		LGFX_ERROR("Failed to submit queue, error code %i\n", submitResult);
     }
-	ExitLock(buffer->queue->queueLock);
+	ExitLock(&buffer->queue->queueLock);
 }
 void VkLGFXCommandBufferReset(LGFXCommandBuffer buffer)
 {
@@ -3352,9 +3352,9 @@ void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer)
 {
 	if (commandBuffer->cmdBuffer != NULL)
 	{
-		EnterLock(commandBuffer->queue->commandPoolLock);
+		EnterLock(&commandBuffer->queue->commandPoolLock);
 		vkFreeCommandBuffers((VkDevice)commandBuffer->queue->inDevice->logicalDevice, (VkCommandPool)commandBuffer->queue->regularCommandPool, 1, (VkCommandBuffer *)&commandBuffer->cmdBuffer);
-		ExitLock(commandBuffer->queue->commandPoolLock);
+		ExitLock(&commandBuffer->queue->commandPoolLock);
 	}
 	free(commandBuffer);
 }
@@ -3425,9 +3425,9 @@ void VkLGFXDestroyBuffer(LGFXBuffer buffer)
 }
 void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 {
-	EnterLock(swapchain->device->graphicsQueue->queueLock);
+	EnterLock(&swapchain->device->graphicsQueue->queueLock);
 	vkQueueWaitIdle((VkQueue)swapchain->device->graphicsQueue->queue);
-	ExitLock(swapchain->device->graphicsQueue->queueLock);
+	ExitLock(&swapchain->device->graphicsQueue->queueLock);
 	vkDeviceWaitIdle((VkDevice)swapchain->device->logicalDevice);
 	if (swapchain->swapchain != NULL)
 	{
@@ -3467,13 +3467,13 @@ void VkLGFXDestroyCommandQueue(LGFXDevice device, LGFXCommandQueue queue)
 	{
 		VkLGFXDestroyFence(queue->fence);
 	}
-	if (queue->queueLock != NULL)
+	if (queue->queueLock.lockPointer != NULL)
 	{
-		DestroyLock(queue->queueLock);
+		DestroyLock(&queue->queueLock);
 	}
-	if (queue->commandPoolLock != NULL)
+	if (queue->commandPoolLock.lockPointer != NULL)
 	{
-		DestroyLock(queue->commandPoolLock);
+		DestroyLock(&queue->commandPoolLock);
 	}
 	free(queue);
 }

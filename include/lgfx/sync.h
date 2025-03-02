@@ -7,26 +7,38 @@
 #include <Windows.h>
 typedef CRITICAL_SECTION LockImpl;
 
-typedef LockImpl *Lock;
+typedef struct 
+{
+    LockImpl *lockPointer;
+    bool isLocked;
+} Lock;
 
 static inline Lock NewLock() 
 {
-    Lock result = (Lock)malloc(sizeof(LockImpl));
-    InitializeCriticalSection(result);
+    Lock result = {(LockImpl *)malloc(sizeof(LockImpl)), false};
+    InitializeCriticalSection(result.lockPointer);
     return result;
 };
-static inline void DestroyLock(Lock lock)
+static inline void DestroyLock(Lock *lock)
 {
-    DeleteCriticalSection(lock);
-    free(lock);
+    DeleteCriticalSection(lock->lockPointer);
+    free(lock->lockPointer);
 }
-static inline void EnterLock(Lock lock)
+static inline void EnterLock(Lock *lock)
 {
-    EnterCriticalSection(lock);
+    if (!lock->isLocked)
+    {
+        EnterCriticalSection(lock->lockPointer);
+        lock->isLocked = true;
+    }
 }
-static inline void ExitLock(Lock lock)
+static inline void ExitLock(Lock *lock)
 {
-    LeaveCriticalSection(lock);
+    if (lock->isLocked)
+    {
+        LeaveCriticalSection(lock->lockPointer);
+        lock->isLocked = false;
+    }
 }
 
 #endif
@@ -35,25 +47,38 @@ static inline void ExitLock(Lock lock)
 #include <pthread.h>
 typedef pthread_mutex_t LockImpl;
 
-typedef LockImpl *Lock;
+typedef struct 
+{
+    LockImpl *lockPointer;
+    bool isLocked;
+} Lock;
 
 static inline Lock NewLock() 
 {
-    Lock result = (Lock)malloc(sizeof(pthread_mutex_t));
-    pthread_mutex_init(result, NULL);
+    Lock result = {(LockImpl *)malloc(sizeof(pthread_mutex_t)), false};
+    pthread_mutex_init(result.lockPointer, NULL);
     return result;
 }
-static inline void DestroyLock(Lock lock)
+static inline void DestroyLock(Lock *lock)
 {
-    pthread_mutex_destroy(lock);
+    pthread_mutex_destroy(lock->lockPointer);
+    free(lock->lockPointer);
 }
-static inline void EnterLock(Lock lock)
+static inline void EnterLock(Lock *lock)
 {
-    pthread_mutex_lock(lock);
+    if (!lock->isLocked)
+    {
+        pthread_mutex_lock(lock->lockPointer);
+        lock->isLocked = true;
+    }
 }
-static inline void ExitLock(Lock lock)
+static inline void ExitLock(Lock *lock)
 {
-    pthread_mutex_unlock(lock);
+    if (lock->isLocked)
+    {
+        pthread_mutex_unlock(lock->lockPointer);
+        lock->isLocked = false;
+    }
 }
 
 #endif
