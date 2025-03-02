@@ -1,7 +1,7 @@
 project "Triangle"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++11"
+    cppdialect "C++14"
     staticruntime "Off"
     targetdir "bin/%{cfg.buildcfg}"
     includedirs {
