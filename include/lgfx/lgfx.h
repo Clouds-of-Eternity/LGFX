@@ -522,12 +522,14 @@ typedef struct
 } LGFXRenderPassInfo;
 typedef struct
 {
-    bool outputToBackbuffer;
     LGFXRenderAttachmentInfo *attachments;
     u32 attachmentsCount;
 
     LGFXRenderPassInfo *renderPasses;
     u32 renderPassCount;
+
+    bool outputToBackbuffer;
+    u32 maxBackbufferTexturesCount;
 } LGFXRenderProgramCreateInfo;
 
 typedef struct
@@ -652,6 +654,7 @@ LGFXDevice LGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info);
 void LGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
+u32 LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain);
 void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain);
 void LGFXSwapchainInvalidate(LGFXSwapchain swapchain);
 void LGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);

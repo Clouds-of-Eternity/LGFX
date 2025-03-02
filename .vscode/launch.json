@@ -7,7 +7,7 @@
             "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

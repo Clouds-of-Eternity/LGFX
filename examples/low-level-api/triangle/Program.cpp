@@ -135,6 +135,7 @@ i32 main()
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
     rpCreateInfo.outputToBackbuffer = true;
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //shadah

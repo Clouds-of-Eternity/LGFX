@@ -275,6 +275,10 @@ void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain)
 {
     LGFXAwaitFence(swapchain->fence);
 }
+u32 LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain)
+{
+    return swapchain->backbufferTexturesCount;
+}
 void LGFXSwapchainInvalidate(LGFXSwapchain swapchain)
 {
     swapchain->invalidated = true;

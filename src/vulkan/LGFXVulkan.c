@@ -727,22 +727,22 @@ void VkLGFXGetQueueCreateInfos(VkLGFXQueueProperties *properties, VkPhysicalDevi
 		i32 computeScore = 0;
 		i32 transferScore = 0;
 		//if we dont have a transfer bit, dont bother with this queue
-        if ((property.queueFlags & VK_QUEUE_TRANSFER_BIT) == 0)
+        if ((property.queueFlags & VK_QUEUE_TRANSFER_BIT) != 0)
         {
             graphicsScore--;
 			computeScore--;
-			transferScore++;
+			transferScore += 3;
 		}
         if ((property.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
         {
-			graphicsScore++;
+			graphicsScore += 3;
 			computeScore--;
 			transferScore--;
 		}
         if ((property.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0)
         {
 			graphicsScore--;
-			computeScore++;
+			computeScore += 3;
 			transferScore--;
         }
 
@@ -783,7 +783,7 @@ void VkLGFXGetQueueCreateInfos(VkLGFXQueueProperties *properties, VkPhysicalDevi
 		info->flags = 0;
 		*outInfoCount += 1;
 	}
-	if (properties->dedicatedTransferQueueIndex != properties->dedicatedGraphicsQueueIndex)
+	if (properties->dedicatedTransferQueueIndex != properties->dedicatedGraphicsQueueIndex && properties->dedicatedTransferQueueIndex != properties->dedicatedComputeQueueIndex)
 	{
 		info = &outInfos[*outInfoCount];
 		info->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -1334,6 +1334,10 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 		}
 		else
 		{
+			if (currentSwapchain->fence != NULL)
+			{
+				LGFXAwaitFence(currentSwapchain->fence);
+			}
 			printf("Invalid swapchain detected, recreating\n");
 		}
 	}
@@ -2340,11 +2344,14 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 
 	if (info->outputToBackbuffer)
 	{
-		program.targets = Allocate(LGFXRenderTarget, 3);
-		program.targets[0] = NULL;
-		program.targets[1] = NULL;
-		program.targets[2] = NULL;
-		program.targetsCount = 3;
+		assert(info->maxBackbufferTexturesCount > 0);
+		u32 swapchainImageCount = info->maxBackbufferTexturesCount;
+		program.targets = Allocate(LGFXRenderTarget, swapchainImageCount);
+		for (u32 i = 0; i < swapchainImageCount; i++)
+		{
+			program.targets[i] = NULL;
+		}
+		program.targetsCount = swapchainImageCount;
 	}
 	else
 	{
@@ -2364,7 +2371,7 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 	assert(index < program->targetsCount);
 	if (program->targets[index] != NULL && outputSwapchain->justCreated)
 	{
-		for (u32 i = 0; i < 3; i++)
+		for (u32 i = 0; i < program->targetsCount; i++)
 		{
 			if (program->targets[i] != NULL)
 			{
