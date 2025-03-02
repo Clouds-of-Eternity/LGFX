@@ -1154,7 +1154,8 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 		return NULL;
 	}
 
-	u32 maxUniformDescriptors = info->maxDescriptorSets == 0 ? 1024 : info->maxDescriptorSets;
+	u32 maxUniformDescriptorSets = info->maxDescriptorSets == 0 ? 1024 : info->maxDescriptorSets;
+	u32 maxUniformDescriptors = maxUniformDescriptorSets * maxUniformDescriptorSets;
 	VkDescriptorPoolSize poolSizes[6];
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	poolSizes[0].descriptorCount = maxUniformDescriptors;
@@ -1173,7 +1174,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolCreateInfo.pPoolSizes = poolSizes;
 	poolCreateInfo.poolSizeCount = 6;
-	poolCreateInfo.maxSets = maxUniformDescriptors;
+	poolCreateInfo.maxSets = maxUniformDescriptorSets;
 
 	VkDescriptorPool mainPool;
 	if (vkCreateDescriptorPool(logicalDevice, &poolCreateInfo, NULL, &mainPool) != VK_SUCCESS)
