@@ -54,6 +54,17 @@
             "cwd": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Debug",
             "environment": [],
             "console": "externalTerminal"
+        },
+        {
+            "name": "Run High-Level SDFs Example (Release)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Release/AstralCanvasSDFs.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Release",
+            "environment": [],
+            "console": "externalTerminal"
         }
     ]
 }

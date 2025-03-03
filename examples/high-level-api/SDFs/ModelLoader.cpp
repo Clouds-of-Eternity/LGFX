@@ -73,7 +73,7 @@ Model LoadModel(text fileName, AstralCanvas::Shader *loadShader, LGFXShaderState
                 attribs.normals[face.vn_idx * 3 + 2]
             );
             vertexPos.Y *= -1.0f;
-            vertexNormal *= -1.0f;
+            vertexNormal.Y *= -1.0f;
             vertex.position = Maths::Vec4(vertexPos, 0.0f);
             vertex.normal = Maths::Vec4(vertexNormal, 0.0f);
             //vertex.position.Y *= -1.0f;
@@ -153,15 +153,15 @@ Model LoadModel(text fileName, AstralCanvas::Shader *loadShader, LGFXShaderState
     LGFXSetBufferDataOptimizedData(model.vertexBuffer, NULL, (u8 *)model.vertices.data, model.vertices.length * sizeof(Vertex));
     LGFXSetBufferDataOptimizedData(model.indexBuffer, NULL, (u8 *)model.indices.data, model.indices.length * sizeof(u32));
 
-    model.minBounds = minBounds;
-    model.maxBounds = maxBounds;
-
     constexpr float resolution = 16.0f;
     constexpr float oneOverResolution = 1.0f / resolution;
 
-    u32 iterationWidth = (u32)ceilf((model.maxBounds.X - model.minBounds.X) * resolution);
-    u32 iterationHeight = (u32)ceilf((model.maxBounds.Y - model.minBounds.Y) * resolution);
-    u32 iterationDepth = (u32)ceilf((model.maxBounds.Z - model.minBounds.Z) * resolution);
+    model.minBounds = minBounds - Maths::Vec3(8 * oneOverResolution);
+    model.maxBounds = maxBounds + Maths::Vec3(8 * oneOverResolution);
+
+    u32 iterationWidth = (u32)ceilf((model.maxBounds.X - model.minBounds.X) * resolution) + 8;
+    u32 iterationHeight = (u32)ceilf((model.maxBounds.Y - model.minBounds.Y) * resolution) + 8;
+    u32 iterationDepth = (u32)ceilf((model.maxBounds.Z - model.minBounds.Z) * resolution) + 8;
 
     LGFXTextureCreateInfo createInfo = {};
     createInfo.width = iterationWidth;

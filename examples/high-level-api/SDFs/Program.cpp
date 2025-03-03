@@ -15,7 +15,6 @@ LGFXRenderProgram rp;
 
 LGFXBuffer indexBuffer;
 LGFXTexture albedoMap;
-LGFXTexture normalMap;
 LGFXTexture heightMap;
 LGFXSamplerState samplerState;
 LGFXSamplerState textureSamplerState;
@@ -28,6 +27,9 @@ LGFXBuffer indirectBuffer;
 
 AstralCanvas::Shader renderShader;
 LGFXShaderState renderShaderState;
+
+AstralCanvas::Shader renderMeshShader;
+LGFXShaderState renderMeshShaderState;
 LGFXVertexDeclaration vertDecl;
 
 float fpsTimer = 0.0f;
@@ -104,7 +106,7 @@ void Update(float deltaTime)
         float zAxis = (AstralCanvas::Input_IsKeyDown(AstralCanvas::Keys_S) ? -1.0f : 0.0f) + (AstralCanvas::Input_IsKeyDown(AstralCanvas::Keys_W) ? 1.0f : 0.0f);
         float yAxis = (AstralCanvas::Input_IsKeyDown(AstralCanvas::Keys_Space) ? -1.0f : 0.0f) + (AstralCanvas::Input_IsKeyDown(AstralCanvas::Keys_ShiftLeft) ? 1.0f : 0.0f);
 
-        float speedMult = 2.0f;
+        float speedMult = 1.0f;
         Maths::Vec3 forward = rotationMatrix.Transform(Maths::Vec3(0.0f, 0.0f, 1.0f));
         forward.Y = 0.0f;
         forward = forward.Normalized();
@@ -153,6 +155,10 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     LGFXBeginRenderProgramSwapchain(rp, mainCmds, window->swapchain, {0, 0, 0, 255}, true);
 
+    LGFXSetViewport(mainCmds, {0, 0, (float)window->resolution.X, (float)window->resolution.Y});
+    LGFXSetClipArea(mainCmds, {0, 0, (u32)window->resolution.X, (u32)window->resolution.Y});
+
+    #if !DRAW_SDFs
     renderShader.SetShaderVariable("ShaderGlobalData", &globalData, sizeof(ShaderGlobalData));
     renderShader.SetShaderVariableSampler("samplerState", samplerState);
     renderShader.SetShaderVariableSampler("textureSamplerState", textureSamplerState);
@@ -161,12 +167,18 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     renderShader.SetShaderVariableTexture("heightMap", heightMap);
     renderShader.SyncUniformsWithGPU(mainCmds);
 
-    LGFXSetViewport(mainCmds, {0, 0, (float)window->resolution.X, (float)window->resolution.Y});
-    LGFXSetClipArea(mainCmds, {0, 0, (u32)window->resolution.X, (u32)window->resolution.Y});
-
     LGFXUseShaderState(mainCmds, renderShaderState);
     LGFXUseIndexBuffer(mainCmds, indexBuffer, 0);
     LGFXDrawIndexed(mainCmds, 6, 1, 0, 0, 0);
+    #else
+    renderShader.SetShaderVariable("ShaderGlobalData", &globalData, sizeof(ShaderGlobalData));
+    renderShader.SyncUniformsWithGPU(mainCmds);
+
+    LGFXUseShaderState(mainCmds, renderMeshShaderState);
+    LGFXUseVertexBuffer(mainCmds, &teapot.vertexBuffer, 1);
+    LGFXUseIndexBuffer(mainCmds, teapot.indexBuffer, 0);
+    LGFXDrawIndexed(mainCmds, teapot.indices.length, 1, 0, 0, 0);
+    #endif
 
     LGFXEndRenderProgram(rp, mainCmds);
 }
@@ -227,11 +239,11 @@ void Init()
     rpCreateInfo.outputToBackbuffer = true;
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
-    // LGFXVertexElementFormat vertexElems[2] = {
-    //     LGFXVertexElementFormat_Vector4,
-    //     LGFXVertexElementFormat_Vector4
-    // };
-    // vertDecl = LGFXCreateVertexDeclaration(vertexElems, 2, true, true);
+    LGFXVertexElementFormat vertexElems[2] = {
+        LGFXVertexElementFormat_Vector4,
+        LGFXVertexElementFormat_Vector4
+    };
+    vertDecl = LGFXCreateVertexDeclaration(vertexElems, 2, true, true);
 
     // shader
     string fileContents = io::ReadFile(GetCAllocator(), "DrawSDFs.shaderobj", false);
@@ -297,11 +309,11 @@ void Init()
 
     // texture
     albedoMap = FastLoadTexture(device, "GrassAlbedo.jpg");
-    normalMap = FastLoadTexture(device, "GrassNormal.jpg");
+    //normalMap = FastLoadTexture(device, "GrassNormal.jpg");
     heightMap = FastLoadTexture(device, "GrassDisplacement.jpg");
 
     //model
-    teapot = LoadModel("Bed.obj", &loadShader, loadShaderState);
+    teapot = LoadModel("bunny.obj", &loadShader, loadShaderState);
 }
 void Deinit()
 {
@@ -316,7 +328,6 @@ void Deinit()
     LGFXDestroyRenderProgram(rp);
     LGFXDestroySamplerState(samplerState);
     LGFXDestroySamplerState(textureSamplerState);
-    LGFXDestroyTexture(normalMap);
     LGFXDestroyTexture(heightMap);
     LGFXDestroyTexture(albedoMap);
     // LGFXDestroyBuffer(transformedBuffer);

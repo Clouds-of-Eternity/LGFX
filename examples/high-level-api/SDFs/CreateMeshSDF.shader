@@ -85,20 +85,18 @@ void main()
         vec3 p = meshData.minExtents.xyz + (vec3(index) / vec3(meshData.dimensions.xyz)) * (meshData.maxExtents.xyz - meshData.minExtents.xyz);
         vec4 minSDF = vec4(10000.0);
         int intersectionCount = 0;
+        uint finalTrangle = 0;
         for (uint i = 0; i < meshData.dimensions.w / 3; i++)
         {
-            vec3 v0 = vertices[indices[i * 3 + 0]].position.xyz * 0.9;
-            vec3 v1 = vertices[indices[i * 3 + 1]].position.xyz * 0.9;
-            vec3 v2 = vertices[indices[i * 3 + 2]].position.xyz * 0.9;
-
-            vec3 n0 = vertices[indices[i * 3 + 0]].normal.xyz;
-            vec3 n1 = vertices[indices[i * 3 + 1]].normal.xyz;
-            vec3 n2 = vertices[indices[i * 3 + 2]].normal.xyz;
+            vec3 v0 = vertices[indices[i * 3 + 0]].position.xyz;
+            vec3 v1 = vertices[indices[i * 3 + 1]].position.xyz;
+            vec3 v2 = vertices[indices[i * 3 + 2]].position.xyz;
 
             float nearest = udTriangle(p, v0, v1, v2);
             if (nearest < minSDF.w)
             {
-                minSDF.xyz = (n0 + n1 + n2) / 3.0;
+                finalTrangle = i;
+                //minSDF.xyz = normalize((n0 + n1 + n2) / 3.0);
                 minSDF.w = nearest;
             }
             if (intersectTriangle(p, vec3(0.0, 0.0, 1.0), v0, v1, v2).x > 0.0)
@@ -106,6 +104,10 @@ void main()
                 intersectionCount++;
             }
         }
+        vec3 n0 = vertices[indices[finalTrangle * 3 + 0]].normal.xyz;
+        vec3 n1 = vertices[indices[finalTrangle * 3 + 1]].normal.xyz;
+        vec3 n2 = vertices[indices[finalTrangle * 3 + 2]].normal.xyz;
+        minSDF.xyz = normalize((n0 + n1 + n2) / 3.0);  
         if (intersectionCount % 2 == 1)
         {
             minSDF.w *= -1.0;

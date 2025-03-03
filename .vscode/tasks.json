@@ -59,6 +59,17 @@
             }
         },
         {
+            "label": "Build High-Level SDFs (Release)",
+            "type": "shell",
+            "command": "msbuild",
+            "args": ["${workspaceFolder}/examples/high-level-api/SDFs/AstralCanvasSDFs.vcxproj", "/p:configuration='Release'", "/p:platform=x64"],
+            "problemMatcher": ["$msCompile"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "Build High-Level Compute Example (Release)",
             "type": "shell",
             "command": "msbuild",
