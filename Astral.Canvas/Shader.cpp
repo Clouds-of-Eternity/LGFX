@@ -95,10 +95,11 @@ namespace AstralCanvas
             {
                 uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].mutated = true;
                 LGFXSetBufferDataFast(((LGFXBuffer *)uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].currentValues)[0], (u8*)ptr, size);
-                break;
+                return;
                 //uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].ub.SetData(ptr, size);
             }
         }
+        fprintf(stderr, "Shader does not possess a variable of name %s\n", variableName);
     }
     void Shader::SetShaderVariableTextures(const char* variableName, LGFXTexture*textures, usize count)
     {
@@ -117,9 +118,10 @@ namespace AstralCanvas
                 {
                    ((LGFXTexture *)mutableState->currentValues)[j] = textures[j];
                 }
-                break;
+                return;
             }
         }
+        fprintf(stderr, "Shader does not possess a variable of name %s\n", variableName);
     }
     void Shader::SetShaderVariableTexture(const char* variableName, LGFXTexture texture)
     {
@@ -142,9 +144,10 @@ namespace AstralCanvas
                 {
                    ((LGFXSamplerState *)mutableState->currentValues)[j] = samplers[j];
                 }
-                break;
+                return;
             }
         }
+        fprintf(stderr, "Shader does not possess a variable of name %s\n", variableName);
     }
     void Shader::SetShaderVariableSampler(const char* variableName, LGFXSamplerState sampler)
     {
