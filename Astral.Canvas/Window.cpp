@@ -145,13 +145,14 @@ namespace AstralCanvas
 			glfwSetCursor((GLFWwindow *)this->handle, NULL);
 		}
 	}
-	/// Called when the window is minimized, otherwise known as iconified
-	void WindowMinimized(GLFWwindow* window, i32 iconified)
+	/// Called when the window is hidden
+	void WindowHidden(GLFWwindow* window, i32 iconified)
 	{
 		if (iconified)
 		{
 			Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 			canvas->windowInputState.ClearAllInputStates();
+			canvas->isMaximized = false;
 		}
 	}
 	/// Called when the window is maximized or restored to original size
@@ -159,6 +160,7 @@ namespace AstralCanvas
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		glfwGetWindowSize(window, &canvas->resolution.X, &canvas->resolution.Y);
+		canvas->isMaximized = (bool)maximized;
 	}
 	void OnTextInput(GLFWwindow* window, u32 characterUnicode)
 	{
@@ -261,10 +263,7 @@ namespace AstralCanvas
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
         canvas->resolution.X = width;
         canvas->resolution.Y = height;
-		if (canvas->justResized != NULL)
-		{
-			*canvas->justResized = true;
-		}
+		canvas->justResized = true;
 	}
 
 	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, void *iconData, u32 iconWidth, u32 iconHeight)
@@ -291,7 +290,7 @@ namespace AstralCanvas
 			result->handle = handle;
 			result->resolution = Point2(width, height);
 
-			glfwSetWindowIconifyCallback(handle, &WindowMinimized);
+			glfwSetWindowIconifyCallback(handle, &WindowHidden);
 			glfwSetWindowMaximizeCallback(handle, &WindowMaximized);
             glfwSetWindowSizeCallback(handle, &WindowSizeChanged);
 			glfwSetFramebufferSizeCallback(handle, &WindowFramebufferSizeChanged);
@@ -335,6 +334,17 @@ namespace AstralCanvas
 		const GLFWvidmode *vidmode = glfwGetVideoMode(monitor);
 
 		return vidmode->refreshRate;
+	}
+	void Window::SetMaximized(bool value)
+	{
+		if (value)
+		{
+			glfwMaximizeWindow((GLFWwindow *)handle);
+		}
+		else
+		{
+			glfwRestoreWindow((GLFWwindow *)handle);
+		}
 	}
 	void Window::SetFullscreen(bool value)
 	{

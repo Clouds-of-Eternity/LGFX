@@ -29,7 +29,8 @@ namespace AstralCanvas
 		InputState windowInputState;
 		string windowTitle;
 		bool isFullscreen;
-		bool *justResized;
+		bool isMaximized;
+		bool justResized;
 
 		WindowOnTextInputFunction onTextInputFunc;
 		WindowOnKeyInteractedFunction onKeyInteractFunc;
@@ -43,6 +44,7 @@ namespace AstralCanvas
 			return Maths::Rectangle(0, 0, resolution.X, resolution.Y);
 		}
 		void SetWindowTitle(string title);
+		void SetMaximized(bool value);
 		void SetFullscreen(bool value);
 		void SetMouseState(WindowMouseState state);
 		WindowMouseState GetMouseState();
