@@ -58,5 +58,5 @@ namespace AstralCanvas
 		Maths::Vec2 GetOSContentScale();
 	};
 
-	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, void *iconData, u32 iconWidth, u32 iconHeight);
+	bool WindowInit(IAllocator allocator, const char *name, Window *result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight);
 }

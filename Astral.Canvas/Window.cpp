@@ -266,13 +266,20 @@ namespace AstralCanvas
 		canvas->justResized = true;
 	}
 
-	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, void *iconData, u32 iconWidth, u32 iconHeight)
+	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight)
 	{
 		*result = {};
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, resizeable);
+		glfwWindowHint(GLFW_RESIZABLE, (i32)resizeable);
+		glfwWindowHint(GLFW_MAXIMIZED, (i32)maximized);
+
+		GLFWmonitor *toFullscreenOn = NULL;
+		if (fullscreen)
+		{
+			toFullscreenOn = glfwGetPrimaryMonitor();
+		}
 		
-		GLFWwindow* handle = glfwCreateWindow(width, height, name, NULL, NULL);
+		GLFWwindow* handle = glfwCreateWindow(width, height, name, toFullscreenOn, NULL);
 
 		if (iconData != NULL)
 		{
@@ -289,6 +296,8 @@ namespace AstralCanvas
 			result->windowInputState = AstralCanvas::InputState(allocator);
 			result->handle = handle;
 			result->resolution = Point2(width, height);
+			result->isFullscreen = fullscreen;
+			result->isMaximized = maximized;
 
 			glfwSetWindowIconifyCallback(handle, &WindowHidden);
 			glfwSetWindowMaximizeCallback(handle, &WindowMaximized);

@@ -83,12 +83,16 @@ namespace AstralCanvas
 		deviceCreateInfo.requiredFeatures.wideLines = true;
 		applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
 	}
-	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, void *iconData, u32 iconWidth, u32 iconHeight)
+	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight)
 	{
 		Window result;
-		glfwWindowHint(GLFW_REFRESH_RATE, (i32)this->framesPerSecond);
-		if (WindowInit(this->allocator, name, &result, width, height, resizeable, iconData, iconWidth, iconHeight))
+		if (WindowInit(this->allocator, name, &result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight))
 		{
+			if (framesPerSecond <= -1.0f)
+			{
+				framesPerSecond = (float)result.GetCurrentMonitorFramerate();
+				//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
+			}
 			windows.Add(result);
 			glfwSetWindowUserPointer((GLFWwindow*)result.handle, &windows.ptr[windows.count - 1]);
 
