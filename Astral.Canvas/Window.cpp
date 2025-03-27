@@ -314,7 +314,7 @@ namespace AstralCanvas
 			//create swapchain
 			LGFXSwapchainCreateInfo swapchainCreateInfo = {0};
 			swapchainCreateInfo.oldSwapchain = NULL;
-			swapchainCreateInfo.presentationMode = LGFXSwapchainPresentationMode_Mailbox;
+			swapchainCreateInfo.presentationMode = LGFXSwapchainPresentationMode_Fifo;
 			int w;
 			int h;
 			glfwGetFramebufferSize(handle, &w, &h);
