@@ -21,6 +21,8 @@ namespace AstralCanvas
 		LGFXInstance instance;
 		LGFXDevice device;
 
+		bool alwaysUpdate;
+
 		string appName;
 		string engineName;
 		u32 appVersion;

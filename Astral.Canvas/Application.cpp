@@ -113,45 +113,34 @@ namespace AstralCanvas
 		}
 		startTime = (float)glfwGetTime();
 		endTime = startTime;
+		bool noWindows = windows.count == 0;
+		if (noWindows)
+		{
+			alwaysUpdate = true;
+		}
 
 		bool shouldStop = false;
 		while (!shouldStop)
 		{
 			float deltaTime = endTime - startTime;
 
-			bool slowdownPollEvents = true;
-
-			for (usize i = 0; i < windows.count; i++)
-			{
-				if (windows.ptr[i].resolution.X != 0 && windows.ptr[0].resolution.Y != 0)
-				{
-					slowdownPollEvents = false;
-				}
-			}
-			if (slowdownPollEvents)
-			{
-				while (windows.ptr[0].resolution.X == 0 || windows.ptr[0].resolution.Y == 0)
-				{
-					deltaTime = endTime - startTime;
-					refreshTimer += deltaTime;
-					if (refreshTimer >= 0.03f)
-					{
-						refreshTimer = 0.0f;
-						glfwPollEvents();
-					}
-					startTime = endTime;
-					endTime = (float)glfwGetTime();
-				}
-			}
-			else
-			{
-				refreshTimer = 0.0f;
-				glfwPollEvents();
-			}
+			glfwPollEvents();
 			updateTimer += deltaTime;
 			fixedUpdateTimer += deltaTime;
 
 			bool runUpdate = framesPerSecond < 1.0f || updateTimer >= 1.0f / framesPerSecond;
+			if (runUpdate && !alwaysUpdate)
+			{
+				runUpdate = false;
+				for (u32 i = 0; i < windows.count; i++)
+				{
+					if (windows[i].resolution.X > 0 && windows[i].resolution.Y > 0)
+					{
+						runUpdate = true;
+						break;
+					}
+				}
+			}
 
 			//fixed update
 			if (fixedUpdateTimer > fixedTimeStep * 4.0f) //cap to avoid death spiral
@@ -210,7 +199,7 @@ namespace AstralCanvas
 					}
 				}
 
-				if (windows.count == 0)
+				if (windows.count == 0 && !noWindows)
 				{
 					break;
 				}
