@@ -36,7 +36,7 @@ namespace AstralCanvas
         void deinit();
     };
 
-    typedef collections::denseset<AstralCanvas::ShaderResource> ShaderVariables;
+    typedef collections::vector<AstralCanvas::ShaderResource> ShaderVariables;
 
     struct Shader
     {
@@ -66,6 +66,7 @@ namespace AstralCanvas
         void SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer computeBuffer);
     };
 
+    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::vector<AstralCanvas::ShaderResource> &result);
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
 
     usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);

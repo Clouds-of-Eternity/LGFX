@@ -57,6 +57,7 @@ typedef struct LGFXShaderStateImpl *LGFXShaderState;
 typedef struct LGFXComputeImpl *LGFXCompute;
 typedef struct LGFXSamplerStateImpl *LGFXSamplerState;
 typedef struct LGFXFunctionVariableBatchImpl *LGFXFunctionVariableBatch;
+typedef struct LGFXFunctionVariableBatchTemplateImpl *LGFXFunctionVariableBatchTemplate;
 
 typedef enum
 {
@@ -589,8 +590,7 @@ typedef struct
     void **currentValues;
     u32 valuesCount;
     void *infos;
-    LGFXShaderResource *metadata;
-    LGFXFunction forFunction;
+    LGFXShaderResource variableMetadata;
 
     LGFXDevice device;
     bool valueIsOwnedBuffer;
@@ -609,8 +609,19 @@ typedef struct
 
     LGFXShaderResource *uniforms;
     u32 uniformsCount;
-    
+
+    LGFXFunctionVariableBatchTemplate *extraFunctionVariableBatchTypes;
+    u32 extraFunctionVariableBatchTypesCount;
+
 } LGFXFunctionCreateInfo;
+
+typedef struct
+{
+    LGFXShaderResource *uniforms;
+    u32 uniformsCount;
+    bool forCompute;
+} LGFXFunctionVariableBatchTemplateCreateInfo;
+
 typedef struct LGFXShaderStateCreateInfo
 {
     LGFXFunction function;
@@ -697,12 +708,17 @@ void LGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
 void LGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer);
 void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
+LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info);
+LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate);
+void LGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy);
+
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void LGFXDestroyFunction(LGFXFunction func);
 LGFXFunctionVariableBatch LGFXFunctionGetVariableBatch(LGFXFunction function);
 LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
+LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info);
 void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, u32 variablesCount);
-void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction);
+void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, u32 setIndex);
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
 LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);

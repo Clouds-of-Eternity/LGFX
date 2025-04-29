@@ -527,6 +527,33 @@ void LGFXDestroyRenderProgram(LGFXRenderProgram program)
     LGFX_ERROR("LGFXDestroyRenderProgram: Unknown backend\n");
 }
 
+LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXCreateFunctionVariableBatchTemplate(device, info);
+    }
+    LGFX_ERROR("LGFXCreateFunctionVariableBatchTemplate: Unknown backend\n");
+    return NULL;
+}
+LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXCreateFunctionVariableBatch(device, fromTemplate);
+    }
+    LGFX_ERROR("LGFXCreateFunctionVariableBatch: Unknown backend\n");
+    return NULL;
+}
+void LGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXDestroyFunctionVariableBatchTemplate(device, toDestroy);
+    }
+    LGFX_ERROR("LGFXDestroyFunctionVariableBatchTemplate: Unknown backend\n");
+}
+
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
@@ -554,6 +581,16 @@ LGFXFunctionVariableBatch LGFXFunctionGetVariableBatch(LGFXFunction function)
     LGFX_ERROR("LGFXFunctionGetVariableBatch: Unknown backend\n");
     return NULL;
 }
+LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXCreateFunctionVariable(device, info);
+    }
+    LGFX_ERROR("LGFXFunctionGetVariableSlot: Unknown backend\n");
+    LGFXFunctionVariable empty = {0};
+    return empty;
+}
 LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
 {
     if (function->device->backend == LGFXBackendType_Vulkan)
@@ -573,11 +610,11 @@ void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch
     }
     LGFX_ERROR("LGFXFunctionSendVariablesToGPU: Unknown backend\n");
 }
-void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction)
+void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, u32 setIndex)
 {
     if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXUseFunctionVariables(commandBuffer, batch, forFunction);
+        VkLGFXUseFunctionVariables(commandBuffer, batch, forFunction, setIndex);
         return;
     }
     LGFX_ERROR("LGFXUseFunctionVariables: Unknown backend\n");

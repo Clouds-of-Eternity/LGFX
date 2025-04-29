@@ -22,7 +22,7 @@ namespace AstralCanvas
     {
         this->allocator = allocator;
         gpuFunction = NULL;
-        uniforms = ShaderVariables(allocator, ShaderResource{});
+        uniforms = ShaderVariables(allocator);
 
         this->descriptorForThisDrawCall = 0;
         this->variableBatches = collections::vector<LGFXFunctionVariableBatch>(allocator);
@@ -42,7 +42,7 @@ namespace AstralCanvas
         LGFXDestroyFunction(gpuFunction);
         if (uniforms.ptr != NULL)
         {
-            for (u32 i = 0; i < uniforms.capacity; i++)
+            for (u32 i = 0; i < uniforms.count; i++)
             {
                 if (uniforms.ptr[i].nameStr.buffer == NULL)
                 {
@@ -65,7 +65,7 @@ namespace AstralCanvas
     void Shader::SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer buffer)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < uniforms.capacity; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
             if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
@@ -84,7 +84,7 @@ namespace AstralCanvas
     void Shader::SetShaderVariable(const char* variableName, void* ptr, usize size)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < uniforms.capacity; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
             if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
@@ -104,7 +104,7 @@ namespace AstralCanvas
     void Shader::SetShaderVariableTextures(const char* variableName, LGFXTexture*textures, usize count)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < uniforms.capacity; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
             if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
@@ -130,7 +130,7 @@ namespace AstralCanvas
     void Shader::SetShaderVariableSamplers(const char* variableName, LGFXSamplerState *samplers, usize count)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < uniforms.capacity; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
             if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
@@ -156,7 +156,7 @@ namespace AstralCanvas
 
     i32 Shader::GetVariableBinding(text variableName)
     {
-        for (i32 i = 0; i < this->uniforms.capacity; i++)
+        for (i32 i = 0; i < this->uniforms.count; i++)
         {
             if (uniforms.ptr[i].nameStr == variableName)
             {
@@ -168,7 +168,7 @@ namespace AstralCanvas
     void Shader::CheckDescriptorSetAvailability(bool forceAddNewDescriptor)
     {
         bool added = false;
-        for (u32 i = 0; i < this->uniforms.capacity; i++)
+        for (u32 i = 0; i < this->uniforms.count; i++)
         {
             if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
@@ -177,7 +177,7 @@ namespace AstralCanvas
 
             if (forceAddNewDescriptor || this->descriptorForThisDrawCall >= this->variableBatches.count)
             {
-                LGFXFunctionVariable newVarSlot = LGFXFunctionGetVariableSlot(this->gpuFunction, i);
+                LGFXFunctionVariable newVarSlot = LGFXFunctionGetVariableSlot(this->gpuFunction, this->uniforms[i].resource.binding);
                 this->uniforms.ptr[i].states.Add(newVarSlot);
                 added = true;
             }
@@ -192,7 +192,7 @@ namespace AstralCanvas
     {
         LGFXFunctionVariable variables[32];
         u32 variablesCount = 0;
-        for (usize i = 0; i < this->uniforms.capacity; i++)
+        for (usize i = 0; i < this->uniforms.count; i++)
         {
             if (this->uniforms.ptr[i].nameStr.buffer == NULL)
             {
@@ -203,19 +203,20 @@ namespace AstralCanvas
         }
         LGFXFunctionVariableBatch batch = this->variableBatches.ptr[this->descriptorForThisDrawCall];
         LGFXFunctionSendVariablesToGPU(this->device, batch, variables, variablesCount);
-        LGFXUseFunctionVariables(commandBuffer, batch, gpuFunction);
+        LGFXUseFunctionVariables(commandBuffer, batch, gpuFunction, 0);
 
         descriptorForThisDrawCall += 1;
 
         allUsedShaders.Add(this);
     }
 
-    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::denseset<AstralCanvas::ShaderResource> &result)//, LGFXShaderInputAccessFlags accessedBy)
+    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::vector<AstralCanvas::ShaderResource> &result)//, LGFXShaderInputAccessFlags accessedBy)
     {
         u32 maxBinding = 0;
         for (usize i = 0; i < variables->arrayElements.length; i++)
         {
             Json::JsonElement *elem = &variables->arrayElements.data[i];
+            u32 set = elem->GetProperty("set")->GetUint32();
 
             u32 binding = elem->GetProperty("binding")->GetUint32();
             if (binding + 1 > maxBinding)
@@ -231,6 +232,7 @@ namespace AstralCanvas
             else
             {*/
             AstralCanvas::ShaderResource newResource = {};
+            newResource.resource.set = set;
             newResource.nameStr = elem->GetProperty("name")->GetStringRaw(allocator);
             newResource.resource.variableName = newResource.nameStr.buffer;
             newResource.resource.binding = binding;
@@ -275,7 +277,8 @@ namespace AstralCanvas
                 newResource.resource.type = LGFXShaderResourceType_InputAttachment;
             }
 
-            result.Insert(newResource.resource.binding, newResource);
+            result.Add(newResource);
+            //result.Insert(newResource.resource.binding, newResource);
             //}
         }
         return maxBinding;
@@ -300,7 +303,7 @@ namespace AstralCanvas
                 }
 
                 AstralCanvas::ShaderResource *resource = results->Get(binding);
-                if (resource != NULL && resource->resource.variableName != NULL)
+                if (resource != NULL && binding < results->count && resource->resource.variableName != NULL && resource->nameStr == name)
                 {
                     //resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
                     name.deinit();
@@ -318,8 +321,8 @@ namespace AstralCanvas
 
                     newResource.nameStr = name;
                     newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
-                    
-                    results->Insert((usize)binding, newResource);
+
+                    results->Add(newResource); //->Insert((usize)binding, newResource);
                 }
                 //results->uniforms.Add(binding, {name, set, binding, stride});
             }
@@ -340,7 +343,7 @@ namespace AstralCanvas
                 }
 
                 AstralCanvas::ShaderResource *resource = results->Get(binding);
-                if (resource != NULL && resource->resource.variableName != NULL)
+                if (resource != NULL && binding < results->count && resource->resource.variableName != NULL && resource->nameStr == name)
                 {
                     //resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
                     name.deinit();
@@ -359,7 +362,7 @@ namespace AstralCanvas
                     newResource.nameStr = name;
                     newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
                     
-                    results->Insert((usize)binding, newResource);
+                    results->Add(newResource);
                 }
             }
         }
@@ -379,7 +382,7 @@ namespace AstralCanvas
                 }
 
                 AstralCanvas::ShaderResource *resource = results->Get(binding);
-                if (resource != NULL && resource->resource.variableName != NULL)
+                if (resource != NULL && binding < results->count && resource->resource.variableName != NULL && resource->nameStr == name)
                 {
                     //resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
                     name.deinit();
@@ -397,7 +400,7 @@ namespace AstralCanvas
 
                     newResource.nameStr = name;
                     newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
-                    results->Insert((usize)binding, newResource);
+                    results->Add(newResource);
                 }
             }
         }
@@ -417,7 +420,7 @@ namespace AstralCanvas
                 }
 
                 AstralCanvas::ShaderResource *resource = results->Get(binding);
-                if (resource != NULL && resource->resource.variableName != NULL)
+                if (resource != NULL && binding < results->count && resource->resource.variableName != NULL && resource->nameStr == name)
                 {
                     //resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
                     name.deinit();
@@ -436,7 +439,7 @@ namespace AstralCanvas
 
                     newResource.nameStr = name;
                     newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
-                    results->Insert((usize)binding, newResource);
+                    results->Add(newResource);
                 }
             }
         }
@@ -455,7 +458,7 @@ namespace AstralCanvas
                 }
 
                 AstralCanvas::ShaderResource *resource = results->Get(binding);
-                if (resource != NULL && resource->resource.variableName != NULL)
+                if (resource != NULL && binding < results->count && resource->resource.variableName != NULL && resource->nameStr == name)
                 {
                     //resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
                     name.deinit();
@@ -473,7 +476,7 @@ namespace AstralCanvas
 
                     newResource.nameStr = name;
                     newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
-                    results->Insert((usize)binding, newResource);
+                    results->Add(newResource);
                 }
             }
         }
@@ -492,7 +495,7 @@ namespace AstralCanvas
                 }
 
                 AstralCanvas::ShaderResource *resource = results->Get(binding);
-                if (resource != NULL && resource->resource.variableName != NULL)
+                if (resource != NULL && binding < results->count && resource->resource.variableName != NULL && resource->nameStr == name)
                 {
                     //resource->resource.accessedBy = (LGFXShaderInputAccessFlags)((u32)resource->resource.accessedBy | accessedByShaderOfType);
                     name.deinit();
@@ -510,7 +513,7 @@ namespace AstralCanvas
 
                     newResource.nameStr = name;
                     newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
-                    results->Insert((usize)binding, newResource);
+                    results->Add(newResource);
                 }
             }
         }
@@ -677,8 +680,8 @@ namespace AstralCanvas
 
         if (computeElement != NULL)
         {
-            u32 uniformsCount = ParseShaderVariables(computeElement, &result->uniforms, LGFXShaderInputAccess_Compute);
-        
+            u32 maxBinding = ParseShaderVariables(computeElement, &result->uniforms, LGFXShaderInputAccess_Compute);
+            u32 uniformsCount = result->uniforms.count;
             JsonElement *computeSpirv = computeElement->GetProperty("spirv");
             collections::Array<u32> computeSpirvData = collections::Array<u32>(localArena.AsAllocator(), computeSpirv->arrayElements.length);
             for (usize i = 0; i < computeSpirv->arrayElements.length; i++)
@@ -692,7 +695,7 @@ namespace AstralCanvas
                 inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
             }
 
-            LGFXFunctionCreateInfo info;
+            LGFXFunctionCreateInfo info = {};
             info.module1Data = computeSpirvData.data;
             info.module1DataLength = computeSpirvData.length;
             info.module2Data = NULL;
@@ -737,7 +740,7 @@ namespace AstralCanvas
                     inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
                 }
 
-                LGFXFunctionCreateInfo info;
+                LGFXFunctionCreateInfo info = {};
                 info.module1Data = vertexSpirvData.data;
                 info.module1DataLength = vertexSpirvData.length;
                 info.module2Data = fragmentSpirvData.data;
