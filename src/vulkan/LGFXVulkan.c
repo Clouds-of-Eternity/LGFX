@@ -3460,7 +3460,7 @@ void VkLGFXDestroyRenderTarget(LGFXRenderTarget target)
 }
 void VkLGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy)
 {
-	vkDestroyDescriptorSetLayout(device, (VkDescriptorSetLayout)toDestroy, NULL);
+	vkDestroyDescriptorSetLayout((VkDevice)device->logicalDevice, (VkDescriptorSetLayout)toDestroy, NULL);
 }
 void VkLGFXDestroyBuffer(LGFXBuffer buffer)
 {

@@ -550,6 +550,7 @@ void LGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVar
     if (device->backend == LGFXBackendType_Vulkan)
     {
         VkLGFXDestroyFunctionVariableBatchTemplate(device, toDestroy);
+        return;
     }
     LGFX_ERROR("LGFXDestroyFunctionVariableBatchTemplate: Unknown backend\n");
 }
