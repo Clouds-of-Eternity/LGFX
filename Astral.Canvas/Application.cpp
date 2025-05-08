@@ -69,7 +69,7 @@ namespace AstralCanvas
 #if DEBUG
 		instanceCreateInfo.runtimeErrorChecking = true;
 #else
-		instanceCreateInfo.runtimeErrorChecking = true;
+		instanceCreateInfo.runtimeErrorChecking = false;
 #endif
 		instanceCreateInfo.backend = LGFXBackendType_Vulkan;
 		instanceCreateInfo.enabledExtensionsCount = extensionsCount;

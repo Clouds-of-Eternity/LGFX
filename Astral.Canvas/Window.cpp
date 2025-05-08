@@ -257,6 +257,10 @@ namespace AstralCanvas
 	}
     void WindowSizeChanged(GLFWwindow *window, i32 width, i32 height)
     {
+		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
+        canvas->resolution.X = width;
+        canvas->resolution.Y = height;
+		canvas->justResized = true;
 	}
 	void WindowFramebufferSizeChanged(GLFWwindow* window, i32 width, i32 height)
 	{
