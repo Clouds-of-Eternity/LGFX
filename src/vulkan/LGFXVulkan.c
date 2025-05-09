@@ -7,6 +7,7 @@
 #include <string.h>
 #include <math.h>
 #include "vulkan/vk_mem_alloc.h"
+#include <limits.h>
 
 #define ONE_OVER_255 0.00392156862f
 
@@ -1336,7 +1337,7 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 		if (!currentSwapchain->invalidated)
 		{
 			LGFXAwaitFence(currentSwapchain->fence);
-			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, 3000, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
+			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, ULONG_MAX, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
 		}
 		else
 		{
