@@ -209,8 +209,8 @@ i32 main()
         GetCAllocator(),
         string(GetCAllocator(), "Compute"), 
         string(GetCAllocator(), "Astral.Canvas"),
-        0, 0, 0.0f);
+        0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080);
+    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0);
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

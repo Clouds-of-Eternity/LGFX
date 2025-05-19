@@ -144,8 +144,8 @@ i32 main()
         GetCAllocator(),
         string(GetCAllocator(), "Triangle"), 
         string(GetCAllocator(), "Astral.Canvas"),
-        0, 0, 0.0f);
+        0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480);
+    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0);
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

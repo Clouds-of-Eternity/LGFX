@@ -22,6 +22,7 @@ namespace AstralCanvas
 		LGFXDevice device;
 
 		bool alwaysUpdate;
+		bool shouldShutdown;
 
 		string appName;
 		string engineName;
@@ -45,7 +46,7 @@ namespace AstralCanvas
 
 	extern Application applicationInstance;
 
-	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond);
+	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow);
 	text GetClipboardText();
 	void SetClipboardText(text text);
 	double GetElapsedTime();

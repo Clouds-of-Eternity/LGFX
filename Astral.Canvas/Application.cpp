@@ -40,12 +40,8 @@ namespace AstralCanvas
 		fixedTimeStep = 0.0f;
 		timeScale = 1.0f;
 	}
-	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond)
+	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow)
 	{
-		#ifdef X11
-		glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
-		#endif
-		glfwInit();
 		Application result;
 		result.framesPerSecond = framesPerSecond;
 		result.allocator = allocator;
@@ -58,30 +54,37 @@ namespace AstralCanvas
 		result.fixedTimeStep = 0.02f;
 		applicationInstance = result;
 
-		u32 extensionsCount;
-		const char **extensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
+		if (!noWindow)
+		{
+			#ifdef X11
+			glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
+			#endif
+			glfwInit();
+			u32 extensionsCount;
+			const char **extensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
 
-		LGFXInstanceCreateInfo instanceCreateInfo = {0};
-		instanceCreateInfo.appName = appName.buffer;
-		instanceCreateInfo.appVersion = appVersion;
-		instanceCreateInfo.engineName = engineName.buffer;
-		instanceCreateInfo.engineVersion = engineVersion;
-#if DEBUG
-		instanceCreateInfo.runtimeErrorChecking = true;
-#else
-		instanceCreateInfo.runtimeErrorChecking = false;
-#endif
-		instanceCreateInfo.backend = LGFXBackendType_Vulkan;
-		instanceCreateInfo.enabledExtensionsCount = extensionsCount;
-		instanceCreateInfo.enabledExtensions = extensions;
+			LGFXInstanceCreateInfo instanceCreateInfo = {0};
+			instanceCreateInfo.appName = appName.buffer;
+			instanceCreateInfo.appVersion = appVersion;
+			instanceCreateInfo.engineName = engineName.buffer;
+			instanceCreateInfo.engineVersion = engineVersion;
+	#if DEBUG
+			instanceCreateInfo.runtimeErrorChecking = true;
+	#else
+			instanceCreateInfo.runtimeErrorChecking = false;
+	#endif
+			instanceCreateInfo.backend = LGFXBackendType_Vulkan;
+			instanceCreateInfo.enabledExtensionsCount = extensionsCount;
+			instanceCreateInfo.enabledExtensions = extensions;
 
-		applicationInstance.instance = LGFXCreateInstance(&instanceCreateInfo);
+			applicationInstance.instance = LGFXCreateInstance(&instanceCreateInfo);
 
-		//create device
-		LGFXDeviceCreateInfo deviceCreateInfo = {0};
-		deviceCreateInfo.requiredFeatures.fillModeNonSolid = true;
-		deviceCreateInfo.requiredFeatures.wideLines = true;
-		applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
+			//create device
+			LGFXDeviceCreateInfo deviceCreateInfo = {0};
+			deviceCreateInfo.requiredFeatures.fillModeNonSolid = true;
+			deviceCreateInfo.requiredFeatures.wideLines = true;
+			applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
+		}
 	}
 	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight)
 	{
@@ -157,7 +160,7 @@ namespace AstralCanvas
 			{
 				updateFunc(updateTimer * this->timeScale);
 
-				for (usize i = 0; i < windows.count; i++)
+				for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 				{
 					if (windows.ptr[i].resolution.X == 0 || windows.ptr[i].resolution.Y == 0)
 					{
@@ -212,6 +215,14 @@ namespace AstralCanvas
 				startTime = endTime;
 				this->shouldResetDeltaTimer = false;
 			}
+			if (shouldShutdown)
+			{
+				shouldStop = true;
+				for (usize i = 0; i < windows.count; i++)
+				{
+					glfwSetWindowShouldClose((GLFWwindow *)windows.ptr[i].handle, 1);
+				}
+			}
 		}
 
 		//await rendering process shutdown
@@ -222,9 +233,14 @@ namespace AstralCanvas
 		}
 
         //deinitialize backend
-		LGFXDestroyDevice(device);
-
-		LGFXDestroyInstance(instance);
+		if (device != NULL)
+		{
+			LGFXDestroyDevice(device);
+		}
+		if (instance != NULL)
+		{
+			LGFXDestroyInstance(instance);
+		}
 	}
 	const char *GetClipboardText()
 	{
