@@ -17,6 +17,8 @@ namespace AstralCanvas
 
 	def_delegate(WindowOnTextInputFunction, void, void *window, u32 characterUnicode);
 	def_delegate(WindowOnKeyInteractedFunction, void, void *window, AstralCanvas::Keys key, i32 action);
+	def_delegate(WindowOnDropFunction, void, void* window, int count, const char** paths);
+
 	struct Window
 	{
 		void *customCursorHandle;
@@ -34,6 +36,7 @@ namespace AstralCanvas
 
 		WindowOnTextInputFunction onTextInputFunc;
 		WindowOnKeyInteractedFunction onKeyInteractFunc;
+        WindowOnDropFunction onDropFunc;
 
 		bool isDisposed;
 

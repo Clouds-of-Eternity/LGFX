@@ -269,6 +269,14 @@ namespace AstralCanvas
         canvas->resolution.Y = height;
 		canvas->justResized = true;
 	}
+    void OnDrop(GLFWwindow* window, int count, const char** paths)
+    {
+		Window* astralWindow = (Window*)glfwGetWindowUserPointer(window);
+        if (astralWindow->onDropFunc)
+        {
+            astralWindow->onDropFunc(astralWindow, count, paths);
+        }
+    }
 
 	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight)
 	{
@@ -313,6 +321,7 @@ namespace AstralCanvas
 			glfwSetScrollCallback(handle, &OnMouseScrolled);
 			glfwSetCursorPosCallback(handle, &OnCursorMoved);
 			glfwGetWindowPos(handle, &result->position.Y, &result->position.Y);
+            glfwSetDropCallback(handle, &OnDrop);
 
 			//init swapchain here
 			//create swapchain
