@@ -54,6 +54,8 @@ namespace AstralCanvas
 		this->windowInputState = {};
 		this->onTextInputFunc = NULL;
 		this->onKeyInteractFunc = NULL;
+        this->onDropFunc = NULL;
+        this->onCloseFunc = NULL;
 		this->swapchain = NULL;
         this->mainCommandBuffer = NULL;
         this->isDisposed = false;
@@ -77,6 +79,12 @@ namespace AstralCanvas
 		glfwSetWindowShouldClose((GLFWwindow *)this->handle, GLFW_TRUE);
 		deinit();
 	}
+
+    void Window::InterceptClose()
+    {
+        glfwSetWindowShouldClose((GLFWwindow*)this->handle, GLFW_FALSE);
+    }
+
 	void Window::SetResolution(u32 width, u32 height)
 	{
 		glfwSetWindowSize((GLFWwindow *)handle, (u32)width, (u32)height);
@@ -269,12 +277,22 @@ namespace AstralCanvas
         canvas->resolution.Y = height;
 		canvas->justResized = true;
 	}
+
     void OnDrop(GLFWwindow* window, int count, const char** paths)
     {
 		Window* astralWindow = (Window*)glfwGetWindowUserPointer(window);
         if (astralWindow->onDropFunc)
         {
             astralWindow->onDropFunc(astralWindow, count, paths);
+        }
+    }
+
+    void OnWindowClose(GLFWwindow* window)
+    {
+        Window* astralWindow = (Window*)glfwGetWindowUserPointer(window);
+        if (astralWindow->onCloseFunc)
+        {
+            astralWindow->onCloseFunc(astralWindow);
         }
     }
 
@@ -322,6 +340,8 @@ namespace AstralCanvas
 			glfwSetCursorPosCallback(handle, &OnCursorMoved);
 			glfwGetWindowPos(handle, &result->position.Y, &result->position.Y);
             glfwSetDropCallback(handle, &OnDrop);
+            glfwSetWindowShouldClose(handle, 0);
+            glfwSetWindowCloseCallback(handle, &OnWindowClose);
 
 			//init swapchain here
 			//create swapchain

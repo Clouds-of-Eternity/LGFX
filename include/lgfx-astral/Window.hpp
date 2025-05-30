@@ -18,6 +18,7 @@ namespace AstralCanvas
 	def_delegate(WindowOnTextInputFunction, void, void *window, u32 characterUnicode);
 	def_delegate(WindowOnKeyInteractedFunction, void, void *window, AstralCanvas::Keys key, i32 action);
 	def_delegate(WindowOnDropFunction, void, void* window, int count, const char** paths);
+	def_delegate(WindowCloseFunction, void, void* window);
 
 	struct Window
 	{
@@ -37,6 +38,7 @@ namespace AstralCanvas
 		WindowOnTextInputFunction onTextInputFunc;
 		WindowOnKeyInteractedFunction onKeyInteractFunc;
         WindowOnDropFunction onDropFunc;
+        WindowCloseFunction onCloseFunc;
 
 		bool isDisposed;
 
@@ -53,6 +55,7 @@ namespace AstralCanvas
 		WindowMouseState GetMouseState();
 		void SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY);
 		void CloseWindow();
+        void InterceptClose();
 		i32 GetCurrentMonitorFramerate();
 
 		void SetResolution(u32 width, u32 height);
