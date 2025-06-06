@@ -208,6 +208,11 @@ namespace AstralCanvas
 				}
 				updateTimer = 0.0f;
 			}
+			else
+			{
+				glfwWaitEvents();
+				startTime = (float)glfwGetTime();
+			}
 			startTime = endTime;
 			endTime = (float)glfwGetTime();
 			if (this->shouldResetDeltaTimer)
