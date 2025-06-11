@@ -11,14 +11,18 @@ workspace "LGFX"
         trigger = "wayland",
         description = "Compile with wayland support"
     }
-
-    filter "action:gmake2"
-        toolset "gcc"
+    newoption {
+        trigger = "clang",
+        description = "Utilise the clang compiler toolchain"
+    }
+    
+    filter "options:clang"
+        toolset "clang"
         buildoptions { "-fpermissive", "-g", "-gcodeview" }
-        linkoptions { "-fuse-ld=lld", "-g"}
+        linkoptions { "-fuse-ld=lld", "-g" }
 
     filter "system:windows"
-        defines { "WINDOWS", "GLFW_EXPOSE_NATIVE_WIN32" }
+        defines { "WINDOWS" }
         system "windows"
         architecture "x86_64"
 

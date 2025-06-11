@@ -12,6 +12,7 @@ project "Astral.Canvas.LGFX"
         "../src",
         "../dependencies/glfw/include"
     }
+    defines "GLFW_EXPOSE_NATIVE_WIN32"
     links {"LGFX", "GLFW" }
 
     files {

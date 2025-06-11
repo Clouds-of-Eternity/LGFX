@@ -1,6 +1,13 @@
 #ifndef LGFX_GLFW_H
 #define LGFX_GLFW_H
 
+
+#ifdef WINDOWS
+#ifndef GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#endif
+#endif
+
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 

@@ -102,8 +102,8 @@ void Init()
     LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8 *)indices, sizeof(indices));
 
     //shader
-    string fileContents = io::ReadFile(GetCAllocator(), "Triangle.shaderobj", false);
-    if (AstralCanvas::CreateShaderFromString(device, GetCAllocator(), fileContents, &shader) != 0)
+    string fileContents = io::ReadFile(GetCAllocator(), "Triangle.func", false);
+    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &shader) != 0)
     {
         printf("Error loading shader json\n");
     }
@@ -122,6 +122,8 @@ void Init()
     stateCreateInfo.vertexDeclarations = &vertexDecl;
     stateCreateInfo.forRenderProgram = rp;
     stateCreateInfo.forRenderPass = 0;
+    stateCreateInfo.entryPoint1Name = "VertexFunction";
+    stateCreateInfo.entryPoint2Name = "FragmentFunction";
     shaderState = LGFXCreateShaderState(device, &stateCreateInfo);
 }
 void Deinit()

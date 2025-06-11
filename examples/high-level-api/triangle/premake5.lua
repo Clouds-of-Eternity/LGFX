@@ -17,7 +17,7 @@ project "AstralCanvasTriangle"
     }
 
     postbuildcommands { 
-        "{COPYFILE}	 \"Triangle.shaderobj\" \"bin/%{cfg.buildcfg}/Triangle.shaderobj\""
+        "{COPYFILE}	 \"Triangle.func\" \"bin/%{cfg.buildcfg}/Triangle.func\""
     }
 
     filter "system:windows"

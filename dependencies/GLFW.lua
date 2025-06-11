@@ -31,7 +31,7 @@ project "GLFW"
 
     filter "system:windows"
         systemversion "latest"
-        defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS", "GLFW_EXPOSE_NATIVE_WIN32" }
+        defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS" }
         files {
             "glfw/src/win32_module.c",
             "glfw/src/win32_init.c",
