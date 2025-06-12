@@ -1,6 +1,13 @@
 #ifndef LGFX_GLFW_H
 #define LGFX_GLFW_H
 
+
+#ifdef WINDOWS
+#ifndef GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#endif
+#endif
+
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 
@@ -8,9 +15,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-inline HWND LGFXGetNativeWindowHandle(GLFWwindow *window)
+static inline HWND LGFXGetNativeWindowHandle(GLFWwindow *window)
 {
     return glfwGetWin32Window(window);
+}
+static inline void *LGFXGetNativeWindowDisplay()
+{
+    return NULL;
 }
 
 #undef WIN32_LEAN_AND_MEAN
@@ -20,8 +31,28 @@ inline HWND LGFXGetNativeWindowHandle(GLFWwindow *window)
 #error TODO
 #endif
 
-#ifdef LINUX
-#error TODO
+#ifdef X11
+inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
+{
+    Window handle = glfwGetX11Window(window);
+    return (void *)handle;
+}
+static inline void *LGFXGetNativeWindowDisplay()
+{
+    Display *display = glfwGetX11Display();
+    return (void *)display;
+}
+#elif defined(WAYLAND)
+inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
+{
+    wl_surface *handle = glfwGetWaylandWindow(window);
+    return (void *)handle;
+}
+static inline void *LGFXGetNativeWindowDisplay()
+{
+    wl_display *display = glfwGetWaylandDisplay();
+    return (void *)display;
+}
 #endif
 
 #endif

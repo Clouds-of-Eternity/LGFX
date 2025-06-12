@@ -21,6 +21,50 @@
             "cStandard": "c17",
             "cppStandard": "c++17",
             "windowsSdkVersion": "10.0.19041.0"
+        },
+        {
+            "name": "Linux (X11)",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/dependencies/glfw/include",
+                "${workspaceFolder}/dependencies/volk",
+                "${workspaceFolder}/Astral.Core/Astral.Core",
+                "/usr/include/vulkan"
+            ],
+            "defines": [
+                "LINUX",
+                "X11",
+                "POSIX",
+                "DEBUG",
+                "ASTRALCANVAS_VULKAN",
+                "_GLFW_X11",
+                "GLFW_EXPOSE_NATIVE_X11"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Linux (Wayland)",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/dependencies/glfw/include",
+                "${workspaceFolder}/dependencies/volk",
+                "${workspaceFolder}/Astral.Core/Astral.Core",
+                "/usr/include/vulkan"
+            ],
+            "defines": [
+                "LINUX",
+                "WAYLAND",
+                "POSIX",
+                "DEBUG",
+                "ASTRALCANVAS_VULKAN",
+                "_GLFW_WAYLAND",
+                "GLFW_EXPOSE_NATIVE_WAYLAND"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17"
         }
     ],
     "version": 4

@@ -17,6 +17,9 @@ namespace AstralCanvas
 
 	def_delegate(WindowOnTextInputFunction, void, void *window, u32 characterUnicode);
 	def_delegate(WindowOnKeyInteractedFunction, void, void *window, AstralCanvas::Keys key, i32 action);
+	def_delegate(WindowOnDropFunction, void, void* window, int count, const char** paths);
+	def_delegate(WindowCloseFunction, void, void* window);
+
 	struct Window
 	{
 		void *customCursorHandle;
@@ -29,10 +32,13 @@ namespace AstralCanvas
 		InputState windowInputState;
 		string windowTitle;
 		bool isFullscreen;
-		bool *justResized;
+		bool isMaximized;
+		bool justResized;
 
 		WindowOnTextInputFunction onTextInputFunc;
 		WindowOnKeyInteractedFunction onKeyInteractFunc;
+        WindowOnDropFunction onDropFunc;
+        WindowCloseFunction onCloseFunc;
 
 		bool isDisposed;
 
@@ -43,17 +49,20 @@ namespace AstralCanvas
 			return Maths::Rectangle(0, 0, resolution.X, resolution.Y);
 		}
 		void SetWindowTitle(string title);
+		void SetMaximized(bool value);
 		void SetFullscreen(bool value);
 		void SetMouseState(WindowMouseState state);
 		WindowMouseState GetMouseState();
 		void SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY);
 		void CloseWindow();
+        void InterceptClose();
 		i32 GetCurrentMonitorFramerate();
 
 		void SetResolution(u32 width, u32 height);
 		void SetPosition(float posX, float posY);
 		void SetMousePosition(float X, float Y);
+		Maths::Vec2 GetOSContentScale();
 	};
 
-	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, void *iconData, u32 iconWidth, u32 iconHeight);
+	bool WindowInit(IAllocator allocator, const char *name, Window *result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight);
 }

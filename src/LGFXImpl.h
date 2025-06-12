@@ -2,7 +2,7 @@
 #define LGFXINSTANCE_H
 
 #include "lgfx/lgfx.h"
-#include "sync.h"
+#include "lgfx/sync.h"
 
 typedef struct LGFXInstanceImpl
 {
@@ -12,6 +12,15 @@ typedef struct LGFXInstanceImpl
     const char **enabledErrorCheckerExtensions;
     LGFXBackendType backend;
 } LGFXInstanceImpl;
+
+typedef struct LGFXFencePool
+{
+	LGFXFence fences[LGFX_FENCE_POOL_SIZE];
+    u32 numFences;
+} LGFXFencePool;
+
+LGFXFence LGFXFencePool_Rent(LGFXFencePool *pool, LGFXDevice device, bool initiallySignalled);
+void LGFXFencePool_Return(LGFXFencePool *pool, LGFXFence fence);
 
 typedef struct LGFXDeviceImpl
 {
@@ -25,6 +34,7 @@ typedef struct LGFXDeviceImpl
     LGFXCommandQueue graphicsQueue;
     LGFXCommandQueue computeQueue;
     LGFXCommandQueue transferQueue;
+    LGFXFencePool fencePool;
 
     LGFXBackendType backend;
 } LGFXDeviceImpl;

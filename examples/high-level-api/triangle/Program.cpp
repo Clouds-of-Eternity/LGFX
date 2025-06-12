@@ -29,7 +29,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
     LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
 
-    LGFXEndRenderProgram(window->mainCommandBuffer);
+    LGFXEndRenderProgram(rp, window->mainCommandBuffer);
 }
 void PostEndDraw(float deltaTime)
 {
@@ -43,7 +43,8 @@ void Init()
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
-    attachments.readByRenderTarget = false;
+    attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
+    attachments.samples = 1;
 
     i32 firstAttachment = 0;
 
@@ -53,12 +54,15 @@ void Init()
     passes.depthAttachmentID = -1;
     passes.readAttachmentIDs = NULL;
     passes.readAttachmentsCount = 0;
+    passes.resolveAttachmentID = -1;
 
     LGFXRenderProgramCreateInfo rpCreateInfo;
     rpCreateInfo.attachmentsCount = 1;
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
+    rpCreateInfo.outputToBackbuffer = true;
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0].swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //vertex buffer
@@ -98,8 +102,8 @@ void Init()
     LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8 *)indices, sizeof(indices));
 
     //shader
-    string fileContents = io::ReadFile(GetCAllocator(), "Triangle.shaderobj", false);
-    if (AstralCanvas::CreateShaderFromString(device, GetCAllocator(), fileContents, &shader) != 0)
+    string fileContents = io::ReadFile(GetCAllocator(), "Triangle.func", false);
+    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &shader) != 0)
     {
         printf("Error loading shader json\n");
     }
@@ -118,6 +122,8 @@ void Init()
     stateCreateInfo.vertexDeclarations = &vertexDecl;
     stateCreateInfo.forRenderProgram = rp;
     stateCreateInfo.forRenderPass = 0;
+    stateCreateInfo.entryPoint1Name = "VertexFunction";
+    stateCreateInfo.entryPoint2Name = "FragmentFunction";
     shaderState = LGFXCreateShaderState(device, &stateCreateInfo);
 }
 void Deinit()
@@ -129,14 +135,19 @@ void Deinit()
     LGFXDestroyRenderProgram(rp);
 }
 
+void FixedUpdate(float deltaTime)
+{
+
+}
+
 i32 main()
 {
     AstralCanvas::ApplicationInit(
         GetCAllocator(),
         string(GetCAllocator(), "Triangle"), 
         string(GetCAllocator(), "Astral.Canvas"),
-        0, 0, 0.0f);
+        0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480);
-    AstralCanvas::applicationInstance.Run(&Update, &Draw, &PostEndDraw, &Init, &Deinit);
+    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0);
+    AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

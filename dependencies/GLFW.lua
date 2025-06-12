@@ -31,7 +31,7 @@ project "GLFW"
 
     filter "system:windows"
         systemversion "latest"
-        defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS", "GLFW_EXPOSE_NATIVE_WIN32" }
+        defines { "_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS" }
         files {
             "glfw/src/win32_module.c",
             "glfw/src/win32_init.c",
@@ -56,22 +56,34 @@ project "GLFW"
             "glfw/src/cocoa_time.c",
             "glfw/src/nsgl_context.m",
             "glfw/src/posix_thread.c",
+            "glfw/src/posix_poll.c",
             "glfw/src/osmesa_context.c",
             "glfw/src/egl_context.c"
         }
 
     filter "system:linux"
-        defines { "_GLFW_X11" }
         files {
             "glfw/src/posix_module.c",
-            "glfw/src/x11_init.c",
-            "glfw/src/x11_monitor.c",
-            "glfw/src/x11_window.c",
-            "glfw/src/xkb_unicode.c",
             "glfw/src/posix_time.c",
             "glfw/src/posix_thread.c",
+            "glfw/src/posix_poll.c",
             "glfw/src/glx_context.c",
             "glfw/src/egl_context.c",
             "glfw/src/osmesa_context.c",
             "glfw/src/linux_joystick.c"
         }
+        filter "options:x11"
+            defines { "_GLFW_X11" }
+            files {
+                "glfw/src/x11_init.c",
+                "glfw/src/x11_monitor.c",
+                "glfw/src/x11_window.c",
+                "glfw/src/xkb_unicode.c"
+            }
+        filter "options:wayland"
+            defines { "_GLFW_WAYLAND" }
+            files {
+                "glfw/src/wl_init.c",
+                "glfw/src/wl_monitor.c",
+                "glfw/src/wl_window.c"
+            }

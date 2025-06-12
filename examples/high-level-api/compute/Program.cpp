@@ -97,7 +97,8 @@ void Init()
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
-    attachments.readByRenderTarget = false;
+    attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
+    attachments.samples = 1;
 
     i32 firstAttachment = 0;
 
@@ -107,6 +108,7 @@ void Init()
     passes.depthAttachmentID = -1;
     passes.readAttachmentIDs = NULL;
     passes.readAttachmentsCount = 0;
+    passes.resolveAttachmentID = -1;
 
     LGFXRenderProgramCreateInfo rpCreateInfo;
     rpCreateInfo.attachmentsCount = 1;
@@ -114,6 +116,7 @@ void Init()
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
     rpCreateInfo.outputToBackbuffer = true;
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0].swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //compute buffer
@@ -194,9 +197,10 @@ void Deinit()
     LGFXDestroyBuffer(outputBuffer);
     LGFXDestroyRenderProgram(rp);
 }
+
 void FixedUpdate(float deltaTime)
 {
-    
+
 }
 
 i32 main()
@@ -205,8 +209,8 @@ i32 main()
         GetCAllocator(),
         string(GetCAllocator(), "Compute"), 
         string(GetCAllocator(), "Astral.Canvas"),
-        0, 0, 0.0f);
+        0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080);
+    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0);
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

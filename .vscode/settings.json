@@ -72,6 +72,16 @@
         "limits": "c",
         "system_error": "c",
         "xlocmon": "c",
-        "xloctime": "c"
+        "xloctime": "c",
+        "pthread.h": "c",
+        "vk_mem_alloc.h": "c",
+        "lgfx.h": "c",
+        "volk.h": "c",
+        "glfw3native.h": "c",
+        "memory.h": "c",
+        "logging.h": "c",
+        "vulkan.h": "c",
+        "text_encoding": "c",
+        "typeinfo": "c"
     }
 }

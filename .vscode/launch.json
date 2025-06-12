@@ -1,13 +1,113 @@
 {
     "configurations": [
         {
+            "name": "Run Low-Level Triangle Example (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Run High-Level Triangle Example (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Run High-Level Compute Example (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Run High-Level Compute Example (Release, Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "Run Low-Level Triangle Example",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug",
+            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -18,7 +118,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug",
+            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -29,7 +129,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug",
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
@@ -40,29 +140,7 @@
             "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release",
-            "environment": [],
-            "console": "externalTerminal"
-        },
-        {
-            "name": "Run High-Level SDFs Example",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Debug/AstralCanvasSDFs.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Debug",
-            "environment": [],
-            "console": "externalTerminal"
-        },
-        {
-            "name": "Run High-Level SDFs Example (Release)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Release/AstralCanvasSDFs.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/SDFs/bin/Release",
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
             "environment": [],
             "console": "externalTerminal"
         }

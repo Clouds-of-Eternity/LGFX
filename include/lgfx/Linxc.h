@@ -1,14 +1,16 @@
 #ifndef LINXC_H
 #define LINXC_H
 
+#include <stddef.h>
+
 #ifndef NULL
 #define NULL 0
 #endif
 
-#define trait struct
 #define def_delegate(name, returns, ...) typedef returns (*name)(__VA_ARGS__)
-#define impl(name)
-#define IsAttribute
+#define BeginExports()
+#define EndExport()
+#define suppressGC
 
 #ifdef __cplusplus
 #define exportC extern "C"
@@ -38,8 +40,9 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
-typedef unsigned long long usize;
+typedef size_t usize;
 
 typedef const char *text;
+typedef const char *u8text;
 
 #endif

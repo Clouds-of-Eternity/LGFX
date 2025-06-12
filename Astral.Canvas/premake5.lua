@@ -1,7 +1,9 @@
 project "Astral.Canvas.LGFX"
     kind "StaticLib"
     language "C++"
-    cppdialect "C++11"
+    rtti "Off"
+    cppdialect "C++14"
+    exceptionhandling "Off"
     staticruntime "Off"
     targetdir "bin/%{cfg.buildcfg}"
     includedirs {
@@ -10,6 +12,7 @@ project "Astral.Canvas.LGFX"
         "../src",
         "../dependencies/glfw/include"
     }
+    defines "GLFW_EXPOSE_NATIVE_WIN32"
     links {"LGFX", "GLFW" }
 
     files {

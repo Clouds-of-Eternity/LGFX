@@ -31,6 +31,7 @@ void WindowFramebufferResized(GLFWwindow *window, i32 width, i32 height)
 
 i32 main()
 {
+    glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
     glfwInit();
 
     //create window
@@ -46,7 +47,9 @@ i32 main()
     instanceCreateInfo.appVersion = 0;
     instanceCreateInfo.engineName = "None";
     instanceCreateInfo.engineVersion = 0;
+    #ifdef DEBUG
     instanceCreateInfo.runtimeErrorChecking = true;
+    #endif
     instanceCreateInfo.backend = LGFXBackendType_Vulkan;
     instanceCreateInfo.enabledExtensionsCount = extensionsCount;
     instanceCreateInfo.enabledExtensions = extensions;
@@ -67,6 +70,7 @@ i32 main()
     swapchainCreateInfo.width = (u32)w;
     swapchainCreateInfo.height = (u32)h;
     swapchainCreateInfo.nativeWindowHandle = LGFXGetNativeWindowHandle(window);
+    swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay();
 
     swapchain = LGFXCreateSwapchain(device, &swapchainCreateInfo);
 
@@ -112,7 +116,8 @@ i32 main()
     LGFXRenderAttachmentInfo attachments;
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
-    attachments.readByRenderTarget = false;
+    attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
+    attachments.samples = 1;
 
     i32 firstAttachment = 0;
 
@@ -122,12 +127,15 @@ i32 main()
     passes.depthAttachmentID = -1;
     passes.readAttachmentIDs = NULL;
     passes.readAttachmentsCount = 0;
+    passes.resolveAttachmentID = -1;
 
     LGFXRenderProgramCreateInfo rpCreateInfo;
     rpCreateInfo.attachmentsCount = 1;
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
+    rpCreateInfo.outputToBackbuffer = true;
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //shadah
@@ -181,7 +189,7 @@ i32 main()
 
             LGFXDrawIndexed(mainCommands, 3, 1, 0, 0, 0);
 
-            LGFXEndRenderProgram(mainCommands);
+            LGFXEndRenderProgram(rp, mainCommands);
 
             LGFXCommandBufferEndSwapchain(mainCommands, swapchain);
             LGFXSubmitFrame(device, swapchain);

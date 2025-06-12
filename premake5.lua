@@ -3,14 +3,37 @@ VULKAN_SDK = os.getenv("VULKAN_SDK")
 workspace "LGFX"
     configurations { "Debug", "Release" }
 
+    newoption {
+        trigger = "x11",
+        description = "Compile with xlib support"
+    }
+    newoption {
+        trigger = "wayland",
+        description = "Compile with wayland support"
+    }
+    newoption {
+        trigger = "clang",
+        description = "Utilise the clang compiler toolchain"
+    }
+    
+    filter "options:clang"
+        toolset "clang"
+        buildoptions { "-fpermissive", "-g", "-gcodeview" }
+        linkoptions { "-fuse-ld=lld", "-g" }
+
     filter "system:windows"
-        defines { "WINDOWS", "GLFW_EXPOSE_NATIVE_WIN32" }
+        defines { "WINDOWS" }
         system "windows"
         architecture "x86_64"
 
     filter "system:linux"
-        defines { "LINUX", "POSIX", "GLFW_EXPOSE_NATIVE_X11" }
+        defines { "LINUX", "POSIX" }
         system "linux"
+        architecture "x86_64"
+        filter "options:x11"
+            defines {"X11", "GLFW_EXPOSE_NATIVE_X11"}
+        filter "options:wayland"
+            defines {"WAYLAND", "GLFW_EXPOSE_NATIVE_WAYLAND"}
 
     filter "system:macosx"
         defines { "MACOS", "POSIX", "GLFW_EXPOSE_NATIVE_COCOA" }
