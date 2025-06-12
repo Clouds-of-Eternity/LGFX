@@ -44,6 +44,8 @@ workspace "LGFX"
     include("src")
 
     include("Astral.Canvas")
+    
+    include("ShaderCompiler")
 
     include("examples/low-level-api/triangle")
 
