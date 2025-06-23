@@ -1053,9 +1053,13 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	sync2.pNext = NULL;
 	sync2.synchronization2 = VK_TRUE;
 
+	VkPhysicalDeviceVulkan11Features device11EnabledFeatures = {0};
+	device11EnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	device11EnabledFeatures.shaderDrawParameters = true;
+	device11EnabledFeatures.pNext = &sync2;
+
 	VkPhysicalDeviceFeatures2 deviceEnabledFeatures = {0};
 	deviceEnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	deviceEnabledFeatures.pNext = &sync2;
 	//no easier way to do this... oh well
 	deviceEnabledFeatures.features.fillModeNonSolid = true;
 	deviceEnabledFeatures.features.multiDrawIndirect = info->requiredFeatures.multiDrawIndirect;
@@ -1075,6 +1079,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	deviceEnabledFeatures.features.shaderSampledImageArrayDynamicIndexing = info->requiredFeatures.bindlessSamplerAndTextureArrays;
 	deviceEnabledFeatures.features.shaderStorageBufferArrayDynamicIndexing = info->requiredFeatures.bindlessStorageBufferArrays;
 	deviceEnabledFeatures.features.shaderStorageImageArrayDynamicIndexing = info->requiredFeatures.bindlessStorageTextureArrays;
+	deviceEnabledFeatures.pNext = &device11EnabledFeatures;
 
 	VkDeviceCreateInfo logicalDeviceInfo = {0};
 	logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
