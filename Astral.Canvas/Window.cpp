@@ -367,6 +367,10 @@ namespace AstralCanvas
 
 	void Window::SetWindowTitle(string title)
 	{
+		if (handle == NULL)
+		{
+			return;
+		}
 		glfwSetWindowTitle((GLFWwindow*)handle, title.buffer);
 		windowTitle = title;
 	}
