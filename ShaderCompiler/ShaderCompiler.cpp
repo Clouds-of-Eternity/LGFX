@@ -50,6 +50,7 @@ ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirector
 
     desc.targetCount = 1;
     desc.targets = &targetDesc;
+    desc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
 
     slang::ISession *session;
     auto createSessionResult = globalSession->createSession(desc, &session);
