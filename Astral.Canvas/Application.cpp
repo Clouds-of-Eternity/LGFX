@@ -86,10 +86,10 @@ namespace AstralCanvas
 			applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
 		}
 	}
-	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight)
+	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
 		Window result;
-		if (WindowInit(this->allocator, name, &result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight))
+		if (WindowInit(this->allocator, name, &result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
 		{
 			if (framesPerSecond <= -1.0f)
 			{

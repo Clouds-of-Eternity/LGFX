@@ -296,7 +296,7 @@ namespace AstralCanvas
         }
     }
 
-	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight)
+	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
 		*result = {};
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -347,7 +347,7 @@ namespace AstralCanvas
 			//create swapchain
 			LGFXSwapchainCreateInfo swapchainCreateInfo = {0};
 			swapchainCreateInfo.oldSwapchain = NULL;
-			swapchainCreateInfo.presentationMode = LGFXSwapchainPresentationMode_Fifo;
+			swapchainCreateInfo.presentationMode = presentMode;
 			int w;
 			int h;
 			glfwGetFramebufferSize(handle, &w, &h);
