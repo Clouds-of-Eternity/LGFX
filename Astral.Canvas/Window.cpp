@@ -160,7 +160,7 @@ namespace AstralCanvas
 		{
 			Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 			canvas->windowInputState.ClearAllInputStates();
-			canvas->isMaximized = false;
+			//canvas->isMaximized = false;
 		}
 	}
 	/// Called when the window is maximized or restored to original size
@@ -168,7 +168,7 @@ namespace AstralCanvas
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		glfwGetWindowSize(window, &canvas->resolution.X, &canvas->resolution.Y);
-		canvas->isMaximized = (bool)maximized;
+		canvas->isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
 	}
 	void OnTextInput(GLFWwindow* window, u32 characterUnicode)
 	{
