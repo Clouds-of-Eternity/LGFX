@@ -72,13 +72,13 @@ void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer command
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info);
-LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatch(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate);
+LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatchFromTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate);
 void VkLGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy);
 
 LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void VkLGFXDestroyFunction(LGFXFunction func);
-LGFXFunctionVariableBatch VkLGFXFunctionGetVariableBatch(LGFXFunction function);
-LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
+LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatch(LGFXFunction function);
+LGFXFunctionVariable VkLGFXCreateFunctionVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
 LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info);
 void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *shaderVariables, u32 shaderVariableCount);
 void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, u32 setIndex);

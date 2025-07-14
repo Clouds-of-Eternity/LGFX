@@ -177,14 +177,14 @@ namespace AstralCanvas
 
             if (forceAddNewDescriptor || this->descriptorForThisDrawCall >= this->variableBatches.count)
             {
-                LGFXFunctionVariable newVarSlot = LGFXFunctionGetVariableSlot(this->gpuFunction, this->uniforms[i].resource.binding);
+                LGFXFunctionVariable newVarSlot = LGFXCreateFunctionVariableSlot(this->gpuFunction, this->uniforms[i].resource.binding);
                 this->uniforms.ptr[i].states.Add(newVarSlot);
                 added = true;
             }
         }
         if (added)
         {
-            LGFXFunctionVariableBatch batch = LGFXFunctionGetVariableBatch(this->gpuFunction);
+            LGFXFunctionVariableBatch batch = LGFXCreateFunctionVariableBatch(this->gpuFunction);
             this->variableBatches.Add(batch);
         }
     }

@@ -536,11 +536,11 @@ LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDe
     LGFX_ERROR("LGFXCreateFunctionVariableBatchTemplate: Unknown backend\n");
     return NULL;
 }
-LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate)
+LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatchFromTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
-        return VkLGFXCreateFunctionVariableBatch(device, fromTemplate);
+        return VkLGFXCreateFunctionVariableBatchFromTemplate(device, fromTemplate);
     }
     LGFX_ERROR("LGFXCreateFunctionVariableBatch: Unknown backend\n");
     return NULL;
@@ -573,11 +573,11 @@ void LGFXDestroyFunction(LGFXFunction func)
     }
     LGFX_ERROR("LGFXDestroyFunction: Unknown backend\n");
 }
-LGFXFunctionVariableBatch LGFXFunctionGetVariableBatch(LGFXFunction function)
+LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXFunction function)
 {
     if (function->device->backend == LGFXBackendType_Vulkan)
     {
-        return VkLGFXFunctionGetVariableBatch(function);
+        return VkLGFXCreateFunctionVariableBatch(function);
     }
     LGFX_ERROR("LGFXFunctionGetVariableBatch: Unknown backend\n");
     return NULL;
@@ -588,17 +588,17 @@ LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderRes
     {
         return VkLGFXCreateFunctionVariable(device, info);
     }
-    LGFX_ERROR("LGFXFunctionGetVariableSlot: Unknown backend\n");
+    LGFX_ERROR("LGFXCreateFunctionVariable: Unknown backend\n");
     LGFXFunctionVariable empty = {0};
     return empty;
 }
-LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
+LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
 {
     if (function->device->backend == LGFXBackendType_Vulkan)
     {
-        return VkLGFXFunctionGetVariableSlot(function, forVariableOfIndex);
+        return VkLGFXCreateFunctionVariableSlot(function, forVariableOfIndex);
     }
-    LGFX_ERROR("LGFXFunctionGetVariableSlot: Unknown backend\n");
+    LGFX_ERROR("LGFXFunctionCreateVariableSlot: Unknown backend\n");
     LGFXFunctionVariable empty = {0};
     return empty;
 }

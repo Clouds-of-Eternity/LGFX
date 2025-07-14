@@ -2580,13 +2580,13 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 	}
 	return (LGFXFunctionVariableBatchTemplate)descriptorLayout;
 }
-LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatch(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate)
+LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatchFromTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate template)
 {
 	VkDescriptorSetAllocateInfo allocInfo = {0};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.descriptorPool = (VkDescriptorPool)device->descriptorPool;
-	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&fromTemplate;
+	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&template;
 
 	VkDescriptorSet set;
 	i32 errorCode = vkAllocateDescriptorSets((VkDevice)device->logicalDevice, &allocInfo, &set);
@@ -2688,24 +2688,9 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *inf
 
 	return result;
 }
-LGFXFunctionVariableBatch VkLGFXFunctionGetVariableBatch(LGFXFunction function)
+LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatch(LGFXFunction function)
 {
-	return VkLGFXCreateFunctionVariableBatch(function->device, function->functionVariablesLayout);
-	/*VkDescriptorSetAllocateInfo allocInfo = {0};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.descriptorPool = (VkDescriptorPool)function->device->descriptorPool;
-	allocInfo.pSetLayouts = (VkDescriptorSetLayout*)&function->functionVariablesLayout;
-
-	VkDescriptorSet set;
-	i32 errorCode = vkAllocateDescriptorSets((VkDevice)function->device->logicalDevice, &allocInfo, &set);
-	if (errorCode != VK_SUCCESS)
-	{
-		LGFX_ERROR("Failed to allocate descriptor set, error code %i\n", errorCode);
-		return NULL;
-	}
-
-	return (LGFXFunctionVariableBatch)set;*/
+	return VkLGFXCreateFunctionVariableBatchFromTemplate(function->device, function->functionVariablesLayout);
 }
 LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info)
 {
@@ -2758,7 +2743,7 @@ LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderR
 	}
 	return variable;
 }
-LGFXFunctionVariable VkLGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
+LGFXFunctionVariable VkLGFXCreateFunctionVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
 {
 	LGFXShaderResource *resource = &function->uniforms[forVariableOfIndex];
 	return VkLGFXCreateFunctionVariable(function->device, resource);
