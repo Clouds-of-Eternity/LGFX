@@ -1806,6 +1806,60 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
 	}
 }
+void VkLGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, LGFXPoint3 extents, LGFXPoint3 offset, u32 toMip)
+{
+	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
+	LGFXTextureLayout originalLayout = LGFXTextureLayout_Undefined;
+	if (commandBuffer == NULL)
+	{
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
+		if (to->layout != LGFXTextureLayout_TransferDstOptimal)
+		{
+			originalLayout = to->layout;
+			VkLGFXTextureTransitionLayout(device, to, LGFXTextureLayout_TransferDstOptimal, transientCmdBuffer, toMip, 1);
+		}
+	}
+
+	VkBufferImageCopy bufferImageCopy = {0};
+    
+    bufferImageCopy.bufferOffset = 0;
+    //only set values other than 0 if the image buffer is not tightly packed
+    bufferImageCopy.bufferRowLength = 0;
+    bufferImageCopy.bufferImageHeight = 0;
+
+	VkImageAspectFlags imageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+	if (to->format == LGFXTextureFormat_Depth16Unorm || to->format == LGFXTextureFormat_Depth32Float)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else if (to->format > LGFXTextureFormat_Depth16Unorm)
+	{
+		imageAspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	}
+
+    bufferImageCopy.imageSubresource.aspectMask = imageAspect;
+    bufferImageCopy.imageSubresource.mipLevel = toMip;
+    bufferImageCopy.imageSubresource.baseArrayLayer = 0;
+    bufferImageCopy.imageSubresource.layerCount = 1;
+
+	bufferImageCopy.imageOffset.x = offset.X;
+	bufferImageCopy.imageOffset.y = offset.Y;
+	bufferImageCopy.imageOffset.z = offset.Z;
+    bufferImageCopy.imageExtent.width = extents.X;
+    bufferImageCopy.imageExtent.height = extents.Y;
+    bufferImageCopy.imageExtent.depth = extents.Z;
+
+    vkCmdCopyBufferToImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkBuffer)from->handle, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
+
+	if (commandBuffer == NULL)
+	{
+		if (originalLayout != LGFXTextureLayout_Undefined)
+		{
+			VkLGFXTextureTransitionLayout(device, to, originalLayout, transientCmdBuffer, toMip, 1);
+		}
+		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
+	}
+}
 void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip)
 {
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
