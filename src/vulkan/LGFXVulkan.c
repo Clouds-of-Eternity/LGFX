@@ -1812,7 +1812,7 @@ void VkLGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer c
 	LGFXTextureLayout originalLayout = LGFXTextureLayout_Undefined;
 	if (commandBuffer == NULL)
 	{
-		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, to->layout != LGFXTextureLayout_TransferDstOptimal ? device->graphicsQueue : device->transferQueue, true);
 		if (to->layout != LGFXTextureLayout_TransferDstOptimal)
 		{
 			originalLayout = to->layout;
