@@ -7,3 +7,4 @@
 [submodule "Astral.Core"]
     path = Astral.Core
     url = https://github.com/Linx145/Astral.Core.git
+    branch = eternity-works
