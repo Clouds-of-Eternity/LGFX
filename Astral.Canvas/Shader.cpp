@@ -215,7 +215,7 @@ namespace AstralCanvas
         u32 maxBinding = 0;
         for (usize i = 0; i < variables->arrayElements.length; i++)
         {
-            Json::JsonElement *elem = &variables->arrayElements.data[i];
+            Json::JsonElement *elem = &variables->arrayElements.data[i].value;
             u32 set = elem->GetProperty("set")->GetUint32();
 
             u32 binding = elem->GetProperty("binding")->GetUint32();
@@ -292,10 +292,10 @@ namespace AstralCanvas
         {
             for (usize i = 0; i < uniforms->arrayElements.length; i++)
             {
-                string name = uniforms->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
-                u32 stride = uniforms->arrayElements.data[i].GetProperty("stride")->GetUint32();
-                u32 set = uniforms->arrayElements.data[i].GetProperty("set")->GetUint32();
-                u32 binding = uniforms->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                string name = uniforms->arrayElements.data[i].value.GetProperty("name")->GetString(results->allocator);
+                u32 stride = uniforms->arrayElements.data[i].value.GetProperty("stride")->GetUint32();
+                u32 set = uniforms->arrayElements.data[i].value.GetProperty("set")->GetUint32();
+                u32 binding = uniforms->arrayElements.data[i].value.GetProperty("binding")->GetUint32();
 
                 if ((i32)binding > length)
                 {
@@ -332,10 +332,10 @@ namespace AstralCanvas
         {
             for (usize i = 0; i < textures->arrayElements.length; i++)
             {
-                string name = textures->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
-                u32 arrayLength = textures->arrayElements.data[i].GetProperty("arrayLength")->GetUint32();
-                u32 set = textures->arrayElements.data[i].GetProperty("set")->GetUint32();
-                u32 binding = textures->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                string name = textures->arrayElements.data[i].value.GetProperty("name")->GetString(results->allocator);
+                u32 arrayLength = textures->arrayElements.data[i].value.GetProperty("arrayLength")->GetUint32();
+                u32 set = textures->arrayElements.data[i].value.GetProperty("set")->GetUint32();
+                u32 binding = textures->arrayElements.data[i].value.GetProperty("binding")->GetUint32();
                 
                 if ((i32)binding > length)
                 {
@@ -371,10 +371,10 @@ namespace AstralCanvas
         {
             for (usize i = 0; i < samplers->arrayElements.length; i++)
             {
-                string name = samplers->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
-                u32 arrayLength = samplers->arrayElements.data[i].GetProperty("arrayLength")->GetUint32();
-                u32 set = samplers->arrayElements.data[i].GetProperty("set")->GetUint32();
-                u32 binding = samplers->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                string name = samplers->arrayElements.data[i].value.GetProperty("name")->GetString(results->allocator);
+                u32 arrayLength = samplers->arrayElements.data[i].value.GetProperty("arrayLength")->GetUint32();
+                u32 set = samplers->arrayElements.data[i].value.GetProperty("set")->GetUint32();
+                u32 binding = samplers->arrayElements.data[i].value.GetProperty("binding")->GetUint32();
 
                 if ((i32)binding > length)
                 {
@@ -409,10 +409,10 @@ namespace AstralCanvas
         {
             for (usize i = 0; i < inputAttachments->arrayElements.length; i++)
             {
-                string name = inputAttachments->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
-                u32 index = inputAttachments->arrayElements.data[i].GetProperty("index")->GetUint32();
-                u32 set = inputAttachments->arrayElements.data[i].GetProperty("set")->GetUint32();
-                u32 binding = inputAttachments->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                string name = inputAttachments->arrayElements.data[i].value.GetProperty("name")->GetString(results->allocator);
+                u32 index = inputAttachments->arrayElements.data[i].value.GetProperty("index")->GetUint32();
+                u32 set = inputAttachments->arrayElements.data[i].value.GetProperty("set")->GetUint32();
+                u32 binding = inputAttachments->arrayElements.data[i].value.GetProperty("binding")->GetUint32();
 
                 if ((i32)binding > length)
                 {
@@ -448,9 +448,9 @@ namespace AstralCanvas
         {
             for (usize i = 0; i < storageBuffers->arrayElements.length; i++)
             {
-                string name = storageBuffers->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
-                u32 set = storageBuffers->arrayElements.data[i].GetProperty("set")->GetUint32();
-                u32 binding = storageBuffers->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                string name = storageBuffers->arrayElements.data[i].value.GetProperty("name")->GetString(results->allocator);
+                u32 set = storageBuffers->arrayElements.data[i].value.GetProperty("set")->GetUint32();
+                u32 binding = storageBuffers->arrayElements.data[i].value.GetProperty("binding")->GetUint32();
 
                 if ((i32)binding > length)
                 {
@@ -485,9 +485,9 @@ namespace AstralCanvas
         {
             for (usize i = 0; i < storageTextures->arrayElements.length; i++)
             {
-                string name = storageTextures->arrayElements.data[i].GetProperty("name")->GetString(results->allocator);
-                u32 set = storageTextures->arrayElements.data[i].GetProperty("set")->GetUint32();
-                u32 binding = storageTextures->arrayElements.data[i].GetProperty("binding")->GetUint32();
+                string name = storageTextures->arrayElements.data[i].value.GetProperty("name")->GetString(results->allocator);
+                u32 set = storageTextures->arrayElements.data[i].value.GetProperty("set")->GetUint32();
+                u32 binding = storageTextures->arrayElements.data[i].value.GetProperty("binding")->GetUint32();
 
                 if ((i32)binding > length)
                 {
@@ -578,7 +578,7 @@ namespace AstralCanvas
             collections::Array<u32> spirvData = collections::Array<u32>(localArena.AsAllocator(), spvElem->arrayElements.length);
             for (usize i = 0; i < spvElem->arrayElements.length; i++)
             {
-                spirvData.data[i] = spvElem->arrayElements.data[i].GetUint32();
+                spirvData.data[i] = spvElem->arrayElements.data[i].value.GetUint32();
             }
             info.module1Data = spirvData.data;
             info.module1DataLength = spirvData.length;
@@ -599,12 +599,12 @@ namespace AstralCanvas
                 collections::Array<u32> vertData = collections::Array<u32>(localArena.AsAllocator(), vertElem->arrayElements.length);
                 for (usize i = 0; i < vertElem->arrayElements.length; i++)
                 {
-                    vertData.data[i] = vertElem->arrayElements.data[i].GetUint32();
+                    vertData.data[i] = vertElem->arrayElements.data[i].value.GetUint32();
                 }
                 collections::Array<u32> fragData = collections::Array<u32>(localArena.AsAllocator(), fragElem->arrayElements.length);
                 for (usize i = 0; i < fragElem->arrayElements.length; i++)
                 {
-                    fragData.data[i] = fragElem->arrayElements.data[i].GetUint32();
+                    fragData.data[i] = fragElem->arrayElements.data[i].value.GetUint32();
                 }
 
                 info.module1Data = vertData.data;
@@ -648,9 +648,21 @@ namespace AstralCanvas
         Json::JsonElement *materialsElement = root.GetProperty("materials");
         if (materialsElement != NULL)
         {
-            result->usedMaterials = collections::Array<ShaderMaterialExport>(result->allocator, materialsElement->childObjects.count);
-            u32 materialIndex = 0;
-            for (usize i = 0; i < materialsElement->childObjects.bucketsCount; i++)
+            result->usedMaterials = collections::Array<ShaderMaterialExport>(result->allocator, materialsElement->arrayElements.length);
+
+            for (usize i = 0; i < materialsElement->arrayElements.length; i++)
+            {
+                Json::JsonElement *materialElement = &materialsElement->arrayElements[i].value;
+                result->usedMaterials.data[i].name = materialsElement->arrayElements[i].key.Clone(result->allocator);
+                result->usedMaterials.data[i].params = collections::Array<ShaderMaterialExportParam>(result->allocator, materialElement->arrayElements.length);
+
+                for (usize j = 0; j < materialElement->arrayElements.length; j++)
+                {
+                    result->usedMaterials.data[i].params.data[j].name = materialElement->arrayElements[j].key.Clone(result->allocator);
+                    result->usedMaterials.data[i].params.data[j].size = materialElement->arrayElements[j].value.GetUint32();
+                }
+            }
+            /*for (usize i = 0; i < materialsElement->childObjects.bucketsCount; i++)
             {
                 if (materialsElement->childObjects.buckets[i].initialized)
                 {
@@ -675,7 +687,7 @@ namespace AstralCanvas
                         materialIndex++;
                     }
                 }
-            }
+            }*/
         }
 
         if (computeElement != NULL)
@@ -686,7 +698,7 @@ namespace AstralCanvas
             collections::Array<u32> computeSpirvData = collections::Array<u32>(localArena.AsAllocator(), computeSpirv->arrayElements.length);
             for (usize i = 0; i < computeSpirv->arrayElements.length; i++)
             {
-                computeSpirvData.data[i] = computeSpirv->arrayElements.data[i].GetUint32();
+                computeSpirvData.data[i] = computeSpirv->arrayElements.data[i].value.GetUint32();
             }
 
             LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
@@ -727,11 +739,11 @@ namespace AstralCanvas
 
                 for (usize i = 0; i < vertexSpirv->arrayElements.length; i++)
                 {
-                    vertexSpirvData.data[i] = vertexSpirv->arrayElements.data[i].GetUint32();
+                    vertexSpirvData.data[i] = vertexSpirv->arrayElements.data[i].value.GetUint32();
                 }
                 for (usize i = 0; i < fragmentSpirv->arrayElements.length; i++)
                 {
-                    fragmentSpirvData.data[i] = fragmentSpirv->arrayElements.data[i].GetUint32();
+                    fragmentSpirvData.data[i] = fragmentSpirv->arrayElements.data[i].value.GetUint32();
                 }
 
                 LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
