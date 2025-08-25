@@ -143,6 +143,10 @@ namespace AstralCanvas
 						break;
 					}
 				}
+				if (!runUpdate)
+				{
+					glfwWaitEvents();
+				}
 			}
 
 			//fixed update
@@ -210,7 +214,6 @@ namespace AstralCanvas
 			}
 			else
 			{
-				glfwWaitEvents();
 				startTime = (float)glfwGetTime();
 			}
 			startTime = endTime;
