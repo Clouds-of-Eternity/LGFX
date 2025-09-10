@@ -214,6 +214,22 @@ void LGFXDestroySemaphore(LGFXSemaphore semaphore)
     }
     LGFX_ERROR("LGFXDestroySemaphore: Unknown backend\n");
 }
+LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain)
+{
+    if (swapchain->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXSwapchainGetAwaitRenderedSemaphore(swapchain);
+    }
+    LGFX_ERROR("LGFXSwapchainGetAwaitRenderedSemaphore: Unknown backend\n");
+}
+LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
+{
+    if (swapchain->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXSwapchainGetAwaitPresentedSemaphore(swapchain);
+    }
+    LGFX_ERROR("LGFXSwapchainGetAwaitPresentedSemaphore: Unknown backend\n");
+}
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
 {
@@ -282,6 +298,11 @@ u32 LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain)
 void LGFXSwapchainInvalidate(LGFXSwapchain swapchain)
 {
     swapchain->invalidated = true;
+}
+void LGFXSwapchainSetPresentationMode(LGFXSwapchain swapchain, LGFXSwapchainPresentationMode mode)
+{
+    swapchain->invalidated = true;
+    swapchain->presentMode = mode;
 }
 void LGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 {

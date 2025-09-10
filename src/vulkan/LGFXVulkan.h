@@ -36,6 +36,8 @@ void VkLGFXDestroyDevice(LGFXDevice device);
 
 LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *info);
 void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);
+LGFXSemaphore VkLGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain);
+LGFXSemaphore VkLGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain);
 
 bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight);
 void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);

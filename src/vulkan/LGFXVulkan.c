@@ -3546,6 +3546,15 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 	}
 	free(swapchain);
 }
+LGFXSemaphore VkLGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain)
+{
+	return swapchain->awaitRenderComplete;
+}
+LGFXSemaphore VkLGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
+{
+	return swapchain->awaitPresentComplete;
+}
+
 void VkLGFXDestroyCommandQueue(LGFXDevice device, LGFXCommandQueue queue)
 {
 	if (queue->transientCommandPool != NULL)

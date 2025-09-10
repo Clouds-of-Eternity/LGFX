@@ -87,7 +87,21 @@ namespace AstralCanvas
 
 	void Window::SetResolution(u32 width, u32 height)
 	{
+		if (isFullscreen)
+		{
+			return;
+		}
+		i32 w;
+		i32 h;
+		GLFWmonitor *monitor = GetCurrentMonitor((GLFWwindow *)handle);
+		glfwGetMonitorWorkarea(monitor, NULL, NULL, &w, &h);
+
 		glfwSetWindowSize((GLFWwindow *)handle, (u32)width, (u32)height);
+		if (isMaximized)
+		{
+			glfwRestoreWindow((GLFWwindow *)handle);
+			isMaximized = false;
+		}
 	}
 	void Window::SetPosition(float posX, float posY)
 	{
@@ -348,6 +362,7 @@ namespace AstralCanvas
 			LGFXSwapchainCreateInfo swapchainCreateInfo = {0};
 			swapchainCreateInfo.oldSwapchain = NULL;
 			swapchainCreateInfo.presentationMode = presentMode;
+			result->isVSync = swapchainCreateInfo.presentationMode == LGFXSwapchainPresentationMode_Fifo;
 			int w;
 			int h;
 			glfwGetFramebufferSize(handle, &w, &h);
@@ -380,6 +395,15 @@ namespace AstralCanvas
 		const GLFWvidmode *vidmode = glfwGetVideoMode(monitor);
 
 		return vidmode->refreshRate;
+	}
+	Maths::Vec2 Window::GetCurrentMonitorResolution()
+	{
+		GLFWmonitor *monitor = GetCurrentMonitor((GLFWwindow*)handle);
+		i32 w;
+		i32 h;
+		glfwGetMonitorWorkarea(monitor, NULL, NULL, &w, &h);
+
+		return Maths::Vec2((float)w, (float)h);
 	}
 	void Window::SetMaximized(bool value)
 	{

@@ -656,6 +656,8 @@ void LGFXDestroyFence(LGFXFence fence);
 
 LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
 void LGFXDestroySemaphore(LGFXSemaphore semaphore);
+LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain);
+LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain);
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
@@ -668,6 +670,7 @@ LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *in
 u32 LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain);
 void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain);
 void LGFXSwapchainInvalidate(LGFXSwapchain swapchain);
+void LGFXSwapchainSetPresentationMode(LGFXSwapchain swapchain, LGFXSwapchainPresentationMode mode);
 void LGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);
 
 LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);

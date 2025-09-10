@@ -33,6 +33,7 @@ namespace AstralCanvas
 		string windowTitle;
 		bool isFullscreen;
 		bool isMaximized;
+		bool isVSync;
 		bool justResized;
 
 		WindowOnTextInputFunction onTextInputFunc;
@@ -57,6 +58,7 @@ namespace AstralCanvas
 		void CloseWindow();
         void InterceptClose();
 		i32 GetCurrentMonitorFramerate();
+		Maths::Vec2 GetCurrentMonitorResolution();
 
 		void SetResolution(u32 width, u32 height);
 		void SetPosition(float posX, float posY);
