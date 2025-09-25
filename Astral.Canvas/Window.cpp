@@ -321,6 +321,9 @@ namespace AstralCanvas
 		if (fullscreen)
 		{
 			toFullscreenOn = glfwGetPrimaryMonitor();
+			const GLFWvidmode *vidMode = glfwGetVideoMode(toFullscreenOn);
+			width = vidMode->width;
+			height = vidMode->height;
 		}
 		
 		GLFWwindow* handle = glfwCreateWindow(width, height, name, toFullscreenOn, NULL);
