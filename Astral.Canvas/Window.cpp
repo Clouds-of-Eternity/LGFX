@@ -187,7 +187,7 @@ namespace AstralCanvas
 	void OnTextInput(GLFWwindow* window, u32 characterUnicode)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
-		canvas->windowInputState.textInputCharacter = characterUnicode;
+		canvas->windowInputState.textInputCharacters.Add(characterUnicode);
 
 		if (canvas->onTextInputFunc != NULL)
 		{
@@ -220,7 +220,7 @@ namespace AstralCanvas
 		{
 			if (action == GLFW_PRESS || action == GLFW_REPEAT)
 			{
-				canvas->windowInputState.textInputCharacter = '\b';
+				canvas->windowInputState.textInputCharacters.Add('\b');
 			}
 		}
 		if (canvas->onKeyInteractFunc != NULL)

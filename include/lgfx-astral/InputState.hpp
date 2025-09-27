@@ -1,5 +1,5 @@
 #pragma once
-#include "Linxc.h"
+#include "vector.hpp"
 #include "denseset.hpp"
 #include "Maths/Vec2.hpp"
 #include "string.h"
@@ -211,11 +211,11 @@ namespace AstralCanvas
         collections::denseset<KeyStateStatus> keyStatuses;
         collections::denseset<KeyStateStatus> mouseStatuses;
 
-        u32 textInputCharacter;
+        collections::vector<u32> textInputCharacters;
 
         inline InputState()
         {
-            textInputCharacter = 0;
+            textInputCharacters = collections::vector<u32>();
             oldControllerStates[0] = {};
             oldControllerStates[1] = {};
             oldControllerStates[2] = {};
@@ -235,7 +235,7 @@ namespace AstralCanvas
         }
         inline InputState(IAllocator allocator)
         {
-            textInputCharacter = 0;
+            textInputCharacters = collections::vector<u32>(allocator);
             oldControllerStates[0] = {};
             oldControllerStates[1] = {};
             oldControllerStates[2] = {};
@@ -294,7 +294,7 @@ namespace AstralCanvas
 
         inline void ResetPerFrameInputStates()
         {
-            textInputCharacter = '\0';
+            textInputCharacters.Clear();
             scroll = Maths::Vec2(0.0f);
             for (usize i = 0; i < keyStatuses.capacity; i++)
             {
