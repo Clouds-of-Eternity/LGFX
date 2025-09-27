@@ -328,17 +328,17 @@ namespace AstralCanvas
 		
 		GLFWwindow* handle = glfwCreateWindow(width, height, name, toFullscreenOn, NULL);
 
-		if (iconData != NULL)
-		{
-			GLFWimage image;
-			image.width = iconWidth;
-			image.height = iconHeight;
-			image.pixels = (u8 *)iconData;
-			glfwSetWindowIcon(handle, 1, &image);
-		}
-
 		if (handle)
 		{
+			if (iconData != NULL)
+			{
+				GLFWimage image;
+				image.width = iconWidth;
+				image.height = iconHeight;
+				image.pixels = (u8 *)iconData;
+				glfwSetWindowIcon(handle, 1, &image);
+			}
+			
 			*result = Window();
 			result->windowInputState = AstralCanvas::InputState(allocator);
 			result->handle = handle;

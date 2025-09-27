@@ -2,7 +2,7 @@
 #include "lgfx-astral/Window.hpp"
 #include "lgfx/lgfx.h"
 #include "vector.hpp"
-#include "allocators.hpp"
+#include "ArenaAllocator.hpp"
 #include "Maths/All.h"
 #include "string.hpp"
 
@@ -17,6 +17,7 @@ namespace AstralCanvas
 	{
 		collections::vector<Window *> windows;
 		Window *currentWindow;
+		ArenaAllocator windowsArena;
 		IAllocator allocator;
 
 		LGFXInstance instance;

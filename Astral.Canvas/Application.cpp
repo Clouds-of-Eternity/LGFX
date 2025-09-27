@@ -23,6 +23,7 @@ namespace AstralCanvas
 		windows = collections::vector<Window *>();
 		currentWindow = NULL;
 		allocator = IAllocator{};
+		windowsArena = ArenaAllocator();
 
 		instance = NULL;
 		device = NULL;
@@ -53,6 +54,7 @@ namespace AstralCanvas
 		result.engineVersion = engineVersion;
 		result.timeScale = 1.0f;
 		result.fixedTimeStep = 0.02f;
+		result.windowsArena = ArenaAllocator(allocator);
 		applicationInstance = result;
 
 		if (!noWindow)
@@ -89,8 +91,8 @@ namespace AstralCanvas
 	}
 	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
-		Window *result = (Window *)this->allocator.Allocate(sizeof(Window));
-		if (WindowInit(this->allocator, name, result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
+		Window *result = (Window *)this->windowsArena.AsAllocator().Allocate(sizeof(Window));
+		if (WindowInit(this->windowsArena.AsAllocator(), name, result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
 		{
 			if (framesPerSecond <= -1.0f)
 			{
@@ -183,7 +185,6 @@ namespace AstralCanvas
 					else
 					{
 						window.deinit();
-						allocator.Free(windows.ptr[i]);
 						windows.RemoveAt_Swap(i);
 						continue;
 					}
@@ -243,8 +244,9 @@ namespace AstralCanvas
 		{
 			deinitFunc();
 		}
+		windowsArena.deinit();
 
-        //deinitialize backend
+		//deinitialize backend
 		if (device != NULL)
 		{
 			LGFXDestroyDevice(device);
