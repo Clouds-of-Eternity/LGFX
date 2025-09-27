@@ -10,6 +10,7 @@ namespace AstralCanvas
 {
     enum ControllerButtons
     {
+        ControllerButton_Unknown = -1,
         ControllerButton_A,
         ControllerButton_B,
         ControllerButton_X,
@@ -24,7 +25,8 @@ namespace AstralCanvas
         ControllerButton_DpadUp,
         ControllerButton_DpadRight,
         ControllerButton_DpadDown,
-        ControllerButton_DpadLeft
+        ControllerButton_DpadLeft,
+        ControllerButton_MAX = 0x7FFFFFFF
     };
     enum Keys
     {
@@ -149,21 +151,24 @@ namespace AstralCanvas
         Keys_AltRight = 346,
         Keys_SuperRight = 347,
         Keys_Menu = 348,
-        Keys_LastKey = 348
+        Keys_LastKey = 348,
+        Keys_MAX = 0x7FFFFFFF
     };
     enum MouseButtons
     {
         MouseButton_Left,
         MouseButton_Right,
         MouseButton_Middle,
-        MouseButton_Other
+        MouseButton_Other,
+        MouseButtons_MAX = 0x7FFFFFFF
     };
     enum KeyState
     {
         KeyState_None,
         KeyState_Released,
         KeyState_Pressed,
-        KeyState_Repeat
+        KeyState_Repeat,
+        KeyState_MAX = 0x7FFFFFFF
     };
     struct ControllerState
     {

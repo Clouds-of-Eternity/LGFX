@@ -15,7 +15,8 @@ namespace AstralCanvas
 
 	struct Application
 	{
-		collections::vector<Window> windows;
+		collections::vector<Window *> windows;
+		Window *currentWindow;
 		IAllocator allocator;
 
 		LGFXInstance instance;

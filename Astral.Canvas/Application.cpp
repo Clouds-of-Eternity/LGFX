@@ -20,7 +20,8 @@ namespace AstralCanvas
 	}
 	Application::Application()
 	{
-		windows = collections::vector<Window>();
+		windows = collections::vector<Window *>();
+		currentWindow = NULL;
 		allocator = IAllocator{};
 
 		instance = NULL;
@@ -45,7 +46,7 @@ namespace AstralCanvas
 		Application result;
 		result.framesPerSecond = framesPerSecond;
 		result.allocator = allocator;
-		result.windows = vector<Window>(allocator);
+		result.windows = vector<Window *>(allocator);
 		result.appName = appName;
 		result.engineName = engineName;
 		result.appVersion = appVersion;
@@ -88,16 +89,16 @@ namespace AstralCanvas
 	}
 	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
-		Window result;
-		if (WindowInit(this->allocator, name, &result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
+		Window *result = (Window *)this->allocator.Allocate(sizeof(Window));
+		if (WindowInit(this->allocator, name, result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
 		{
 			if (framesPerSecond <= -1.0f)
 			{
-				framesPerSecond = (float)result.GetCurrentMonitorFramerate();
+				framesPerSecond = (float)result->GetCurrentMonitorFramerate();
 				//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
 			}
 			windows.Add(result);
-			glfwSetWindowUserPointer((GLFWwindow*)result.handle, &windows.ptr[windows.count - 1]);
+			glfwSetWindowUserPointer((GLFWwindow*)result->handle, windows.ptr[windows.count - 1]);
 
 			return true;
 		}
@@ -110,6 +111,7 @@ namespace AstralCanvas
 	}
 	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc)
 	{
+		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
 		if (initFunc != NULL)
 		{
 			initFunc();
@@ -137,7 +139,7 @@ namespace AstralCanvas
 				runUpdate = false;
 				for (u32 i = 0; i < windows.count; i++)
 				{
-					if (windows[i].resolution.X > 0 && windows[i].resolution.Y > 0)
+					if (windows[i]->resolution.X > 0 && windows[i]->resolution.Y > 0)
 					{
 						runUpdate = true;
 						break;
@@ -167,32 +169,36 @@ namespace AstralCanvas
 
 				for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 				{
-					if (windows.ptr[i].resolution.X == 0 || windows.ptr[i].resolution.Y == 0)
+					Window &window = *windows.ptr[i];
+					
+					if (window.resolution.X == 0 || window.resolution.Y == 0)
 					{
 						continue;
 					}
-					if (windows.ptr[i].handle != NULL && !glfwWindowShouldClose((GLFWwindow*)windows.ptr[i].handle))
+					currentWindow = windows.ptr[i];
+					if (window.handle != NULL && !glfwWindowShouldClose((GLFWwindow*)window.handle))
 					{
-						windows.ptr[i].windowInputState.ResetPerFrameInputStates();
+						window.windowInputState.ResetPerFrameInputStates();
 					}
 					else
 					{
-						windows.ptr[i].deinit();
+						window.deinit();
+						allocator.Free(windows.ptr[i]);
 						windows.RemoveAt_Swap(i);
 						continue;
 					}
 
 					//begin draw
-					if (LGFXNewFrame(device, &windows.ptr[i].swapchain, (u32)windows.ptr[i].resolution.X, (u32)windows.ptr[i].resolution.Y))
+					if (LGFXNewFrame(device, &window.swapchain, (u32)window.resolution.X, (u32)window.resolution.Y))
 					{
-						LGFXCommandBufferReset(windows.ptr[i].mainCommandBuffer);
-						LGFXCommandBufferBegin(windows.ptr[i].mainCommandBuffer, true);
+						LGFXCommandBufferReset(window.mainCommandBuffer);
+						LGFXCommandBufferBegin(window.mainCommandBuffer, true);
 
-						drawFunc(deltaTime, &windows.ptr[i]);
+						drawFunc(deltaTime, &window);
 
                         //end draw
-            			LGFXCommandBufferEndSwapchain(windows.ptr[i].mainCommandBuffer, windows.ptr[i].swapchain);
-						LGFXSubmitFrame(device, windows.ptr[i].swapchain);
+            			LGFXCommandBufferEndSwapchain(window.mainCommandBuffer, window.swapchain);
+						LGFXSubmitFrame(device, window.swapchain);
 
 						if (postEndDrawFunc != NULL)
 						{
@@ -226,7 +232,7 @@ namespace AstralCanvas
 				shouldStop = true;
 				for (usize i = 0; i < windows.count; i++)
 				{
-					glfwSetWindowShouldClose((GLFWwindow *)windows.ptr[i].handle, 1);
+					glfwSetWindowShouldClose((GLFWwindow *)windows[i]->handle, 1);
 				}
 			}
 		}

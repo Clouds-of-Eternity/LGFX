@@ -7,7 +7,7 @@ namespace AstralCanvas
 {
     inline AstralCanvas::Window *Input_GetWindow()
     {
-        return &AstralCanvas::applicationInstance.windows.ptr[0];
+        return AstralCanvas::applicationInstance.currentWindow;
     }
     inline bool Input_IsKeyDown(const Keys key)
     {
@@ -44,19 +44,66 @@ namespace AstralCanvas
         Input_GetWindow()->windowInputState.SimulateMouseRelease(button);
     }
 
-    inline bool Input_ControllerIsButtonDown(const u32 controllerIndex, const ControllerButtons button)
+    inline bool Input_ControllerIsButtonDown(const i32 controllerIndex, const ControllerButtons button)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].buttonStates[(usize)button];
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+
+        if (controllerIndex == -1)
+        {
+            for (u32 i = 0; i < 4; i++)
+            {
+                if (states[i].buttonStates[(usize)button])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else return states[controllerIndex].buttonStates[(usize)button];
     }
-    inline bool Input_ControllerIsButtonPress(const u32 controllerIndex, const ControllerButtons button)
+    inline bool Input_ControllerIsButtonPress(const i32 controllerIndex, const ControllerButtons button)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].buttonStates[(usize)button]
-        && !Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].buttonStates[(usize)button];
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        AstralCanvas::ControllerState *oldStates = Input_GetWindow()->windowInputState.oldControllerStates;
+
+        if (controllerIndex == -1)
+        {
+            for (u32 i = 0; i < 4; i++)
+            {
+                if (states[i].buttonStates[(usize)button] && !oldStates[i].buttonStates[(usize)button])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else
+        {
+            return states[controllerIndex].buttonStates[(usize)button]
+            && !oldStates[controllerIndex].buttonStates[(usize)button];
+        }
     }
-    inline bool Input_ControllerIsButtonRelease(const u32 controllerIndex, const ControllerButtons button)
+    inline bool Input_ControllerIsButtonRelease(const i32 controllerIndex, const ControllerButtons button)
     {
-        return !Input_GetWindow()->windowInputState.controllerStates[controllerIndex].buttonStates[(usize)button]
-        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].buttonStates[(usize)button];
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        AstralCanvas::ControllerState *oldStates = Input_GetWindow()->windowInputState.oldControllerStates;
+
+        if (controllerIndex == -1)
+        {
+            for (u32 i = 0; i < 4; i++)
+            {
+                if (!states[i].buttonStates[(usize)button] && oldStates[i].buttonStates[(usize)button])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else
+        {
+            return !states[controllerIndex].buttonStates[(usize)button]
+            && oldStates[controllerIndex].buttonStates[(usize)button];
+        }
     }
 
     inline bool Input_ControllerIsR2Down(const u32 controllerIndex)
