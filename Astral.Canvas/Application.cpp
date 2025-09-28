@@ -136,22 +136,19 @@ namespace AstralCanvas
 			fixedUpdateTimer += deltaTime;
 
 			bool runUpdate = framesPerSecond < 1.0f || updateTimer >= 1.0f / framesPerSecond;
-			if (runUpdate && !alwaysUpdate)
+			bool minimized = windows.count > 0;
+			for (u32 i = 0; i < windows.count; i++)
 			{
-				runUpdate = false;
-				for (u32 i = 0; i < windows.count; i++)
+				if (windows[i]->resolution.X > 0 && windows[i]->resolution.Y > 0)
 				{
-					if (windows[i]->resolution.X > 0 && windows[i]->resolution.Y > 0)
-					{
-						runUpdate = true;
-						break;
-					}
+					minimized = false;
+					break;
 				}
-				if (!runUpdate)
-				{
-					glfwWaitEvents();
-					endTime = (float)glfwGetTime();
-				}
+			}
+			if (minimized)
+			{
+				glfwWaitEvents();
+				endTime = (float)glfwGetTime();
 			}
 
 			//fixed update
@@ -161,65 +158,68 @@ namespace AstralCanvas
 			}
 			while (fixedUpdateTimer > fixedTimeStep)
 			{
-				fixedUpdateFunc(fixedTimeStep);
+				if (!minimized || alwaysUpdate)
+				{
+					fixedUpdateFunc(fixedTimeStep);
+				}
 				fixedUpdateTimer -= fixedTimeStep;
 			}
 
-			if (runUpdate)
+			for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 			{
-				updateFunc(updateTimer * this->timeScale);
-
-				for (i32 i = (i32)windows.count - 1; i >= 0; i--)
+				Window &window = *windows.ptr[i];
+				
+				if (window.resolution.X == 0 || window.resolution.Y == 0)
 				{
-					Window &window = *windows.ptr[i];
-					
-					if (window.resolution.X == 0 || window.resolution.Y == 0)
-					{
-						continue;
-					}
-					currentWindow = windows.ptr[i];
-					if (window.handle != NULL && !glfwWindowShouldClose((GLFWwindow*)window.handle))
-					{
-						window.windowInputState.ResetPerFrameInputStates();
-					}
-					else
-					{
-						window.deinit();
-						windows.RemoveAt_Swap(i);
-						continue;
-					}
-
-					//begin draw
-					if (LGFXNewFrame(device, &window.swapchain, (u32)window.resolution.X, (u32)window.resolution.Y))
-					{
-						LGFXCommandBufferReset(window.mainCommandBuffer);
-						LGFXCommandBufferBegin(window.mainCommandBuffer, true);
-
-						drawFunc(deltaTime, &window);
-
-                        //end draw
-            			LGFXCommandBufferEndSwapchain(window.mainCommandBuffer, window.swapchain);
-						LGFXSubmitFrame(device, window.swapchain);
-
-						if (postEndDrawFunc != NULL)
-						{
-							postEndDrawFunc(deltaTime);
-						}
-
-						for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
-						{
-							AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
-						}
-						AstralCanvas::allUsedShaders.Clear();
-					}
+					continue;
+				}
+				currentWindow = windows.ptr[i];
+				if (runUpdate || alwaysUpdate)
+				{
+					updateFunc(updateTimer * this->timeScale);
+				}
+				if (window.handle != NULL && !glfwWindowShouldClose((GLFWwindow*)window.handle))
+				{
+					window.windowInputState.ResetPerFrameInputStates();
+				}
+				else
+				{
+					window.deinit();
+					windows.RemoveAt_Swap(i);
+					continue;
 				}
 
-				if (windows.count == 0 && !noWindows)
+				//begin draw
+				if (LGFXNewFrame(device, &window.swapchain, (u32)window.resolution.X, (u32)window.resolution.Y))
 				{
-					break;
+					LGFXCommandBufferReset(window.mainCommandBuffer);
+					LGFXCommandBufferBegin(window.mainCommandBuffer, true);
+
+					drawFunc(deltaTime, &window);
+
+					//end draw
+					LGFXCommandBufferEndSwapchain(window.mainCommandBuffer, window.swapchain);
+					LGFXSubmitFrame(device, window.swapchain);
+
+					if (postEndDrawFunc != NULL)
+					{
+						postEndDrawFunc(deltaTime);
+					}
+
+					for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
+					{
+						AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
+					}
+					AstralCanvas::allUsedShaders.Clear();
 				}
-				updateTimer = 0.0f;
 			}
+
+			if (windows.count == 0 && !noWindows)
+			{
+				break;
+			}
+			updateTimer = 0.0f;
+			
 
 			startTime = endTime;
 			endTime = (float)glfwGetTime();
