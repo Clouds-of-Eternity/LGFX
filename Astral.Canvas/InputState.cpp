@@ -9,7 +9,7 @@ namespace AstralCanvas
     }
     ControllerState InputState::GetControllerState(usize index)
     {
-        ControllerState result{};
+        ControllerState result = ControllerState();
 
         GLFWgamepadstate state;
         if (glfwGetGamepadState(index, &state) != GLFW_FALSE)
