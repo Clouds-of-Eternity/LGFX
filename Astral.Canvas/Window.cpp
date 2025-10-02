@@ -105,25 +105,28 @@ namespace AstralCanvas
 	}
 	void Window::SetPosition(float posX, float posY)
 	{
-		glfwSetWindowPos((GLFWwindow *)handle, posX, posY);
+		if (handle != NULL) glfwSetWindowPos((GLFWwindow *)handle, posX, posY);
 	}
 	void Window::SetMousePosition(float posX, float posY)
 	{
-		glfwSetCursorPos((GLFWwindow*)handle, (double)posX, (double)posY);
+		if (handle != NULL) glfwSetCursorPos((GLFWwindow*)handle, (double)posX, (double)posY);
 	}
 	void Window::SetMouseState(WindowMouseState state)
 	{
-		if (state == AstralCanvas::WindowMouseState_Default)
+		if (handle != NULL)
 		{
-			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
-		else if (state == AstralCanvas::WindowMouseState_Disabled)
-		{
-			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		}
-		else
-		{ 
-			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+			if (state == AstralCanvas::WindowMouseState_Default)
+			{
+				glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			}
+			else if (state == AstralCanvas::WindowMouseState_Disabled)
+			{
+				glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			}
+			else
+			{ 
+				glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+			}
 		}
 	}
 	Maths::Vec2 Window::GetOSContentScale()

@@ -44,7 +44,7 @@ namespace AstralCanvas
 	}
 	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow)
 	{
-		Application result;
+		Application result = {};
 		result.framesPerSecond = framesPerSecond;
 		result.allocator = allocator;
 		result.windows = vector<Window *>(allocator);
@@ -55,6 +55,7 @@ namespace AstralCanvas
 		result.timeScale = 1.0f;
 		result.fixedTimeStep = 0.02f;
 		result.windowsArena = ArenaAllocator(allocator);
+		result.shouldShutdown = false;
 		applicationInstance = result;
 
 		if (!noWindow)

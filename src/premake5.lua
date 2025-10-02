@@ -9,7 +9,7 @@ project "LGFX"
     includedirs {
         "../include",
         "../dependencies/volk",
-        "%{VULKAN_SDK}/Include",
+        "%{VULKAN_SDK}/include",
         "./",
     }
 
