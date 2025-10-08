@@ -149,6 +149,25 @@ namespace AstralCanvas
 				return WindowMouseState_Hidden;
 		}
 	}
+	void Window::SetWindowIcon(void *iconData, u32 iconWidth, u32 iconHeight)
+	{
+		if (iconData == NULL)
+		{
+			glfwSetWindowIcon((GLFWwindow *)handle, 0, NULL);
+		}
+		else
+		{
+			GLFWimage image = {};
+			image.pixels = (u8 *)iconData;
+			image.width = (i32)iconWidth;
+			image.height = (i32)iconHeight;
+			glfwSetWindowIcon((GLFWwindow *)handle, 1, &image);
+		}
+	}
+	void Window::SetCanDragResize(bool canDragResize)
+	{
+		glfwSetWindowAttrib((GLFWwindow *)handle, GLFW_RESIZABLE, canDragResize ? 1 : 0);
+	}
 	void Window::SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY)
 	{
 		if (this->customCursorHandle == NULL)

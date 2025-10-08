@@ -54,6 +54,8 @@ namespace AstralCanvas
 		void SetFullscreen(bool value);
 		void SetMouseState(WindowMouseState state);
 		WindowMouseState GetMouseState();
+		void SetWindowIcon(void *iconData, u32 iconWidth, u32 iconHeight);
+		void SetCanDragResize(bool canDragResize);
 		void SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY);
 		void CloseWindow();
         void InterceptClose();
