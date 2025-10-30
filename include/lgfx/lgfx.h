@@ -646,6 +646,7 @@ typedef struct LGFXShaderStateCreateInfo
 
 LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
+u8 LGFXGetPixelSize(LGFXTextureFormat format);
 
 LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled);
 LGFXFence LGFXRentFence(LGFXDevice device, bool signalled);
