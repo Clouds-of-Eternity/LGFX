@@ -5,6 +5,73 @@
 
 #include "vulkan/LGFXVulkan.h"
 
+u8 LGFXGetPixelSize(LGFXTextureFormat format)
+{
+    switch (format)
+    {
+        //compression formats have a per-bit pixel size
+        
+        case LGFXTextureFormat_Undefined:
+            return 0;
+        case LGFXTextureFormat_R8Unorm:
+        case LGFXTextureFormat_R8Snorm:
+        case LGFXTextureFormat_R8Uint:
+        case LGFXTextureFormat_R8Sint:
+            return 1;
+        case LGFXTextureFormat_R16Uint:
+        case LGFXTextureFormat_R16Sint:
+        case LGFXTextureFormat_R16Float:
+        case LGFXTextureFormat_RG8Unorm:
+        case LGFXTextureFormat_RG8Snorm:
+        case LGFXTextureFormat_RG8Uint:
+        case LGFXTextureFormat_RG8Sint:
+            return 2;
+        case LGFXTextureFormat_R32Float:
+        case LGFXTextureFormat_R32Uint:
+        case LGFXTextureFormat_R32Sint:
+        case LGFXTextureFormat_RG16Uint:
+        case LGFXTextureFormat_RG16Sint:
+        case LGFXTextureFormat_RG16Float:
+        case LGFXTextureFormat_RGBA8Unorm:
+        case LGFXTextureFormat_RGBA8UnormSrgb:
+        case LGFXTextureFormat_RGBA8Snorm:
+        case LGFXTextureFormat_RGBA8Uint:
+        case LGFXTextureFormat_RGBA8Sint:
+        case LGFXTextureFormat_BGRA8Unorm:
+        case LGFXTextureFormat_BGRA8UnormSrgb:
+        case LGFXTextureFormat_RGB10A2Uint:
+        case LGFXTextureFormat_RGB10A2Unorm:
+        case LGFXTextureFormat_RG11B10Ufloat:
+        case LGFXTextureFormat_RGB9E5Ufloat:
+            return 4;
+        case LGFXTextureFormat_RG32Float:
+        case LGFXTextureFormat_RG32Uint:
+        case LGFXTextureFormat_RG32Sint:
+        case LGFXTextureFormat_RGBA16Uint:
+        case LGFXTextureFormat_RGBA16Sint:
+        case LGFXTextureFormat_RGBA16Float:
+            return 8;
+        case LGFXTextureFormat_RGBA32Float:
+        case LGFXTextureFormat_RGBA32Uint:
+        case LGFXTextureFormat_RGBA32Sint:
+            return 16;
+        case LGFXTextureFormat_Stencil8:
+            return 1;
+        case LGFXTextureFormat_Depth16Unorm:
+            return 2;
+        case LGFXTextureFormat_Depth24Plus:
+            return 3;
+        case LGFXTextureFormat_Depth24PlusStencil8:
+            return 4;
+        case LGFXTextureFormat_Depth32Float:
+            return 4;
+        case LGFXTextureFormat_Depth32FloatStencil8:
+            return 5;
+        default:
+            return 0;
+    }
+}
+
 LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *elementFormats, u32 elementsCount, bool isPerInstance, bool tightlyPacked)
 {
     LGFXVertexDeclaration result = {0};
