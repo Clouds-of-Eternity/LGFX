@@ -65,6 +65,30 @@
             ],
             "cStandard": "c17",
             "cppStandard": "c++17"
+        },
+        {
+            "name": "MacOS",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/dependencies/glfw/include",
+                "${workspaceFolder}/dependencies/volk",
+                "${workspaceFolder}/Astral.Core/Astral.Core",
+                "${env:HOME}/VulkanSDK/1.4.328.1/MacOS/include"
+            ],
+            "defines": [
+                "LINUX",
+                "MACOS",
+                "POSIX",
+                "DEBUG",
+                "ASTRALCANVAS_VULKAN",
+                "_GLFW_COCOA",
+                "GLFW_EXPOSE_NATIVE_COCOA",
+                "VK_USE_PLATFORM_MACOS_MVK",
+                "VK_USE_PLATFORM_METAL_EXT"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17"
         }
     ],
     "version": 4

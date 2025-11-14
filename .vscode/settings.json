@@ -82,6 +82,16 @@
         "logging.h": "c",
         "vulkan.h": "c",
         "text_encoding": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "mvk_vulkan.h": "c",
+        "vk_mvk_moltenvk.h": "c",
+        "mvk_deprecated_api.h": "c",
+        "mvk_private_api.h": "c",
+        "mvk_datatypes.h": "c",
+        "vulkan_macos.h": "c",
+        "__bit_reference": "cpp",
+        "bitset": "cpp",
+        "ratio": "cpp",
+        "vulkan_metal.h": "c"
     }
 }

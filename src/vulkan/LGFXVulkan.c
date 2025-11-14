@@ -1,13 +1,14 @@
 #include "vulkan/LGFXVulkan.h"
 #include "LGFXImpl.h"
-#include "volk.h"
 #include "Logging.h"
 #include "memory.h"
 #include "lgfx/sync.h"
 #include <string.h>
 #include <math.h>
-#include "vulkan/vk_mem_alloc.h"
 #include <limits.h>
+
+#include "volk.h"
+#include "vulkan/vk_mem_alloc.h"
 
 #define ONE_OVER_255 0.00392156862f
 
@@ -904,30 +905,41 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	VkInstanceCreateInfo instanceInfo = {0};
 	instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceInfo.pApplicationInfo = &appInfo;
+
+	//count extensions
+	u32 enabledExtensionsCount = info->enabledExtensionsCount;
 	if (info->runtimeErrorChecking)
 	{
-		result->enabledInstanceExtensions = Allocate(const char *, info->enabledExtensionsCount + 1);
-		for (u32 i = 0; i < info->enabledExtensionsCount; i++)
-		{
-			result->enabledInstanceExtensions[i] = info->enabledExtensions[i];
-		}
-		result->enabledInstanceExtensions[info->enabledExtensionsCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+		enabledExtensionsCount++;
+	}
+	#ifdef MACOS
+	enabledExtensionsCount += 4;
+	instanceInfo.flags = instanceInfo.flags | VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+	#endif
 
-		instanceInfo.enabledExtensionCount = info->enabledExtensionsCount + 1;
-		instanceInfo.ppEnabledExtensionNames = result->enabledInstanceExtensions;
-	}
-	else
+	//load initial extensions
+	result->enabledInstanceExtensions = Allocate(const char *, enabledExtensionsCount);
+	for (u32 i = 0; i < info->enabledExtensionsCount; i++)
 	{
-		result->enabledInstanceExtensions = Allocate(const char *, info->enabledExtensionsCount);
-		for (u32 i = 0; i < info->enabledExtensionsCount; i++)
-		{
-			result->enabledInstanceExtensions[i] = info->enabledExtensions[i];
-		}
-		
-		instanceInfo.enabledExtensionCount = info->enabledExtensionsCount;
-		instanceInfo.ppEnabledExtensionNames = result->enabledInstanceExtensions;
+		result->enabledInstanceExtensions[i] = info->enabledExtensions[i];
 	}
-	instanceInfo.flags = 0;
+
+	//load mandatory extensions
+	u32 index = info->enabledExtensionsCount;
+	if (info->runtimeErrorChecking)
+	{
+		result->enabledInstanceExtensions[index++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+	}
+	#ifdef MACOS
+	result->enabledInstanceExtensions[index++] = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+	result->enabledInstanceExtensions[index++] = VK_KHR_SURFACE_EXTENSION_NAME;
+	result->enabledInstanceExtensions[index++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
+	result->enabledInstanceExtensions[index++] = VK_MVK_MACOS_SURFACE_EXTENSION_NAME;
+	#endif
+	
+	//upload extensions
+	instanceInfo.enabledExtensionCount = enabledExtensionsCount;
+	instanceInfo.ppEnabledExtensionNames = result->enabledInstanceExtensions;
 
 	if (info->runtimeErrorChecking)
 	{
@@ -1001,7 +1013,23 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	}
 
 	VkPhysicalDevice *physDevices = Allocate(VkPhysicalDevice, deviceCount);
-	const char *extensionNames[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME}; //, VK_KHR_SURFACE_EXTENSION_NAME };
+
+	usize extensionsCount = 1;
+	usize extensionIndex = 0;
+
+	#ifdef MACOS
+	extensionsCount++;
+	#endif
+
+	const char **extensionNames = Allocate(const char*, extensionsCount);
+
+	extensionNames[extensionIndex++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+
+	#ifdef MACOS
+	extensionNames[extensionIndex++] = "VK_KHR_portability_subset";
+	#endif
+
+	//const char *extensionNames[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, physDevices);
 
@@ -1085,7 +1113,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	logicalDeviceInfo.queueCreateInfoCount = finalQueueCreateInfoCount;
 	logicalDeviceInfo.pQueueCreateInfos = queueCreateInfos;
-	logicalDeviceInfo.enabledExtensionCount = 1; //require swapchain support only
+	logicalDeviceInfo.enabledExtensionCount = extensionsCount; //require swapchain support only
 	logicalDeviceInfo.ppEnabledExtensionNames = extensionNames;
 	logicalDeviceInfo.enabledLayerCount = 0; //these basically dont exist
 	logicalDeviceInfo.ppEnabledLayerNames = NULL;
@@ -1200,7 +1228,15 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 
 	if (info->oldSwapchain == NULL)
 	{
-#if defined(WINDOWS)
+		VkResult createSurfaceResult = info->createSurfaceFunc(device->instance->instance, info->windowHandle, NULL, (void**)&surfaceKHR);
+
+		if (createSurfaceResult != VK_SUCCESS)
+		{
+			LGFX_ERROR("Error creating surface, error code %u\n", createSurfaceResult);
+			return NULL;
+		}
+
+		/*#if defined(WINDOWS)
 	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {0};
 	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 	surfaceCreateInfo.hwnd = info->nativeWindowHandle;
@@ -1217,13 +1253,18 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	//PFN_vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
 #elif defined(WAYLAND)
 	VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-	surfaceCreateInfo = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
 	surfaceCreateInfo.surface = (wl_surface*)info->nativeWindowHandle;
 	surfaceCreateInfo.display = (wl_display*)info->displayHandle;
-#elif defined(MACOS)
-	VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {0};
+
 	#error TODO
-#endif
+#elif defined(MACOS)
+	VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {0};
+	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+	surfaceCreateInfo.pView = info->displayHandle;
+	
+	vkCreateMacOSSurfaceMVK((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
+#endif*/
 	}
 	else
 	{
@@ -1239,11 +1280,13 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	result->currentImageIndex = 0;
 	result->width = info->width;
 	result->height = info->height;
-	result->nativeWindowHandle = info->nativeWindowHandle;
+	//result->nativeWindowHandle = info->nativeWindowHandle;
 	result->windowSurface = surfaceKHR;
 	result->device = device;
 	result->justCreated = true;
 	result->invalidated = false;
+	result->createSurfaceFunc = info->createSurfaceFunc;
+	result->windowHandle = info->windowHandle;
 
     VkSwapchainCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1269,15 +1312,17 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	createInfo.imageExtent.width = result->width;
 	createInfo.imageExtent.height = result->height;
 
-    if (vkCreateSwapchainKHR((VkDevice)device->logicalDevice, &createInfo, NULL, (VkSwapchainKHR *)&result->swapchain) != VK_SUCCESS)
+	VkResult createResult = vkCreateSwapchainKHR((VkDevice)device->logicalDevice, &createInfo, NULL, (VkSwapchainKHR *)&result->swapchain);
+    if (createResult != VK_SUCCESS)
     {
-		LGFX_ERROR("Error creating swapchain\n");
+		LGFX_ERROR("Error creating swapchain, error code %u\n", createResult);
 		return NULL;
     }
 
-	if (vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, NULL)!= VK_SUCCESS)
+	createResult = vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, NULL);
+	if (createResult != VK_SUCCESS)
     {
-		LGFX_ERROR("Error creating swapchain\n");
+		LGFX_ERROR("Error creating swapchain, error code %u\n", createResult);
 		return NULL;
     }
 	result->backbufferTextures = Allocate(LGFXTexture, result->backbufferTexturesCount);
@@ -1350,7 +1395,6 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 			{
 				LGFXAwaitFence(currentSwapchain->fence);
 			}
-			printf("Invalid swapchain detected, recreating\n");
 		}
 	}
 	LGFXResetFence(currentSwapchain->fence);
@@ -1363,8 +1407,8 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, u32 currentBackbufferW
 			createInfo.height = currentBackbufferHeight;
 			createInfo.oldSwapchain = currentSwapchain;
 			createInfo.presentationMode = currentSwapchain->presentMode;
-			//to check: do we need to re-acquire this every time we need to change?
-			createInfo.nativeWindowHandle = currentSwapchain->nativeWindowHandle;
+			createInfo.windowHandle = currentSwapchain->windowHandle;
+			createInfo.createSurfaceFunc = currentSwapchain->createSurfaceFunc;
 
 			*swapchain = LGFXCreateSwapchain(currentSwapchain->device, &createInfo);
 			printf("Swapchain recreated successfully\n");
@@ -1410,23 +1454,19 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 	//swapchain->renderTargets.data[swapchain->currentImageIndex].textures.data[0]->imageLayout = (u32)VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	ExitLock(&device->graphicsQueue->queueLock);
 
+	if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
+	{
+		//printf("End-of-frame invalidation detected, will attempt to recreate swapchain next frame\n");
+		swapchain->invalidated = true;
+	}
+	else if (presentResults != VK_SUCCESS)
+	{
+		LGFX_ERROR("Error presenting queue");
+	}
+
 	if (swapchain->justCreated)
 	{
 		swapchain->justCreated = false;
-	}
-
-	if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
-	{
-		printf("End-of-frame invalidation detected, will attempt to recreate swapchain next frame\n");
-		swapchain->invalidated = true;
-
-		presentResults = VK_SUCCESS;
-		//swapChain.Recreate(SwapChain.QuerySwapChainSupport(CurrentGPU.Device));
-	}
-
-	if (presentResults != VK_SUCCESS)
-	{
-		LGFX_ERROR("Error presenting queue");
 	}
 }
 

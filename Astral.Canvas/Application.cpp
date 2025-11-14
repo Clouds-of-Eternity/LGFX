@@ -86,7 +86,7 @@ namespace AstralCanvas
 			//create device
 			LGFXDeviceCreateInfo deviceCreateInfo = {0};
 			deviceCreateInfo.requiredFeatures.fillModeNonSolid = true;
-			deviceCreateInfo.requiredFeatures.wideLines = true;
+			//deviceCreateInfo.requiredFeatures.wideLines = true;
 			applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
 		}
 	}
@@ -170,7 +170,7 @@ namespace AstralCanvas
 			{
 				Window &window = *windows.ptr[i];
 				
-				if (window.resolution.X == 0 || window.resolution.Y == 0)
+				if (window.resolution.X == 0 || window.resolution.Y == 0 || window.frameBufferSize.X == 0 || window.frameBufferSize.Y == 0)
 				{
 					continue;
 				}
@@ -191,7 +191,7 @@ namespace AstralCanvas
 				}
 
 				//begin draw
-				if (LGFXNewFrame(device, &window.swapchain, (u32)window.resolution.X, (u32)window.resolution.Y))
+				if (LGFXNewFrame(device, &window.swapchain, (u32)window.frameBufferSize.X, (u32)window.frameBufferSize.Y))
 				{
 					LGFXCommandBufferReset(window.mainCommandBuffer);
 					LGFXCommandBufferBegin(window.mainCommandBuffer, true);

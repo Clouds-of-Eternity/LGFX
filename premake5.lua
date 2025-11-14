@@ -1,4 +1,7 @@
 VULKAN_SDK = os.getenv("VULKAN_SDK")
+if VULKAN_SDK == nil then
+    VULKAN_SDK = "/usr/local";
+end
 
 workspace "LGFX"
     configurations { "Debug", "Release" }
@@ -46,8 +49,6 @@ workspace "LGFX"
     include("Astral.Canvas")
     
     include("ShaderCompiler")
-
-    include("examples/low-level-api/triangle")
 
     include("examples/high-level-api/triangle")
 

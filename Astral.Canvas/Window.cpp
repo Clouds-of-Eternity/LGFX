@@ -57,7 +57,7 @@ namespace AstralCanvas
 		this->swapchain = NULL;
         this->mainCommandBuffer = NULL;
         this->isDisposed = false;
-		this->justResized = NULL;
+		this->justResized = false;
 	}
 
 	void Window::deinit()
@@ -307,8 +307,8 @@ namespace AstralCanvas
 	void WindowFramebufferSizeChanged(GLFWwindow* window, i32 width, i32 height)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
-        canvas->resolution.X = width;
-        canvas->resolution.Y = height;
+        canvas->frameBufferSize.X = width;
+        canvas->frameBufferSize.Y = height;
 		canvas->justResized = true;
 	}
 
@@ -386,13 +386,13 @@ namespace AstralCanvas
 			swapchainCreateInfo.oldSwapchain = NULL;
 			swapchainCreateInfo.presentationMode = presentMode;
 			result->isVSync = swapchainCreateInfo.presentationMode == LGFXSwapchainPresentationMode_Fifo;
-			int w;
-			int h;
-			glfwGetFramebufferSize(handle, &w, &h);
-			swapchainCreateInfo.width = (u32)w;
-			swapchainCreateInfo.height = (u32)h;
-			swapchainCreateInfo.nativeWindowHandle = LGFXGetNativeWindowHandle(handle);
-			swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay();
+			
+			glfwGetFramebufferSize(handle, &result->frameBufferSize.X, &result->frameBufferSize.Y);
+			swapchainCreateInfo.width = (u32)result->frameBufferSize.X;
+			swapchainCreateInfo.height = (u32)result->frameBufferSize.Y;
+			swapchainCreateInfo.createSurfaceFunc = (LGFXCreateWindowSurfaceFunc)&glfwCreateWindowSurface;
+			swapchainCreateInfo.windowHandle = handle;//nativeWindowHandle = LGFXGetNativeWindowHandle(handle);
+			//swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay(handle);
 
 			result->swapchain = LGFXCreateSwapchain(applicationInstance.device, &swapchainCreateInfo);
 			result->mainCommandBuffer = LGFXCreateCommandBuffer(applicationInstance.device, false);

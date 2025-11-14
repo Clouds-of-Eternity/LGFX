@@ -370,10 +370,13 @@ typedef struct
     LGFXBackendType backend;
 } LGFXInstanceCreateInfo;
 
+def_delegate(LGFXCreateWindowSurfaceFunc, i32, LGFXDevice, void *, void *, void **);
 typedef struct
 {
-    void *nativeWindowHandle;
-    void *displayHandle;
+    void *windowHandle;
+    //void *nativeWindowHandle;
+    //void *displayHandle;
+    LGFXCreateWindowSurfaceFunc createSurfaceFunc;
     LGFXSwapchainPresentationMode presentationMode;
     u32 width;
     u32 height;

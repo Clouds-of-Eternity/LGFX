@@ -28,6 +28,7 @@ namespace AstralCanvas
 		LGFXCommandBuffer mainCommandBuffer;
 
 		Maths::Point2 resolution;
+		Maths::Point2 frameBufferSize;
 		Maths::Point2 position;
 		InputState windowInputState;
 		string windowTitle;
