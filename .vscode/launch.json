@@ -13,6 +13,18 @@
             "MIMode": "lldb"
         },
         {
+            "name": "Run High-Level Compute Example (MacOS)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
             "name": "Run Low-Level Triangle Example (Linux)",
             "type": "cppdbg",
             "request": "launch",

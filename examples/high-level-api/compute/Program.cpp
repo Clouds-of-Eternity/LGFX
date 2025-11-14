@@ -34,7 +34,7 @@ void Update(float deltaTime)
     {
         string title = string(GetCAllocator(), "Compute, Frames: ");
         title.Append(1.0f / deltaTime);
-        AstralCanvas::applicationInstance.windows.ptr[0].SetWindowTitle(title);
+        AstralCanvas::applicationInstance.windows.ptr[0]->SetWindowTitle(title);
         title.deinit();
         fpsTimer = 0.0f;
     }
@@ -66,8 +66,8 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     renderShader.SetShaderVariable("Matrices", matrices, sizeof(matrices));
     renderShader.SyncUniformsWithGPU(mainCmds);
 
-    LGFXSetViewport(mainCmds, {0, 0, (float)window->resolution.X, (float)window->resolution.Y});
-    LGFXSetClipArea(mainCmds, {0, 0, (u32)window->resolution.X, (u32)window->resolution.Y});
+    LGFXSetViewport(mainCmds, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
+    LGFXSetClipArea(mainCmds, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
 
     LGFXUseShaderState(mainCmds, renderShaderState);
     LGFXUseVertexBuffer(mainCmds, &outputBuffer, 1);
@@ -116,7 +116,7 @@ void Init()
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
     rpCreateInfo.outputToBackbuffer = true;
-    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0].swapchain);
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0]->swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //compute buffer
@@ -211,6 +211,6 @@ i32 main()
         string(GetCAllocator(), "Astral.Canvas"),
         0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0);
+    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Fifo);
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

@@ -29,6 +29,13 @@ project "AstralCanvasCompute"
             "comdlg32",
             "ws2_32"
         }
+    filter "system:macosx"
+        links {
+            "Cocoa.framework",
+            "IOKit.framework",
+            "CoreFoundation.framework",
+            "QuartzCore.framework"
+        }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
