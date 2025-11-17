@@ -77,7 +77,6 @@
                 "${env:HOME}/VulkanSDK/1.4.328.1/MacOS/include"
             ],
             "defines": [
-                "LINUX",
                 "MACOS",
                 "POSIX",
                 "DEBUG",
