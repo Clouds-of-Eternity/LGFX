@@ -1343,6 +1343,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		textureCreateInfo.sampleCount = 1;
 		textureCreateInfo.usage = LGFXTextureUsage_ColorAttachment;
 		result->backbufferTextures[i] = LGFXCreateTexture(device, &textureCreateInfo);
+		//result->backbufferTextures[i]->layout = LGFXTextureLayout_PresentSource;
 
 		textureCreateInfo.depth = 1;
 		textureCreateInfo.externalTextureHandle = NULL;
@@ -1570,7 +1571,7 @@ LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
 	*ptr = result;
 	return ptr;
 }
-//administer texture HRT (Free of charge)
+
 void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth)
 {
 	if (texture->layout == targetLayout)
@@ -1614,56 +1615,64 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 	VkPipelineStageFlags depthStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 	VkPipelineStageFlags sampledStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 
-	switch (memBarrier.oldLayout)
+	if (!texture->ownsHandle && texture->layout == LGFXTextureLayout_Undefined)
 	{
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-			break;
+		sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+		memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+	}
+	else
+	{
+		switch (memBarrier.oldLayout)
+		{
+			case VK_IMAGE_LAYOUT_UNDEFINED:
+				break;
 
-		case VK_IMAGE_LAYOUT_GENERAL:
-			sourceStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-			memBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_GENERAL:
+				sourceStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+				memBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+				sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			sourceStage = depthStageMask;
-			memBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				sourceStage = depthStageMask;
+				memBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-			sourceStage = depthStageMask | sampledStageMask;
-			break;
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+				sourceStage = depthStageMask | sampledStageMask;
+				break;
 
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			sourceStage = sampledStageMask;
-			break;
+			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+				sourceStage = sampledStageMask;
+				break;
 
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+				sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			memBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+				sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+				memBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_PREINITIALIZED:
-			sourceStage = VK_PIPELINE_STAGE_2_HOST_BIT;
-			memBarrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_PREINITIALIZED:
+				sourceStage = VK_PIPELINE_STAGE_2_HOST_BIT;
+				memBarrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+				sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
 
-		default:
-			LGFX_ERROR("Invalid source layout: %u\n", (u32)memBarrier.oldLayout);
-			break;
+			default:
+				LGFX_ERROR("Invalid source layout: %u\n", (u32)memBarrier.oldLayout);
+				break;
+		}
 	}
 
 	switch (memBarrier.newLayout)
@@ -2514,6 +2523,12 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 
 		free(createInfo.textures);
 	}
+	//issue: initial backbuffer texture needs to be in Undefined layout 
+	// to have the accurate transition, but needs to be PresentSrcKHR to have the
+	// accurate sourceStage/srcAccessMask synchronization.
+
+	//solution: VkLGFXTextureTransitionLayout now registers the texture with the appropriate masks/stage
+	//if the layout is undefined but the texture's handle is not owned (meaning it is a fresh backbuffer texture)
 	VkLGFXBeginRenderProgram(program, commandBuffer, program->targets[index], clearColor, autoTransitionTargetTextures);
 }
 void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXRenderTarget outputTarget, LGFXColor clearColor, bool autoTransitionTargetTextures)
