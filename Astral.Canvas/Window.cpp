@@ -82,6 +82,22 @@ namespace AstralCanvas
     {
         glfwSetWindowShouldClose((GLFWwindow*)this->handle, GLFW_FALSE);
     }
+	void *Window::GetOSWindowHandle()
+	{
+#if WINDOWS
+		return glfwGetWin32Window((GLFWwindow*)this->handle);
+#endif
+#if LINUX
+		if (glfwGetPlatform() == GLFW_PLATFORM_X11)
+		{
+			return glfwGetX11Window((GLFWwindow *)this->handle);
+		}
+		else return glfwGetWaylandWindow((GLFWwindow *)this->handle);
+#endif
+#if MACOS
+		return glfwGetCocoaWindow((GLFWwindow *)this->handle);
+#endif
+	}
 
 	void Window::SetResolution(u32 width, u32 height)
 	{

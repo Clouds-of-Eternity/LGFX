@@ -60,6 +60,7 @@ namespace AstralCanvas
 		void SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY);
 		void CloseWindow();
         void InterceptClose();
+		void *GetOSWindowHandle();
 		i32 GetCurrentMonitorFramerate();
 		Maths::Vec2 GetCurrentMonitorResolution();
 

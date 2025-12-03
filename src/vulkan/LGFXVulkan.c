@@ -2550,6 +2550,7 @@ void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer comma
 				newLayout = LGFXTextureLayout_ColorAttachmentOptimal;
 			}
 			VkLGFXTextureTransitionLayout(program->device, outputTarget->textures[i], newLayout, commandBuffer, 0, 1);
+			outputTarget->textures[i]->layout = newLayout;
 		}
 		//VkLGFXEndTemporaryCommandBuffer(program->device, tempBuffer);
 	}
@@ -2616,7 +2617,6 @@ void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer command
 				else if (program->attachments[i].outputType == LGFXRenderAttachmentOutput_ToRenderTarget)
 				{
 					textures[i]->layout = LGFXTextureLayout_ShaderReadOptimal;
-					//createInfo.textures[i] = outputSwapchain->backbufferTextures[index];
 				}
 				else
 				{
