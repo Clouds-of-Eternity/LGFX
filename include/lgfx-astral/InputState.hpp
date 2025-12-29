@@ -4,7 +4,7 @@
 #include "Maths/Vec2.hpp"
 #include "string.h"
 
-#define CONTROLLER_BUTTONS 15
+#define CONTROLLER_BUTTONS 17
 
 namespace AstralCanvas
 {
@@ -17,6 +17,8 @@ namespace AstralCanvas
         ControllerButton_Y,
         ControllerButton_L1,
         ControllerButton_R1,
+        ControllerButton_L2,
+        ControllerButton_R2,
         ControllerButton_Back,
         ControllerButton_Start,
         ControllerButton_Center,

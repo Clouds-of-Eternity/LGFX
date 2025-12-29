@@ -48,6 +48,36 @@ namespace AstralCanvas
     {
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
 
+        if (button == ControllerButton_L2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].L2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f;
+        }
+        if (button == ControllerButton_R2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].R2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f;
+        }
         if (controllerIndex == -1)
         {
             for (u32 i = 0; i < 4; i++)
@@ -66,6 +96,36 @@ namespace AstralCanvas
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
         AstralCanvas::ControllerState *oldStates = Input_GetWindow()->windowInputState.oldControllerStates;
 
+        if (button == ControllerButton_L2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].L2DownAmount > 0.1f && !oldStates[i].L2DownAmount <= 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f && !oldStates[controllerIndex].L2DownAmount <= 0.1f;
+        }
+        if (button == ControllerButton_R2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].R2DownAmount > 0.1f && !oldStates[i].R2DownAmount <= 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f && !oldStates[controllerIndex].R2DownAmount <= 0.1f;
+        }
         if (controllerIndex == -1)
         {
             for (u32 i = 0; i < 4; i++)
@@ -89,6 +149,36 @@ namespace AstralCanvas
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
         AstralCanvas::ControllerState *oldStates = Input_GetWindow()->windowInputState.oldControllerStates;
 
+        if (button == ControllerButton_L2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].L2DownAmount <= 0.1f && !oldStates[i].L2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].L2DownAmount <= 0.1f && !oldStates[controllerIndex].L2DownAmount > 0.1f;
+        }
+        if (button == ControllerButton_R2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].R2DownAmount <= 0.1f && !oldStates[i].R2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].R2DownAmount <= 0.1f && !oldStates[controllerIndex].R2DownAmount > 0.1f;
+        }
         if (controllerIndex == -1)
         {
             for (u32 i = 0; i < 4; i++)
@@ -158,27 +248,27 @@ namespace AstralCanvas
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
         
         return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f
-        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].L2DownAmount < 0.1f;
+        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].L2DownAmount <= 0.1f;
     }
     inline bool Input_ControllerIsR2Pressed(const u32 controllerIndex)
     {
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
         
         return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f
-        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].R2DownAmount < 0.1f;
+        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].R2DownAmount <= 0.1f;
     }
     inline bool Input_ControllerIsL2Released(const u32 controllerIndex)
     {
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
         
-        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount < 0.1f
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount <= 0.1f
         && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].L2DownAmount > 0.1f;
     }
     inline bool Input_ControllerIsR2Released(const u32 controllerIndex)
     {
         AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
         
-        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount < 0.1f
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount <= 0.1f
         && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].R2DownAmount > 0.1f;
     }
 }
