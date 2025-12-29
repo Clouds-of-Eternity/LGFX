@@ -17,8 +17,6 @@ namespace AstralCanvas
         ControllerButton_Y,
         ControllerButton_L1,
         ControllerButton_R1,
-        ControllerButton_L2,
-        ControllerButton_R2,
         ControllerButton_Back,
         ControllerButton_Start,
         ControllerButton_Center,
@@ -28,6 +26,8 @@ namespace AstralCanvas
         ControllerButton_DpadRight,
         ControllerButton_DpadDown,
         ControllerButton_DpadLeft,
+        ControllerButton_L2,
+        ControllerButton_R2,
         ControllerButton_MAX = 0x7FFFFFFF
     };
     enum Keys
