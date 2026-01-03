@@ -1,6 +1,6 @@
 struct VertexInput
 {
-    float3 position;
+    float4 position;
     float4 color;
 }
 
@@ -15,7 +15,7 @@ VertexOutput VertexFunction(VertexInput input)
 {
     VertexOutput result;
     result.fragColor = input.color;
-    result.vertexPosition = float4(input.position, 1.0);
+    result.vertexPosition = float4(input.position.xyz, 1.0);
     return result;
 }
 

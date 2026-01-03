@@ -11,6 +11,7 @@ LGFXBuffer indexBuffer;
 
 AstralCanvas::Shader shader;
 LGFXShaderState shaderState;
+bool initializedSuccessfully;
 
 void Update(float deltaTime)
 {
@@ -18,18 +19,21 @@ void Update(float deltaTime)
 }
 void Draw(float deltaTime, AstralCanvas::Window *window)
 {
-    LGFXSetViewport(window->mainCommandBuffer, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
-    LGFXSetClipArea(window->mainCommandBuffer, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
+    if (initializedSuccessfully)
+    {
+        LGFXSetViewport(window->mainCommandBuffer, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
+        LGFXSetClipArea(window->mainCommandBuffer, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
 
-    LGFXBeginRenderProgramSwapchain(rp, window->mainCommandBuffer, window->swapchain, {128, 128, 128, 255}, true);
+        LGFXBeginRenderProgramSwapchain(rp, window->mainCommandBuffer, window->swapchain, {128, 128, 128, 255}, true);
 
-    LGFXUseVertexBuffer(window->mainCommandBuffer, &vertexBuffer, 1);
-    LGFXUseIndexBuffer(window->mainCommandBuffer, indexBuffer, 0);
-    LGFXUseShaderState(window->mainCommandBuffer, shaderState);
+        LGFXUseVertexBuffer(window->mainCommandBuffer, &vertexBuffer, 1);
+        LGFXUseIndexBuffer(window->mainCommandBuffer, indexBuffer, 0);
+        LGFXUseShaderState(window->mainCommandBuffer, shaderState);
 
-    LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
+        LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
 
-    LGFXEndRenderProgram(rp, window->mainCommandBuffer);
+        LGFXEndRenderProgram(rp, window->mainCommandBuffer);
+    }
 }
 void PostEndDraw(float deltaTime)
 {
@@ -81,18 +85,9 @@ void Init()
 
     //vertex data
     LGFX::VertexPositionColor vertices[3] = {
-        {
-            Maths::Vec3(0.0, -1.0, 0.0),
-            Maths::Vec4(1.0, 0.0, 0.0, 1.0)
-        },
-        {
-            Maths::Vec3(-1.0, 1.0, 0.0),
-            Maths::Vec4(0.0, 1.0, 0.0, 1.0)
-        },
-        {
-            Maths::Vec3(1.0, 1.0, 0.0),
-            Maths::Vec4(0.0, 0.0, 1.0, 1.0)
-        }
+        LGFX::VertexPositionColor(Maths::Vec3(0.0, -1.0, 0.0), Maths::Vec4(1.0, 0.0, 0.0, 1.0)),
+        LGFX::VertexPositionColor(Maths::Vec3(-1.0, 1.0, 0.0), Maths::Vec4(0.0, 1.0, 0.0, 1.0)),
+        LGFX::VertexPositionColor(Maths::Vec3(1.0, 1.0, 0.0), Maths::Vec4(0.0, 0.0, 1.0, 1.0))
     };
     LGFXSetBufferDataOptimizedData(vertexBuffer, NULL, (u8*)vertices, sizeof(vertices));
 
@@ -106,6 +101,7 @@ void Init()
     if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &shader) != 0)
     {
         printf("Error loading shader json\n");
+        initializedSuccessfully = false;
     }
     fileContents.deinit();
 
@@ -142,6 +138,7 @@ void FixedUpdate(float deltaTime)
 
 i32 main()
 {
+    initializedSuccessfully = true;
     AstralCanvas::ApplicationInit(
         GetCAllocator(),
         string(GetCAllocator(), "Triangle"), 

@@ -3,6 +3,7 @@
 #include "lgfx-astral/Application.hpp"
 #include "lgfx-astral/Shader.hpp"
 #include "random.hpp"
+#include "stdint.h"
 
 #define PARTICLES_COUNT 1048576
 
@@ -24,6 +25,11 @@ struct Particle
     Maths::Vec4 position;
     Maths::Vec4 velocity;
 };
+struct ContextData
+{
+    uint32_t particlesCount;
+    float deltaTime;
+};
 
 float fpsTimer = 0.0f;
 
@@ -42,32 +48,30 @@ void Update(float deltaTime)
 void Draw(float deltaTime, AstralCanvas::Window *window)
 {
     LGFXCommandBuffer mainCmds = window->mainCommandBuffer;
+    ContextData contextData = { PARTICLES_COUNT, deltaTime };
 
     computeShader.SetShaderVariableComputeBuffer("ParticlesIn", inputBuffer);
     computeShader.SetShaderVariableComputeBuffer("ParticlesOut", outputBuffer);
-    computeShader.SetShaderVariable("TimeData", &deltaTime, sizeof(float));
+    computeShader.SetShaderVariable("Context", &contextData, sizeof(ContextData));
     computeShader.SyncUniformsWithGPU(mainCmds);
 
-    //first run compute :3
+    //first run compute
     LGFXUseShaderState(mainCmds, computeShaderState);
     LGFXDispatchCompute(mainCmds, PARTICLES_COUNT / 256, 1, 1);
 
-    //then run draw :>
+    //then run draw
     LGFXAwaitWriteFunction(mainCmds, LGFXFunctionType_Compute, LGFXFunctionOperationType_VertexBufferRead);
 
     LGFXBeginRenderProgramSwapchain(rp, mainCmds, window->swapchain, {0, 0, 0, 255}, true);
 
-    Maths::Matrix4x4 matrices[2];
-    //projection
-    matrices[0] = Maths::Matrix4x4::CreateOrthographic(80.0f, 45.0f, -1000.0f, 1000.0f);
-    //view
-    matrices[1] = Maths::Matrix4x4::Identity();
+    //view matrix (aka inverse of camera world position) is identity
+    Maths::Matrix4x4 viewProjection = Maths::Matrix4x4::CreateOrthographic(80.0f, 45.0f, -1000.0f, 1000.0f);
 
-    renderShader.SetShaderVariable("Matrices", matrices, sizeof(matrices));
+    renderShader.SetShaderVariable("ViewProjection", &viewProjection, sizeof(Maths::Matrix4x4));
     renderShader.SyncUniformsWithGPU(mainCmds);
 
     LGFXSetViewport(mainCmds, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
-    LGFXSetClipArea(mainCmds, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
+    LGFXSetClipArea(mainCmds, {0, 0, (uint32_t)window->frameBufferSize.X, (uint32_t)window->frameBufferSize.Y});
 
     LGFXUseShaderState(mainCmds, renderShaderState);
     LGFXUseVertexBuffer(mainCmds, &outputBuffer, 1);
@@ -100,7 +104,7 @@ void Init()
     attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
     attachments.samples = 1;
 
-    i32 firstAttachment = 0;
+    int32_t firstAttachment = 0;
 
     LGFXRenderPassInfo passes;
     passes.colorAttachmentIDs = &firstAttachment;
@@ -130,13 +134,13 @@ void Init()
     Random random = Random::FromTime();
 
     Particle *particles = (Particle *)malloc(sizeof(Particle) * PARTICLES_COUNT);
-    for (u32 i = 0; i < PARTICLES_COUNT; i++)
+    for (uint32_t i = 0; i < PARTICLES_COUNT; i++)
     {
         particles[i] = {0};
         particles[i].position = Maths::Vec4(random.NextFloatRange(-40.0f, 40.0f), random.NextFloatRange(-22.5f, 22.5f), random.NextFloatRange(0.0f, 5.0f), 0.0f);
-        particles[i].velocity = Maths::Vec4(random.NextFloatRange(-2.0f, 2.0f), random.NextFloatRange(-2.0f, 2.0f), 0.0f, 0.0f);
+        particles[i].velocity = Maths::Vec4(random.NextFloatRange(-2.0f, 2.0f), random.NextFloatRange(-2.0f, 2.0f), 0.0f, random.NextFloat(1.0f));
     }
-    LGFXSetBufferDataOptimizedData(inputBuffer, NULL, (u8 *)particles, sizeof(Particle) * PARTICLES_COUNT);
+    LGFXSetBufferDataOptimizedData(inputBuffer, NULL, (uint8_t *)particles, sizeof(Particle) * PARTICLES_COUNT);
 
     LGFXVertexElementFormat formats[2];
     formats[0] = LGFXVertexElementFormat_Vector4;
@@ -146,22 +150,22 @@ void Init()
     //index buffer
     bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_IndexBuffer | LGFXBufferUsage_TransferDest);
     bufferCreateInfo.memoryUsage = LGFXMemoryUsage_GPU_ONLY;
-    bufferCreateInfo.size = sizeof(u32) * 6;
+    bufferCreateInfo.size = sizeof(uint32_t) * 6;
     indexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
 
-    u32 indices[] = {0, 1, 2, 3, 0, 2};
-    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8*)indices, 6 * sizeof(u32));
+    uint32_t indices[] = {0, 1, 2, 3, 0, 2};
+    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (uint8_t*)indices, 6 * sizeof(uint32_t));
 
     //shader
-    string fileContents = io::ReadFile(GetCAllocator(), "UpdateParticles.shaderobj", false);
-    if (AstralCanvas::CreateShaderFromString(device, GetCAllocator(), fileContents, &computeShader) != 0)
+    string fileContents = io::ReadFile(GetCAllocator(), "UpdateParticles.func", false);
+    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &computeShader) != 0)
     {
         printf("Error loading compute shader json\n");
     }
     fileContents.deinit();
 
-    fileContents = io::ReadFile(GetCAllocator(), "DrawParticles.shaderobj", false);
-    if (AstralCanvas::CreateShaderFromString(device, GetCAllocator(), fileContents, &renderShader) != 0)
+    fileContents = io::ReadFile(GetCAllocator(), "DrawParticles.func", false);
+    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &renderShader) != 0)
     {
         printf("Error loading render shader json\n");
     }
@@ -177,13 +181,15 @@ void Init()
     stateCreateInfo.dynamicLineWidth = false;
     stateCreateInfo.dynamicViewportScissor = true;
     stateCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
-    stateCreateInfo.blendState = ALPHA_BLEND;
+    stateCreateInfo.blendState = {};
     stateCreateInfo.depthTest = false;
     stateCreateInfo.depthWrite = false;
     stateCreateInfo.vertexDeclarations = &particleAsVertexDecl;
     stateCreateInfo.vertexDeclarationCount = 1;
     stateCreateInfo.forRenderProgram = rp;
     stateCreateInfo.forRenderPass = 0;
+    stateCreateInfo.entryPoint1Name = "VertexFunction";
+    stateCreateInfo.entryPoint2Name = "FragmentFunction";
     renderShaderState = LGFXCreateShaderState(device, &stateCreateInfo);
 }
 void Deinit()
@@ -203,7 +209,7 @@ void FixedUpdate(float deltaTime)
 
 }
 
-i32 main()
+int32_t main()
 {
     AstralCanvas::ApplicationInit(
         GetCAllocator(),
@@ -211,6 +217,6 @@ i32 main()
         string(GetCAllocator(), "Astral.Canvas"),
         0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Fifo);
+    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Mailbox);
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

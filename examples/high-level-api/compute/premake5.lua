@@ -17,8 +17,8 @@ project "AstralCanvasCompute"
     }
 
     postbuildcommands { 
-        "{COPYFILE}	 \"DrawParticles.shaderobj\" \"bin/%{cfg.buildcfg}/DrawParticles.shaderobj\"",
-        "{COPYFILE}	 \"UpdateParticles.shaderobj\" \"bin/%{cfg.buildcfg}/UpdateParticles.shaderobj\""
+        "{COPYFILE}	 \"DrawParticles.func\" \"bin/%{cfg.buildcfg}/DrawParticles.func\"",
+        "{COPYFILE}	 \"UpdateParticles.func\" \"bin/%{cfg.buildcfg}/UpdateParticles.func\""
     }
 
     filter "system:windows"
