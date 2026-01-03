@@ -137,6 +137,8 @@ VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
 			return VK_FILTER_LINEAR;
 		case LGFXFilterType_Point:
 			return VK_FILTER_NEAREST;
+		case LGFXFilterType_Cubic:
+			return VK_FILTER_CUBIC_EXT;
 	}
 }
 VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
