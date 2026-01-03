@@ -7,7 +7,7 @@ namespace AstralCanvas
 {
     inline AstralCanvas::Window *Input_GetWindow()
     {
-        return &AstralCanvas::applicationInstance.windows.ptr[0];
+        return AstralCanvas::applicationInstance.currentWindow;
     }
     inline bool Input_IsKeyDown(const Keys key)
     {
@@ -44,37 +44,180 @@ namespace AstralCanvas
         Input_GetWindow()->windowInputState.SimulateMouseRelease(button);
     }
 
-    inline bool Input_ControllerIsButtonDown(const u32 controllerIndex, const ControllerButtons button)
+    inline bool Input_ControllerIsButtonDown(const i32 controllerIndex, const ControllerButtons button)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].buttonStates[(usize)button];
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+
+        if (button == ControllerButton_L2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].L2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f;
+        }
+        if (button == ControllerButton_R2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].R2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f;
+        }
+        if (controllerIndex == -1)
+        {
+            for (u32 i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].buttonStates[(usize)button])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else return states[controllerIndex].connected && states[controllerIndex].buttonStates[(usize)button];
     }
-    inline bool Input_ControllerIsButtonPress(const u32 controllerIndex, const ControllerButtons button)
+    inline bool Input_ControllerIsButtonPress(const i32 controllerIndex, const ControllerButtons button)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].buttonStates[(usize)button]
-        && !Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].buttonStates[(usize)button];
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        AstralCanvas::ControllerState *oldStates = Input_GetWindow()->windowInputState.oldControllerStates;
+
+        if (button == ControllerButton_L2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].L2DownAmount > 0.1f && oldStates[i].L2DownAmount <= 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f && oldStates[controllerIndex].L2DownAmount <= 0.1f;
+        }
+        if (button == ControllerButton_R2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].R2DownAmount > 0.1f && oldStates[i].R2DownAmount <= 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f && oldStates[controllerIndex].R2DownAmount <= 0.1f;
+        }
+        if (controllerIndex == -1)
+        {
+            for (u32 i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].buttonStates[(usize)button] && !oldStates[i].buttonStates[(usize)button])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else
+        {
+            return states[controllerIndex].connected && 
+            states[controllerIndex].buttonStates[(usize)button]
+            && !oldStates[controllerIndex].buttonStates[(usize)button];
+        }
     }
-    inline bool Input_ControllerIsButtonRelease(const u32 controllerIndex, const ControllerButtons button)
+    inline bool Input_ControllerIsButtonRelease(const i32 controllerIndex, const ControllerButtons button)
     {
-        return !Input_GetWindow()->windowInputState.controllerStates[controllerIndex].buttonStates[(usize)button]
-        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].buttonStates[(usize)button];
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        AstralCanvas::ControllerState *oldStates = Input_GetWindow()->windowInputState.oldControllerStates;
+
+        if (button == ControllerButton_L2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].L2DownAmount <= 0.1f && oldStates[i].L2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].L2DownAmount <= 0.1f && oldStates[controllerIndex].L2DownAmount > 0.1f;
+        }
+        if (button == ControllerButton_R2)
+        {
+            if (controllerIndex == -1)
+            {
+                for (u32 i = 0; i < 4; i++)
+                {
+                    if (states[i].connected && states[i].R2DownAmount <= 0.1f && oldStates[i].R2DownAmount > 0.1f)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return states[controllerIndex].connected && states[controllerIndex].R2DownAmount <= 0.1f && oldStates[controllerIndex].R2DownAmount > 0.1f;
+        }
+        if (controllerIndex == -1)
+        {
+            for (u32 i = 0; i < 4; i++)
+            {
+                if (states[i].connected && !states[i].buttonStates[(usize)button] && oldStates[i].buttonStates[(usize)button])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else
+        {
+            return states[controllerIndex].connected && 
+            !states[controllerIndex].buttonStates[(usize)button]
+            && oldStates[controllerIndex].buttonStates[(usize)button];
+        }
     }
 
     inline bool Input_ControllerIsR2Down(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].R2DownAmount > -0.99f;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f;
     }
     inline float Input_ControllerGetR2DownAmount(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].R2DownAmount;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount;
     }
 
     inline bool Input_ControllerIsL2Down(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].L2DownAmount > -0.99f;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f;
     }
     inline float Input_ControllerGetL2DownAmount(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].L2DownAmount;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount;
     }
 
     inline bool Input_ControllerIsConnected(const u32 controllerIndex)
@@ -83,31 +226,49 @@ namespace AstralCanvas
     }
     inline Maths::Vec2 Input_GetLeftStickAxis(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].leftStickAxis;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        if (!states[controllerIndex].connected)
+        {
+            return Maths::Vec2();
+        }
+        return states[controllerIndex].leftStickAxis;
     }
     inline Maths::Vec2 Input_GetRightStickAxis(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].rightStickAxis;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        if (!states[controllerIndex].connected)
+        {
+            return Maths::Vec2();
+        }
+        return states[controllerIndex].rightStickAxis;
     }
 
     inline bool Input_ControllerIsL2Pressed(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].L2DownAmount > 0.1f
-        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].L2DownAmount < 0.1f;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f
+        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].L2DownAmount <= 0.1f;
     }
     inline bool Input_ControllerIsR2Pressed(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].R2DownAmount > 0.1f
-        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].R2DownAmount < 0.1f;
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f
+        && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].R2DownAmount <= 0.1f;
     }
     inline bool Input_ControllerIsL2Released(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].L2DownAmount < 0.1f
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount <= 0.1f
         && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].L2DownAmount > 0.1f;
     }
     inline bool Input_ControllerIsR2Released(const u32 controllerIndex)
     {
-        return Input_GetWindow()->windowInputState.controllerStates[controllerIndex].R2DownAmount < 0.1f
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.controllerStates;
+        
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount <= 0.1f
         && Input_GetWindow()->windowInputState.oldControllerStates[controllerIndex].R2DownAmount > 0.1f;
     }
 }

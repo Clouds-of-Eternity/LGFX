@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include "GLFW/glfw3.h"
-#include "GLFW/glfw3native.h"
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
 #include "lgfx-astral/Application.hpp"
@@ -59,7 +57,7 @@ namespace AstralCanvas
 		this->swapchain = NULL;
         this->mainCommandBuffer = NULL;
         this->isDisposed = false;
-		this->justResized = NULL;
+		this->justResized = false;
 	}
 
 	void Window::deinit()
@@ -84,32 +82,65 @@ namespace AstralCanvas
     {
         glfwSetWindowShouldClose((GLFWwindow*)this->handle, GLFW_FALSE);
     }
+	void *Window::GetOSWindowHandle()
+	{
+#if WINDOWS
+		return glfwGetWin32Window((GLFWwindow*)this->handle);
+#endif
+#if LINUX
+		if (glfwGetPlatform() == GLFW_PLATFORM_X11)
+		{
+			return glfwGetX11Window((GLFWwindow *)this->handle);
+		}
+		else return glfwGetWaylandWindow((GLFWwindow *)this->handle);
+#endif
+#if MACOS
+		return glfwGetCocoaWindow((GLFWwindow *)this->handle);
+#endif
+	}
 
 	void Window::SetResolution(u32 width, u32 height)
 	{
+		if (isFullscreen)
+		{
+			return;
+		}
+		i32 w;
+		i32 h;
+		GLFWmonitor *monitor = GetCurrentMonitor((GLFWwindow *)handle);
+		glfwGetMonitorWorkarea(monitor, NULL, NULL, &w, &h);
+
 		glfwSetWindowSize((GLFWwindow *)handle, (u32)width, (u32)height);
+		if (isMaximized)
+		{
+			glfwRestoreWindow((GLFWwindow *)handle);
+			isMaximized = false;
+		}
 	}
 	void Window::SetPosition(float posX, float posY)
 	{
-		glfwSetWindowPos((GLFWwindow *)handle, posX, posY);
+		if (handle != NULL) glfwSetWindowPos((GLFWwindow *)handle, posX, posY);
 	}
 	void Window::SetMousePosition(float posX, float posY)
 	{
-		glfwSetCursorPos((GLFWwindow*)handle, (double)posX, (double)posY);
+		if (handle != NULL) glfwSetCursorPos((GLFWwindow*)handle, (double)posX, (double)posY);
 	}
 	void Window::SetMouseState(WindowMouseState state)
 	{
-		if (state == AstralCanvas::WindowMouseState_Default)
+		if (handle != NULL)
 		{
-			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
-		else if (state == AstralCanvas::WindowMouseState_Disabled)
-		{
-			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		}
-		else
-		{ 
-			glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+			if (state == AstralCanvas::WindowMouseState_Default)
+			{
+				glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			}
+			else if (state == AstralCanvas::WindowMouseState_Disabled)
+			{
+				glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			}
+			else
+			{ 
+				glfwSetInputMode((GLFWwindow *)handle, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+			}
 		}
 	}
 	Maths::Vec2 Window::GetOSContentScale()
@@ -131,6 +162,25 @@ namespace AstralCanvas
 			default:
 				return WindowMouseState_Hidden;
 		}
+	}
+	void Window::SetWindowIcon(void *iconData, u32 iconWidth, u32 iconHeight)
+	{
+		if (iconData == NULL)
+		{
+			glfwSetWindowIcon((GLFWwindow *)handle, 0, NULL);
+		}
+		else
+		{
+			GLFWimage image = {};
+			image.pixels = (u8 *)iconData;
+			image.width = (i32)iconWidth;
+			image.height = (i32)iconHeight;
+			glfwSetWindowIcon((GLFWwindow *)handle, 1, &image);
+		}
+	}
+	void Window::SetCanDragResize(bool canDragResize)
+	{
+		glfwSetWindowAttrib((GLFWwindow *)handle, GLFW_RESIZABLE, canDragResize ? 1 : 0);
 	}
 	void Window::SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY)
 	{
@@ -160,7 +210,7 @@ namespace AstralCanvas
 		{
 			Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 			canvas->windowInputState.ClearAllInputStates();
-			canvas->isMaximized = false;
+			//canvas->isMaximized = false;
 		}
 	}
 	/// Called when the window is maximized or restored to original size
@@ -168,12 +218,12 @@ namespace AstralCanvas
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		glfwGetWindowSize(window, &canvas->resolution.X, &canvas->resolution.Y);
-		canvas->isMaximized = (bool)maximized;
+		canvas->isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
 	}
 	void OnTextInput(GLFWwindow* window, u32 characterUnicode)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
-		canvas->windowInputState.textInputCharacter = characterUnicode;
+		canvas->windowInputState.textInputCharacters.Add(characterUnicode);
 
 		if (canvas->onTextInputFunc != NULL)
 		{
@@ -206,7 +256,7 @@ namespace AstralCanvas
 		{
 			if (action == GLFW_PRESS || action == GLFW_REPEAT)
 			{
-				canvas->windowInputState.textInputCharacter = '\b';
+				canvas->windowInputState.textInputCharacters.Add('\b');
 			}
 		}
 		if (canvas->onKeyInteractFunc != NULL)
@@ -273,8 +323,8 @@ namespace AstralCanvas
 	void WindowFramebufferSizeChanged(GLFWwindow* window, i32 width, i32 height)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
-        canvas->resolution.X = width;
-        canvas->resolution.Y = height;
+        canvas->frameBufferSize.X = width;
+        canvas->frameBufferSize.Y = height;
 		canvas->justResized = true;
 	}
 
@@ -296,7 +346,7 @@ namespace AstralCanvas
         }
     }
 
-	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight)
+	bool WindowInit(IAllocator allocator, const char *name, Window * result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
 		*result = {};
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -307,21 +357,24 @@ namespace AstralCanvas
 		if (fullscreen)
 		{
 			toFullscreenOn = glfwGetPrimaryMonitor();
+			const GLFWvidmode *vidMode = glfwGetVideoMode(toFullscreenOn);
+			width = vidMode->width;
+			height = vidMode->height;
 		}
 		
 		GLFWwindow* handle = glfwCreateWindow(width, height, name, toFullscreenOn, NULL);
 
-		if (iconData != NULL)
-		{
-			GLFWimage image;
-			image.width = iconWidth;
-			image.height = iconHeight;
-			image.pixels = (u8 *)iconData;
-			glfwSetWindowIcon(handle, 1, &image);
-		}
-
 		if (handle)
 		{
+			if (iconData != NULL)
+			{
+				GLFWimage image;
+				image.width = iconWidth;
+				image.height = iconHeight;
+				image.pixels = (u8 *)iconData;
+				glfwSetWindowIcon(handle, 1, &image);
+			}
+			
 			*result = Window();
 			result->windowInputState = AstralCanvas::InputState(allocator);
 			result->handle = handle;
@@ -347,14 +400,15 @@ namespace AstralCanvas
 			//create swapchain
 			LGFXSwapchainCreateInfo swapchainCreateInfo = {0};
 			swapchainCreateInfo.oldSwapchain = NULL;
-			swapchainCreateInfo.presentationMode = LGFXSwapchainPresentationMode_Fifo;
-			int w;
-			int h;
-			glfwGetFramebufferSize(handle, &w, &h);
-			swapchainCreateInfo.width = (u32)w;
-			swapchainCreateInfo.height = (u32)h;
-			swapchainCreateInfo.nativeWindowHandle = LGFXGetNativeWindowHandle(handle);
-			swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay();
+			swapchainCreateInfo.presentationMode = presentMode;
+			result->isVSync = swapchainCreateInfo.presentationMode == LGFXSwapchainPresentationMode_Fifo;
+			
+			glfwGetFramebufferSize(handle, &result->frameBufferSize.X, &result->frameBufferSize.Y);
+			swapchainCreateInfo.width = (u32)result->frameBufferSize.X;
+			swapchainCreateInfo.height = (u32)result->frameBufferSize.Y;
+			swapchainCreateInfo.createSurfaceFunc = (LGFXCreateWindowSurfaceFunc)&glfwCreateWindowSurface;
+			swapchainCreateInfo.windowHandle = handle;//nativeWindowHandle = LGFXGetNativeWindowHandle(handle);
+			//swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay(handle);
 
 			result->swapchain = LGFXCreateSwapchain(applicationInstance.device, &swapchainCreateInfo);
 			result->mainCommandBuffer = LGFXCreateCommandBuffer(applicationInstance.device, false);
@@ -367,6 +421,10 @@ namespace AstralCanvas
 
 	void Window::SetWindowTitle(string title)
 	{
+		if (handle == NULL)
+		{
+			return;
+		}
 		glfwSetWindowTitle((GLFWwindow*)handle, title.buffer);
 		windowTitle = title;
 	}
@@ -376,6 +434,15 @@ namespace AstralCanvas
 		const GLFWvidmode *vidmode = glfwGetVideoMode(monitor);
 
 		return vidmode->refreshRate;
+	}
+	Maths::Vec2 Window::GetCurrentMonitorResolution()
+	{
+		GLFWmonitor *monitor = GetCurrentMonitor((GLFWwindow*)handle);
+		i32 w;
+		i32 h;
+		glfwGetMonitorWorkarea(monitor, NULL, NULL, &w, &h);
+
+		return Maths::Vec2((float)w, (float)h);
 	}
 	void Window::SetMaximized(bool value)
 	{

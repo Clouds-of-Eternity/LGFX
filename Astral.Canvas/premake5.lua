@@ -10,9 +10,9 @@ project "Astral.Canvas.LGFX"
         "../include",
         "../Astral.Core/Astral.Core",
         "../src",
-        "../dependencies/glfw/include"
+        "../dependencies/glfw/include",
+        "%{VULKAN_SDK}/include"
     }
-    defines "GLFW_EXPOSE_NATIVE_WIN32"
     links {"LGFX", "GLFW" }
 
     files {

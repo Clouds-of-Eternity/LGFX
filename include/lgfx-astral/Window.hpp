@@ -28,11 +28,13 @@ namespace AstralCanvas
 		LGFXCommandBuffer mainCommandBuffer;
 
 		Maths::Point2 resolution;
+		Maths::Point2 frameBufferSize;
 		Maths::Point2 position;
 		InputState windowInputState;
 		string windowTitle;
 		bool isFullscreen;
 		bool isMaximized;
+		bool isVSync;
 		bool justResized;
 
 		WindowOnTextInputFunction onTextInputFunc;
@@ -53,10 +55,14 @@ namespace AstralCanvas
 		void SetFullscreen(bool value);
 		void SetMouseState(WindowMouseState state);
 		WindowMouseState GetMouseState();
+		void SetWindowIcon(void *iconData, u32 iconWidth, u32 iconHeight);
+		void SetCanDragResize(bool canDragResize);
 		void SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY);
 		void CloseWindow();
         void InterceptClose();
+		void *GetOSWindowHandle();
 		i32 GetCurrentMonitorFramerate();
+		Maths::Vec2 GetCurrentMonitorResolution();
 
 		void SetResolution(u32 width, u32 height);
 		void SetPosition(float posX, float posY);
@@ -64,5 +70,5 @@ namespace AstralCanvas
 		Maths::Vec2 GetOSContentScale();
 	};
 
-	bool WindowInit(IAllocator allocator, const char *name, Window *result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight);
+	bool WindowInit(IAllocator allocator, const char *name, Window *result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
 }

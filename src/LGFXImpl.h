@@ -58,9 +58,11 @@ typedef struct LGFXSwapchainImpl
     bool invalidated;
     bool justCreated;
 
-    void *swapchain;
-    void *nativeWindowHandle;
     void *windowSurface;
+
+    void *swapchain;
+    LGFXCreateWindowSurfaceFunc createSurfaceFunc;
+    void *windowHandle;
     LGFXDevice device;
     u32 currentImageIndex;
     LGFXSwapchainPresentationMode presentMode;

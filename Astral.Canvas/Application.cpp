@@ -20,8 +20,10 @@ namespace AstralCanvas
 	}
 	Application::Application()
 	{
-		windows = collections::vector<Window>();
+		windows = collections::vector<Window *>();
+		currentWindow = NULL;
 		allocator = IAllocator{};
+		windowsArena = ArenaAllocator();
 
 		instance = NULL;
 		device = NULL;
@@ -42,16 +44,18 @@ namespace AstralCanvas
 	}
 	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow)
 	{
-		Application result;
+		Application result = {};
 		result.framesPerSecond = framesPerSecond;
 		result.allocator = allocator;
-		result.windows = vector<Window>(allocator);
+		result.windows = vector<Window *>(allocator);
 		result.appName = appName;
 		result.engineName = engineName;
 		result.appVersion = appVersion;
 		result.engineVersion = engineVersion;
 		result.timeScale = 1.0f;
 		result.fixedTimeStep = 0.02f;
+		result.windowsArena = ArenaAllocator(allocator);
+		result.shouldShutdown = false;
 		applicationInstance = result;
 
 		if (!noWindow)
@@ -82,22 +86,22 @@ namespace AstralCanvas
 			//create device
 			LGFXDeviceCreateInfo deviceCreateInfo = {0};
 			deviceCreateInfo.requiredFeatures.fillModeNonSolid = true;
-			deviceCreateInfo.requiredFeatures.wideLines = true;
+			//deviceCreateInfo.requiredFeatures.wideLines = true;
 			applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
 		}
 	}
-	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight)
+	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
-		Window result;
-		if (WindowInit(this->allocator, name, &result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight))
+		Window *result = (Window *)this->windowsArena.AsAllocator().Allocate(sizeof(Window));
+		if (WindowInit(this->windowsArena.AsAllocator(), name, result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
 		{
 			if (framesPerSecond <= -1.0f)
 			{
-				framesPerSecond = (float)result.GetCurrentMonitorFramerate();
+				framesPerSecond = (float)result->GetCurrentMonitorFramerate();
 				//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
 			}
 			windows.Add(result);
-			glfwSetWindowUserPointer((GLFWwindow*)result.handle, &windows.ptr[windows.count - 1]);
+			glfwSetWindowUserPointer((GLFWwindow*)result->handle, windows.ptr[windows.count - 1]);
 
 			return true;
 		}
@@ -110,6 +114,7 @@ namespace AstralCanvas
 	}
 	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc)
 	{
+		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
 		if (initFunc != NULL)
 		{
 			initFunc();
@@ -132,17 +137,19 @@ namespace AstralCanvas
 			fixedUpdateTimer += deltaTime;
 
 			bool runUpdate = framesPerSecond < 1.0f || updateTimer >= 1.0f / framesPerSecond;
-			if (runUpdate && !alwaysUpdate)
+			bool minimized = windows.count > 0;
+			for (u32 i = 0; i < windows.count; i++)
 			{
-				runUpdate = false;
-				for (u32 i = 0; i < windows.count; i++)
+				if (windows[i]->resolution.X > 0 && windows[i]->resolution.Y > 0)
 				{
-					if (windows[i].resolution.X > 0 && windows[i].resolution.Y > 0)
-					{
-						runUpdate = true;
-						break;
-					}
+					minimized = false;
+					break;
 				}
+			}
+			if (minimized)
+			{
+				glfwWaitEvents();
+				endTime = (float)glfwGetTime();
 			}
 
 			//fixed update
@@ -152,67 +159,69 @@ namespace AstralCanvas
 			}
 			while (fixedUpdateTimer > fixedTimeStep)
 			{
-				fixedUpdateFunc(fixedTimeStep);
+				if (!minimized || alwaysUpdate)
+				{
+					fixedUpdateFunc(fixedTimeStep);
+				}
 				fixedUpdateTimer -= fixedTimeStep;
 			}
 
-			if (runUpdate)
+			for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 			{
-				updateFunc(updateTimer * this->timeScale);
-
-				for (i32 i = (i32)windows.count - 1; i >= 0; i--)
+				Window &window = *windows.ptr[i];
+				
+				if (window.resolution.X == 0 || window.resolution.Y == 0 || window.frameBufferSize.X == 0 || window.frameBufferSize.Y == 0)
 				{
-					if (windows.ptr[i].resolution.X == 0 || windows.ptr[i].resolution.Y == 0)
-					{
-						continue;
-					}
-					if (windows.ptr[i].handle != NULL && !glfwWindowShouldClose((GLFWwindow*)windows.ptr[i].handle))
-					{
-						windows.ptr[i].windowInputState.ResetPerFrameInputStates();
-					}
-					else
-					{
-						windows.ptr[i].deinit();
-						windows.RemoveAt_Swap(i);
-						continue;
-					}
-
-					//begin draw
-					if (LGFXNewFrame(device, &windows.ptr[i].swapchain, (u32)windows.ptr[i].resolution.X, (u32)windows.ptr[i].resolution.Y))
-					{
-						LGFXCommandBufferReset(windows.ptr[i].mainCommandBuffer);
-						LGFXCommandBufferBegin(windows.ptr[i].mainCommandBuffer, true);
-
-						drawFunc(deltaTime, &windows.ptr[i]);
-
-                        //end draw
-            			LGFXCommandBufferEndSwapchain(windows.ptr[i].mainCommandBuffer, windows.ptr[i].swapchain);
-						LGFXSubmitFrame(device, windows.ptr[i].swapchain);
-
-						if (postEndDrawFunc != NULL)
-						{
-							postEndDrawFunc(deltaTime);
-						}
-
-						for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
-						{
-							AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
-						}
-						AstralCanvas::allUsedShaders.Clear();
-					}
+					continue;
+				}
+				currentWindow = windows.ptr[i];
+				if (runUpdate || alwaysUpdate)
+				{
+					updateFunc(updateTimer * this->timeScale);
+				}
+				if (window.handle != NULL && !glfwWindowShouldClose((GLFWwindow*)window.handle))
+				{
+					window.windowInputState.ResetPerFrameInputStates();
+				}
+				else
+				{
+					window.deinit();
+					windows.RemoveAt_Swap(i);
+					continue;
 				}
 
-				if (windows.count == 0 && !noWindows)
+				//begin draw
+				if (LGFXNewFrame(device, &window.swapchain, (u32)window.frameBufferSize.X, (u32)window.frameBufferSize.Y))
 				{
-					break;
+					LGFXCommandBufferReset(window.mainCommandBuffer);
+					LGFXCommandBufferBegin(window.mainCommandBuffer, true);
+
+					drawFunc(deltaTime, &window);
+
+					//end draw
+					LGFXCommandBufferEndSwapchain(window.mainCommandBuffer, window.swapchain);
+					LGFXSubmitFrame(device, window.swapchain);
+
+					if (postEndDrawFunc != NULL)
+					{
+						postEndDrawFunc(deltaTime);
+					}
+
+					for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
+					{
+						AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
+					}
+					AstralCanvas::allUsedShaders.Clear();
 				}
-				updateTimer = 0.0f;
 			}
-			else
+
+			if (windows.count == 0 && !noWindows)
 			{
-				glfwWaitEvents();
-				startTime = (float)glfwGetTime();
+				break;
 			}
+			updateTimer = 0.0f;
+			
+
 			startTime = endTime;
 			endTime = (float)glfwGetTime();
 			if (this->shouldResetDeltaTimer)
@@ -225,7 +234,7 @@ namespace AstralCanvas
 				shouldStop = true;
 				for (usize i = 0; i < windows.count; i++)
 				{
-					glfwSetWindowShouldClose((GLFWwindow *)windows.ptr[i].handle, 1);
+					glfwSetWindowShouldClose((GLFWwindow *)windows[i]->handle, 1);
 				}
 			}
 		}
@@ -236,8 +245,9 @@ namespace AstralCanvas
 		{
 			deinitFunc();
 		}
+		windowsArena.deinit();
 
-        //deinitialize backend
+		//deinitialize backend
 		if (device != NULL)
 		{
 			LGFXDestroyDevice(device);

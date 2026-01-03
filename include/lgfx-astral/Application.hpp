@@ -2,7 +2,7 @@
 #include "lgfx-astral/Window.hpp"
 #include "lgfx/lgfx.h"
 #include "vector.hpp"
-#include "allocators.hpp"
+#include "ArenaAllocator.hpp"
 #include "Maths/All.h"
 #include "string.hpp"
 
@@ -15,7 +15,9 @@ namespace AstralCanvas
 
 	struct Application
 	{
-		collections::vector<Window> windows;
+		collections::vector<Window *> windows;
+		Window *currentWindow;
+		ArenaAllocator windowsArena;
 		IAllocator allocator;
 
 		LGFXInstance instance;
@@ -39,7 +41,7 @@ namespace AstralCanvas
 		float timeScale;
 
 		Application();
-		bool AddWindow(text name, i32 width, i32 height, bool resizeable, bool fullscree, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight);
+		bool AddWindow(text name, i32 width, i32 height, bool resizeable, bool fullscree, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
 		void Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc);
 		void ResetDeltaTimer();
 	};

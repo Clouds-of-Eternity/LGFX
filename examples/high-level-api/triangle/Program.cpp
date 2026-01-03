@@ -18,8 +18,8 @@ void Update(float deltaTime)
 }
 void Draw(float deltaTime, AstralCanvas::Window *window)
 {
-    LGFXSetViewport(window->mainCommandBuffer, {0, 0, (float)window->resolution.X, (float)window->resolution.Y});
-    LGFXSetClipArea(window->mainCommandBuffer, {0, 0, (u32)window->resolution.X, (u32)window->resolution.Y});
+    LGFXSetViewport(window->mainCommandBuffer, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
+    LGFXSetClipArea(window->mainCommandBuffer, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
 
     LGFXBeginRenderProgramSwapchain(rp, window->mainCommandBuffer, window->swapchain, {128, 128, 128, 255}, true);
 
@@ -62,7 +62,7 @@ void Init()
     rpCreateInfo.renderPassCount = 1;
     rpCreateInfo.renderPasses = &passes;
     rpCreateInfo.outputToBackbuffer = true;
-    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0].swapchain);
+    rpCreateInfo.maxBackbufferTexturesCount = LGFXSwapchainGetBackbufferTexturesCount(AstralCanvas::applicationInstance.windows.ptr[0]->swapchain);
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //vertex buffer
@@ -148,6 +148,6 @@ i32 main()
         string(GetCAllocator(), "Astral.Canvas"),
         0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0);
+    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Fifo);
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

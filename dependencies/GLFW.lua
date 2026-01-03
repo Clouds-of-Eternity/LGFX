@@ -72,18 +72,20 @@ project "GLFW"
             "glfw/src/osmesa_context.c",
             "glfw/src/linux_joystick.c"
         }
-        filter "options:x11"
-            defines { "_GLFW_X11" }
-            files {
-                "glfw/src/x11_init.c",
-                "glfw/src/x11_monitor.c",
-                "glfw/src/x11_window.c",
-                "glfw/src/xkb_unicode.c"
-            }
-        filter "options:wayland"
-            defines { "_GLFW_WAYLAND" }
-            files {
-                "glfw/src/wl_init.c",
-                "glfw/src/wl_monitor.c",
-                "glfw/src/wl_window.c"
-            }
+
+    filter "options:x11"
+        defines { "_GLFW_X11" }
+        files {
+            "glfw/src/x11_init.c",
+            "glfw/src/x11_monitor.c",
+            "glfw/src/x11_window.c",
+            "glfw/src/xkb_unicode.c"
+        }
+        
+    filter "options:wayland"
+        defines { "_GLFW_WAYLAND" }
+        files {
+            "glfw/src/wl_init.c",
+            "glfw/src/wl_monitor.c",
+            "glfw/src/wl_window.c"
+        }

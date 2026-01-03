@@ -371,10 +371,13 @@ typedef struct
     LGFXBackendType backend;
 } LGFXInstanceCreateInfo;
 
+def_delegate(LGFXCreateWindowSurfaceFunc, i32, LGFXDevice, void *, void *, void **);
 typedef struct
 {
-    void *nativeWindowHandle;
-    void *displayHandle;
+    void *windowHandle;
+    //void *nativeWindowHandle;
+    //void *displayHandle;
+    LGFXCreateWindowSurfaceFunc createSurfaceFunc;
     LGFXSwapchainPresentationMode presentationMode;
     u32 width;
     u32 height;
@@ -647,6 +650,7 @@ typedef struct LGFXShaderStateCreateInfo
 
 LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
+u8 LGFXGetPixelSize(LGFXTextureFormat format);
 
 LGFXFence LGFXCreateFence(LGFXDevice device, bool signalled);
 LGFXFence LGFXRentFence(LGFXDevice device, bool signalled);
@@ -657,6 +661,8 @@ void LGFXDestroyFence(LGFXFence fence);
 
 LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
 void LGFXDestroySemaphore(LGFXSemaphore semaphore);
+LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain);
+LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain);
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);
@@ -669,12 +675,14 @@ LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *in
 u32 LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain);
 void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain);
 void LGFXSwapchainInvalidate(LGFXSwapchain swapchain);
+void LGFXSwapchainSetPresentationMode(LGFXSwapchain swapchain, LGFXSwapchainPresentationMode mode);
 void LGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);
 
 LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info);
 void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth);
 void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length);
 void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip);
+void LGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, LGFXPoint3 extents, LGFXPoint3 offset, u32 toMip);
 void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip);
 void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition);
 void LGFXDestroyTexture(LGFXTexture texture);
@@ -710,13 +718,13 @@ void LGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBu
 void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
 LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info);
-LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate);
+LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatchFromTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate);
 void LGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy);
 
 LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info);
 void LGFXDestroyFunction(LGFXFunction func);
-LGFXFunctionVariableBatch LGFXFunctionGetVariableBatch(LGFXFunction function);
-LGFXFunctionVariable LGFXFunctionGetVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
+LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXFunction function);
+LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, u32 forVariableOfIndex);
 LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info);
 void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, u32 variablesCount);
 void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, u32 setIndex);

@@ -1,15 +1,16 @@
 #pragma once
-#include "Linxc.h"
+#include "vector.hpp"
 #include "denseset.hpp"
 #include "Maths/Vec2.hpp"
 #include "string.h"
 
-#define CONTROLLER_BUTTONS 15
+#define CONTROLLER_BUTTONS 17
 
 namespace AstralCanvas
 {
     enum ControllerButtons
     {
+        ControllerButton_Unknown = -1,
         ControllerButton_A,
         ControllerButton_B,
         ControllerButton_X,
@@ -24,7 +25,10 @@ namespace AstralCanvas
         ControllerButton_DpadUp,
         ControllerButton_DpadRight,
         ControllerButton_DpadDown,
-        ControllerButton_DpadLeft
+        ControllerButton_DpadLeft,
+        ControllerButton_L2,
+        ControllerButton_R2,
+        ControllerButton_MAX = 0x7FFFFFFF
     };
     enum Keys
     {
@@ -149,21 +153,24 @@ namespace AstralCanvas
         Keys_AltRight = 346,
         Keys_SuperRight = 347,
         Keys_Menu = 348,
-        Keys_LastKey = 348
+        Keys_LastKey = 348,
+        Keys_MAX = 0x7FFFFFFF
     };
     enum MouseButtons
     {
         MouseButton_Left,
         MouseButton_Right,
         MouseButton_Middle,
-        MouseButton_Other
+        MouseButton_Other,
+        MouseButtons_MAX = 0x7FFFFFFF
     };
     enum KeyState
     {
         KeyState_None,
         KeyState_Released,
         KeyState_Pressed,
-        KeyState_Repeat
+        KeyState_Repeat,
+        KeyState_MAX = 0x7FFFFFFF
     };
     struct ControllerState
     {
@@ -206,11 +213,11 @@ namespace AstralCanvas
         collections::denseset<KeyStateStatus> keyStatuses;
         collections::denseset<KeyStateStatus> mouseStatuses;
 
-        u32 textInputCharacter;
+        collections::vector<u32> textInputCharacters;
 
         inline InputState()
         {
-            textInputCharacter = 0;
+            textInputCharacters = collections::vector<u32>();
             oldControllerStates[0] = {};
             oldControllerStates[1] = {};
             oldControllerStates[2] = {};
@@ -230,7 +237,7 @@ namespace AstralCanvas
         }
         inline InputState(IAllocator allocator)
         {
-            textInputCharacter = 0;
+            textInputCharacters = collections::vector<u32>(allocator);
             oldControllerStates[0] = {};
             oldControllerStates[1] = {};
             oldControllerStates[2] = {};
@@ -289,7 +296,7 @@ namespace AstralCanvas
 
         inline void ResetPerFrameInputStates()
         {
-            textInputCharacter = '\0';
+            textInputCharacters.Clear();
             scroll = Maths::Vec2(0.0f);
             for (usize i = 0; i < keyStatuses.capacity; i++)
             {

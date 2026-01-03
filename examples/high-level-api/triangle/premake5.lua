@@ -30,6 +30,13 @@ project "AstralCanvasTriangle"
         }
     filter "system:linux"
         defines "_GLFW_X11"
+    filter "system:macosx"
+        links {
+            "Cocoa.framework",
+            "IOKit.framework",
+            "CoreFoundation.framework",
+            "QuartzCore.framework"
+        }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
