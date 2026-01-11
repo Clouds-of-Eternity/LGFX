@@ -21,7 +21,7 @@ workspace "LGFX"
     
     filter "options:clang"
         toolset "clang"
-        buildoptions { "-fpermissive", "-g", "-gcodeview" }
+        buildoptions { "-g", "-gcodeview" }
         linkoptions { "-fuse-ld=lld", "-g" }
 
     filter "system:windows"
