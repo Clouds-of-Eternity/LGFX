@@ -9,19 +9,53 @@ i32 main(i32 argc, char **argv)
     {
         return 1;
     }
-    u32 includesCount = argc - 2;
-    text *includeDirectories = NULL;
-    if (includesCount > 0)
+    //argv[0] = exe path
+    //argv[1] = compile all files in folder
+    //argv[2] = include directories
+
+    ShaderCompilerOptimizationLevel optLevel = ShaderCompilerOptimizationLevel_Default;
+
+    u32 optArgsCount = argc - 2;
+    collections::vector<char *> includeDirectories = collections::vector<char *>(GetCAllocator());
+    Scope(collections::vector<char *>, includeDirectories);
+    for (u32 i = 0; i < optArgsCount; i++)
     {
-        includeDirectories = (text *)malloc(sizeof(text) * includesCount);
-        for (u32 i = 0; i < includesCount; i++)
+        u32 index = i + 2;
+        string argString;
+        argString.buffer = argv[index];
+        argString.length = strlen(argv[index]) + 1;
+        if (argString.StartsWith("-i"))
         {
-            includeDirectories[i] = argv[i + 2];
+            includeDirectories.Add(&argString.buffer[2]);
+            printf("-Including directory %s\n", &argString.buffer[2]);
+        }
+        else if (argString.StartsWith("-O"))
+        {
+            if (argString == "-O0")
+            {
+                optLevel = ShaderCompilerOptimizationLevel_None;
+                printf("-No optimizations will be applied\n");
+            }
+            else if (argString == "-O1")
+            {
+                optLevel = ShaderCompilerOptimizationLevel_Default;
+                printf("-Some optimizations will be applied\n");
+            }
+            else if (argString == "-O2")
+            {
+                optLevel = ShaderCompilerOptimizationLevel_High;
+                printf("-Most optimizations will be applied\n");
+            }
+            else if (argString == "-O3")
+            {
+                optLevel = ShaderCompilerOptimizationLevel_Maximum;
+                printf("-All optimizations will be applied\n");
+            }
         }
     }
 
     AssetcShaderCompilerInitialize();
-    ShaderCompiler *result = ShaderCompiler_New(includeDirectories, includesCount);
+    ShaderCompiler *result = ShaderCompiler_New((text*)includeDirectories.ptr, includeDirectories.count, optLevel);
 
     ArenaAllocator arena = ArenaAllocator(GetCAllocator());
     Scope(ArenaAllocator, arena);
@@ -43,11 +77,6 @@ i32 main(i32 argc, char **argv)
                 break;
             }
         }
-    }
-
-    if (includeDirectories != NULL)
-    {
-        free(includeDirectories);
     }
 
     ShaderCompiler_Deinit(result);

@@ -19,23 +19,30 @@ void AssetcShaderCompilerUnload()
         slang::shutdown();
     }
 }
-ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount)
+ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount, ShaderCompilerOptimizationLevel optimizationLevel)
 {
     ShaderCompiler *result = (ShaderCompiler *)malloc(sizeof(ShaderCompiler));
     *result = ShaderCompiler(GetCAllocator());
 
-    slang::CompilerOptionEntry compilerOptions[2];
+    slang::CompilerOptionEntry compilerOptions[3];
 
     compilerOptions[0] = {};
     compilerOptions[0].name = slang::CompilerOptionName::Capability;
     compilerOptions[0].value.kind = slang::CompilerOptionValueKind::Int;
     compilerOptions[0].value.intValue0 = globalSession->findCapability("spvSparseResidency");
+    
     compilerOptions[1] = {};
     compilerOptions[1].name = slang::CompilerOptionName::VulkanUseEntryPointName;
+    compilerOptions[1].value.kind = slang::CompilerOptionValueKind::Int;
     compilerOptions[1].value.intValue0 = 1;
 
+    compilerOptions[2] = {};
+    compilerOptions[2].name = slang::CompilerOptionName::Optimization;
+    compilerOptions[2].value.kind = slang::CompilerOptionValueKind::Int;
+    compilerOptions[2].value.intValue0 = (SlangOptimizationLevel)optimizationLevel;
+
     slang::SessionDesc desc = slang::SessionDesc();
-    desc.compilerOptionEntryCount = 2;
+    desc.compilerOptionEntryCount = 3;
     desc.compilerOptionEntries = compilerOptions;
 
     desc.searchPathCount = includeDirectoriesCount;

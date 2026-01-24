@@ -8,6 +8,13 @@
 #include "io.hpp"
 #include "path.hpp"
 
+enum ShaderCompilerOptimizationLevel : i32
+{
+    ShaderCompilerOptimizationLevel_None,
+    ShaderCompilerOptimizationLevel_Default,
+    ShaderCompilerOptimizationLevel_High,
+    ShaderCompilerOptimizationLevel_Maximum
+};
 struct LoadedModule
 {
     slang::IModule *module;
@@ -55,7 +62,7 @@ void AssetcShaderCompilerInitialize();
 void AssetcShaderCompilerUnload();
 
 BeginExports()
-ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount);
+ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount, ShaderCompilerOptimizationLevel optimizationLevel);
 void ShaderCompiler_Deinit(ShaderCompiler *self);
 i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text outputPath);
 text ShaderCompiler_GetErrorMessages(ShaderCompiler *self);
