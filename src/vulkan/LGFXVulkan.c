@@ -2163,7 +2163,7 @@ void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize
 
 	void *result = allocateFunction(buffer->size);
 
-	LGFXBufferCreateInfo info;
+	LGFXBufferCreateInfo info = {0};
 	info.bufferUsage = LGFXBufferUsage_TransferDest;
 	info.memoryUsage = LGFXMemoryUsage_GPU_TO_CPU;
 	info.size = buffer->size;
@@ -2830,7 +2830,7 @@ LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderR
 			if (info->type == LGFXShaderResourceType_Uniform)
 			{
 				variable.valueIsOwnedBuffer = true;
-				LGFXBufferCreateInfo createInfo;
+				LGFXBufferCreateInfo createInfo = {0};
 				createInfo.size = variable.variableMetadata.size;
 				createInfo.bufferUsage = LGFXBufferUsage_UniformBuffer;
 				createInfo.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
