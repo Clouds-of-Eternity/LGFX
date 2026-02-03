@@ -19,8 +19,8 @@ typedef struct LGFXMemoryBlockImpl
 	VmaAllocationInfo vkAllocationInfo;
 } LGFXMemoryBlockImpl;
 
-LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage);
-LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage);
+LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage, text memoryIdentifierName);
+LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage, text memoryIdentifierName);
 // END
 
 // HELPER FUNCTIONS
@@ -1534,7 +1534,7 @@ LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
 
 	if (result.ownsHandle)
 	{
-		result.textureMemory = VkLGFXAllocMemoryForTexture(device, &result, LGFXMemoryUsage_GPU_ONLY);
+		result.textureMemory = VkLGFXAllocMemoryForTexture(device, &result, LGFXMemoryUsage_GPU_ONLY, info->memoryIdentifierName);
 	}
 
 	VkImageAspectFlags imageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1745,7 +1745,7 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 		VkLGFXEndTemporaryCommandBuffer(device, cmdBuffer);
 	}
 }
-LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage)
+LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage, text memoryIdentifierName)
 {
 	VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
 
@@ -1777,6 +1777,10 @@ LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture textu
     {
         LGFX_ERROR("Failed to create memory for image");
     }
+	if (memoryIdentifierName != NULL)
+	{
+		vmaSetAllocationName(vma, memoryAllocated.vkAllocation, memoryIdentifierName);
+	}
 
     vmaBindImageMemory(vma, memoryAllocated.vkAllocation, (VkImage)texture->imageHandle);
 
@@ -2100,7 +2104,7 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
 	}
 
 	result.usage = info->bufferUsage;
-	result.bufferMemory = VkLGFXAllocMemoryForBuffer(device, &result, info->memoryUsage);
+	result.bufferMemory = VkLGFXAllocMemoryForBuffer(device, &result, info->memoryUsage, info->memoryIdentifierName);
 	result.device = device;
 	result.size = info->size;
 
@@ -2181,7 +2185,7 @@ void *VkLGFXGetBufferData(LGFXBuffer buffer)
 {
 	return buffer->bufferMemory->vkAllocationInfo.pMappedData;
 }
-LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage)
+LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage, text memoryIdentifierName)
 {
     VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
     
@@ -2213,6 +2217,10 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
     {
         LGFX_ERROR("Failed to create memory for buffer\n");
     }
+	if (memoryIdentifierName != NULL)
+	{
+		vmaSetAllocationName(vma, memoryAllocated.vkAllocation, memoryIdentifierName);
+	}
 
     vmaBindBufferMemory((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, (VkBuffer)buffer->handle);
 	vmaSetAllocationName((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, "buffer");

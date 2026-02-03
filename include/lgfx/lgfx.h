@@ -441,6 +441,7 @@ typedef struct
     u32 sampleCount;
 
     void *externalTextureHandle;
+    const char *memoryIdentifierName;
 } LGFXTextureCreateInfo;
 
 typedef struct
@@ -481,6 +482,8 @@ typedef struct
     usize size;
     LGFXBufferUsage bufferUsage;
     LGFXMemoryUsage memoryUsage;
+    
+    const char *memoryIdentifierName;
 } LGFXBufferCreateInfo;
 typedef struct LGFXBufferImpl
 {
