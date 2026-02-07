@@ -189,21 +189,52 @@ namespace AstralCanvas
 	
 	Window::Window()
 	{
-		this->handle = NULL;
-		this->position = Point2(0);
-		this->resolution = Point2(0);
-		this->windowInputState = {};
-		this->onTextInputFunc = NULL;
-		this->onKeyInteractFunc = NULL;
-        this->onDropFunc = NULL;
-        this->onCloseFunc = NULL;
-		this->swapchain = NULL;
-        this->mainCommandBuffer = NULL;
-        this->isDisposed = false;
-		this->justResized = false;
+		customCursorHandle = NULL;
+		handle = NULL;
+		swapchain = NULL;
+		mainCommandBuffer = NULL;
+
+		resolution = Maths::Point2();
+		frameBufferSize = Maths::Point2();
+		position = Maths::Point2();
+		windowInputState = {};
+		windowTitle = string();
+		isFullscreen = false;
+		isMaximized = false;
+		isVSync = false;
+		justResized = false;
+
+		onTextInputFunc = NULL;
+		onKeyInteractFunc = NULL;
+        onDropFunc = NULL;
+        onCloseFunc = NULL;
+
+		isDisposed = false;
 	}
 	Window::Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
+		customCursorHandle = NULL;
+		handle = NULL;
+		swapchain = NULL;
+		mainCommandBuffer = NULL;
+
+		resolution = Maths::Point2();
+		frameBufferSize = Maths::Point2();
+		position = Maths::Point2();
+		windowInputState = {};
+		windowTitle = string();
+		isFullscreen = false;
+		isMaximized = false;
+		isVSync = false;
+		justResized = false;
+
+		onTextInputFunc = NULL;
+		onKeyInteractFunc = NULL;
+        onDropFunc = NULL;
+        onCloseFunc = NULL;
+
+		isDisposed = false;
+		
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, (i32)resizeable);
 		glfwWindowHint(GLFW_MAXIMIZED, (i32)maximized);
