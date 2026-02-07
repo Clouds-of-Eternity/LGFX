@@ -6,6 +6,9 @@
 #include "option.hpp"
 #include "string.hpp"
 
+struct GLFWwindow;
+typedef GLFWwindow WindowImpl;
+
 namespace AstralCanvas
 {
 	enum WindowMouseState
@@ -23,7 +26,7 @@ namespace AstralCanvas
 	struct Window
 	{
 		void *customCursorHandle;
-		void *handle;
+		WindowImpl *handle;
 		LGFXSwapchain swapchain;
 		LGFXCommandBuffer mainCommandBuffer;
 
@@ -45,6 +48,8 @@ namespace AstralCanvas
 		bool isDisposed;
 
 		Window();
+		Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
+
 		void deinit();
 		inline Maths::Rectangle AsRectangle()
 		{
@@ -69,6 +74,4 @@ namespace AstralCanvas
 		void SetMousePosition(float X, float Y);
 		Maths::Vec2 GetOSContentScale();
 	};
-
-	bool WindowInit(IAllocator allocator, const char *name, Window *result, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
 }

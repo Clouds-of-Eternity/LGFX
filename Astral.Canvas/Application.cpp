@@ -42,21 +42,19 @@ namespace AstralCanvas
 		fixedTimeStep = 0.0f;
 		timeScale = 1.0f;
 	}
-	void ApplicationInit(IAllocator allocator, string appName, string engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow)
+	Application::Application(IAllocator allocator, text appName, text engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow)
 	{
-		Application result = {};
-		result.framesPerSecond = framesPerSecond;
-		result.allocator = allocator;
-		result.windows = vector<Window *>(allocator);
-		result.appName = appName;
-		result.engineName = engineName;
-		result.appVersion = appVersion;
-		result.engineVersion = engineVersion;
-		result.timeScale = 1.0f;
-		result.fixedTimeStep = 0.02f;
-		result.windowsArena = ArenaAllocator(allocator);
-		result.shouldShutdown = false;
-		applicationInstance = result;
+		this->framesPerSecond = framesPerSecond;
+		this->allocator = allocator;
+		this->windows = vector<Window *>(allocator);
+		this->appName = string(allocator, appName);
+		this->engineName = string(allocator, engineName);
+		this->appVersion = appVersion;
+		this->engineVersion = engineVersion;
+		this->timeScale = 1.0f;
+		this->fixedTimeStep = 0.02f;
+		this->windowsArena = ArenaAllocator(allocator);
+		this->shouldShutdown = false;
 
 		if (!noWindow)
 		{
@@ -68,9 +66,9 @@ namespace AstralCanvas
 			const char **extensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
 
 			LGFXInstanceCreateInfo instanceCreateInfo = {0};
-			instanceCreateInfo.appName = appName.buffer;
+			instanceCreateInfo.appName = appName;
 			instanceCreateInfo.appVersion = appVersion;
-			instanceCreateInfo.engineName = engineName.buffer;
+			instanceCreateInfo.engineName = engineName;
 			instanceCreateInfo.engineVersion = engineVersion;
 	#if DEBUG
 			instanceCreateInfo.runtimeErrorChecking = true;
@@ -81,38 +79,47 @@ namespace AstralCanvas
 			instanceCreateInfo.enabledExtensionsCount = extensionsCount;
 			instanceCreateInfo.enabledExtensions = extensions;
 
-			applicationInstance.instance = LGFXCreateInstance(&instanceCreateInfo);
+			this->instance = LGFXCreateInstance(&instanceCreateInfo);
 
 			//create device
 			LGFXDeviceCreateInfo deviceCreateInfo = {0};
 			deviceCreateInfo.requiredFeatures.fillModeNonSolid = true;
 			//deviceCreateInfo.requiredFeatures.wideLines = true;
-			applicationInstance.device = LGFXCreateDevice(applicationInstance.instance, &deviceCreateInfo);
+			this->device = LGFXCreateDevice(this->instance, &deviceCreateInfo);
 		}
 	}
 	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
 		Window *result = (Window *)this->windowsArena.AsAllocator().Allocate(sizeof(Window));
-		if (WindowInit(this->windowsArena.AsAllocator(), name, result, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode))
-		{
-			if (framesPerSecond <= -1.0f)
-			{
-				framesPerSecond = (float)result->GetCurrentMonitorFramerate();
-				//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
-			}
-			windows.Add(result);
-			glfwSetWindowUserPointer((GLFWwindow*)result->handle, windows.ptr[windows.count - 1]);
 
-			return true;
+		const GLFWvidmode *vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		if (width == 0)
+		{
+			width = vidMode->width;
 		}
-		return false;
+		if (height == 0)
+		{
+			height = vidMode->height;
+		}
+		*result = Window(this->windowsArena.AsAllocator(), name, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode);
+		
+		if (framesPerSecond <= -1.0f)
+		{
+			framesPerSecond = (float)result->GetCurrentMonitorFramerate();
+			//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
+		}
+
+		windows.Add(result);
+		glfwSetWindowUserPointer((GLFWwindow*)result->handle, result);
+
+		return true;
 	}
 	void Application::ResetDeltaTimer()
 	{
 		glfwSetTime(0.0);
 		shouldResetDeltaTimer = true;
 	}
-	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationInitFunction initFunc, ApplicationDeinitFunction deinitFunc)
+	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc)
 	{
 		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
 		if (initFunc != NULL)

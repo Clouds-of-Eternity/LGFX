@@ -139,10 +139,10 @@ void FixedUpdate(float deltaTime)
 i32 main()
 {
     initializedSuccessfully = true;
-    AstralCanvas::ApplicationInit(
+    AstralCanvas::applicationInstance = AstralCanvas::Application(
         GetCAllocator(),
-        string(GetCAllocator(), "Triangle"), 
-        string(GetCAllocator(), "Astral.Canvas"),
+        "Triangle", 
+        "Astral.Canvas",
         0, 0, 0.0f, false);
 
     AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Fifo);

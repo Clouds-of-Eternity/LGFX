@@ -211,10 +211,10 @@ void FixedUpdate(float deltaTime)
 
 int32_t main()
 {
-    AstralCanvas::ApplicationInit(
+    AstralCanvas::applicationInstance = AstralCanvas::Application(
         GetCAllocator(),
-        string(GetCAllocator(), "Compute"), 
-        string(GetCAllocator(), "Astral.Canvas"),
+        "Compute", 
+        "Astral.Canvas",
         0, 0, 0.0f, false);
 
     AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Mailbox);
