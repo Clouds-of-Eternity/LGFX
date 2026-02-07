@@ -231,7 +231,6 @@ namespace AstralCanvas
 			}
 			
 			this->windowInputState = AstralCanvas::InputState(allocator);
-			this->handle = handle;
 			this->resolution = Point2(width, height);
 			this->isFullscreen = fullscreen;
 			this->isMaximized = maximized;
