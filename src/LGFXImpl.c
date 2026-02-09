@@ -288,6 +288,7 @@ LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain)
         return VkLGFXSwapchainGetAwaitRenderedSemaphore(swapchain);
     }
     LGFX_ERROR("LGFXSwapchainGetAwaitRenderedSemaphore: Unknown backend\n");
+    return NULL; // return something temporary
 }
 LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
 {
@@ -296,6 +297,7 @@ LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
         return VkLGFXSwapchainGetAwaitPresentedSemaphore(swapchain);
     }
     LGFX_ERROR("LGFXSwapchainGetAwaitPresentedSemaphore: Unknown backend\n");
+    return NULL; // return something temporary
 }
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
