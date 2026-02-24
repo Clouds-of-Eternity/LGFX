@@ -58,7 +58,7 @@ struct ShaderCompiler
     }
 };
 
-void AssetcShaderCompilerInitialize();
+bool AssetcShaderCompilerInitialize();
 void AssetcShaderCompilerUnload();
 
 BeginExports()

@@ -3,13 +3,15 @@
 #include "scope.hpp"
 
 slang::IGlobalSession *globalSession;
-void AssetcShaderCompilerInitialize()
+bool AssetcShaderCompilerInitialize()
 {
     auto createSessionResult = slang::createGlobalSession(&globalSession);
     if (createSessionResult != SLANG_OK)
     {
         globalSession = NULL;
+        return false;
     }
+    return true;
 }
 void AssetcShaderCompilerUnload()
 {
@@ -21,6 +23,7 @@ void AssetcShaderCompilerUnload()
 }
 ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount, ShaderCompilerOptimizationLevel optimizationLevel)
 {
+    assert(globalSession != NULL);
     ShaderCompiler *result = (ShaderCompiler *)malloc(sizeof(ShaderCompiler));
     *result = ShaderCompiler(GetCAllocator());
 
@@ -190,11 +193,18 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text out
 
     errored = module == NULL;
 
-    if (errored && diagnostics)
+    if (errored)
     {
-        self->errors.AppendLine((text)diagnostics->getBufferPointer());
-        diagnostics->Release();
-        diagnostics = NULL;
+        if (diagnostics)
+        {
+            self->errors.AppendLine((text)diagnostics->getBufferPointer());
+            diagnostics->Release();
+            diagnostics = NULL;
+        }
+        else
+        {
+            self->errors.AppendLine("Unknown error encountered");
+        }
         return 1;
     }
     LoadedModule loaded = {};
