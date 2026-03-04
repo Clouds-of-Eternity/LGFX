@@ -1935,6 +1935,11 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
     bufferImageCopy.bufferImageHeight = 0;
 
     bufferImageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+	if (from->format >= LGFXTextureFormat_Depth16Unorm)
+	{
+		bufferImageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
     bufferImageCopy.imageSubresource.mipLevel = toMip;
     bufferImageCopy.imageSubresource.baseArrayLayer = 0;
     bufferImageCopy.imageSubresource.layerCount = 1;
