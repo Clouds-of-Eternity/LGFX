@@ -115,6 +115,8 @@ VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationM
 			return VK_PRESENT_MODE_IMMEDIATE_KHR;
 		case LGFXSwapchainPresentationMode_Mailbox:
 			return VK_PRESENT_MODE_MAILBOX_KHR;
+		default:
+			return VK_PRESENT_MODE_FIFO_KHR;
 	}
 }
 VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMode)
@@ -127,6 +129,8 @@ VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMo
 			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		case LGFXSamplerRepeatMode_ClampToStaticColor:
 			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	}
 }
 VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
@@ -139,6 +143,8 @@ VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
 			return VK_FILTER_NEAREST;
 		case LGFXFilterType_Cubic:
 			return VK_FILTER_CUBIC_EXT;
+		default:
+			return VK_FILTER_NEAREST;
 	}
 }
 VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
@@ -159,6 +165,9 @@ VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
 			return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		case LGFXSamplerBorderColor_TransparentBlackInt:
 			return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
+
+		default:
+			return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 	}
 }
 

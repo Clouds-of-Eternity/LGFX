@@ -327,15 +327,23 @@ namespace AstralCanvas
 		return glfwGetWin32Window((GLFWwindow*)this->handle);
 #endif
 #if LINUX
+#ifdef X11
 		if (glfwGetPlatform() == GLFW_PLATFORM_X11)
 		{
-			return glfwGetX11Window((GLFWwindow *)this->handle);
+			return (void *)glfwGetX11Window((GLFWwindow *)this->handle);
 		}
-		else return glfwGetWaylandWindow((GLFWwindow *)this->handle);
+#endif
+#ifdef WAYLAND
+		if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND)
+		{
+			return glfwGetWaylandWindow((GLFWwindow *)this->handle);
+		}
+#endif
 #endif
 #if MACOS
 		return glfwGetCocoaWindow((GLFWwindow *)this->handle);
 #endif
+return NULL;
 	}
 
 	void Window::SetResolution(u32 width, u32 height)
