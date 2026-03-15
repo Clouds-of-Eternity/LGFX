@@ -1,7 +1,7 @@
 #include "lgfx-astral/Shader.hpp"
 #include <math.h>
 #include <stdio.h>
-#include "scope.hpp"
+#include "Scope.hpp"
 
 using namespace Json;
 

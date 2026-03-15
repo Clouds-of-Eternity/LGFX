@@ -2,7 +2,7 @@
 #include "lgfx-astral/lgfx-astral-types.hpp"
 #include "lgfx-astral/Application.hpp"
 #include "lgfx-astral/Shader.hpp"
-#include "random.hpp"
+#include "Random.hpp"
 #include "stdint.h"
 
 #define PARTICLES_COUNT 1048576

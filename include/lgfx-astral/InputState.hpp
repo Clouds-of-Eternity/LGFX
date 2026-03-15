@@ -1,6 +1,6 @@
 #pragma once
 #include "List.hpp"
-#include "denseset.hpp"
+#include "DenseSet.hpp"
 #include "Maths/Vec2.hpp"
 #include "string.h"
 
@@ -210,8 +210,8 @@ namespace AstralCanvas
         Maths::Vec2 worldMousePosition;
         Maths::Vec2 scroll;
         
-        collections::denseset<KeyStateStatus> keyStatuses;
-        collections::denseset<KeyStateStatus> mouseStatuses;
+        collections::DenseSet<KeyStateStatus> keyStatuses;
+        collections::DenseSet<KeyStateStatus> mouseStatuses;
 
         collections::List<u32> textInputCharacters;
 
@@ -232,8 +232,8 @@ namespace AstralCanvas
             worldMousePosition = Maths::Vec2(0.0f, 0.0f);
             scroll = Maths::Vec2(0.0f, 0.0f);
 
-            keyStatuses = collections::denseset<KeyStateStatus>();
-            mouseStatuses = collections::denseset<KeyStateStatus>();
+            keyStatuses = collections::DenseSet<KeyStateStatus>();
+            mouseStatuses = collections::DenseSet<KeyStateStatus>();
         }
         inline InputState(IAllocator allocator)
         {
@@ -252,8 +252,8 @@ namespace AstralCanvas
             worldMousePosition = Maths::Vec2(0.0f, 0.0f);
             scroll = Maths::Vec2(0.0f, 0.0f);
 
-            keyStatuses = collections::denseset<KeyStateStatus>(allocator);
-            mouseStatuses = collections::denseset<KeyStateStatus>(allocator);
+            keyStatuses = collections::DenseSet<KeyStateStatus>(allocator);
+            mouseStatuses = collections::DenseSet<KeyStateStatus>(allocator);
         }
         inline bool IsKeyDown(Keys key)
         {

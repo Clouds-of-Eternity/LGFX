@@ -1,6 +1,6 @@
 #include "ShaderCompiler.hpp"
 #include "Json.hpp"
-#include "scope.hpp"
+#include "Scope.hpp"
 
 slang::IGlobalSession *globalSession;
 bool AssetcShaderCompilerInitialize()

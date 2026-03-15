@@ -6,7 +6,7 @@
 #include "List.hpp"
 #include "ArenaAllocator.hpp"
 #include "io.hpp"
-#include "path.hpp"
+#include "Path.hpp"
 
 enum ShaderCompilerOptimizationLevel : i32
 {

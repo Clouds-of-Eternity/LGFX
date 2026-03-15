@@ -1,7 +1,7 @@
 #include "ShaderCompiler.hpp"
 #include "io.hpp"
 #include <stdio.h>
-#include "scope.hpp"
+#include "Scope.hpp"
 
 i32 main(i32 argc, char **argv)
 {

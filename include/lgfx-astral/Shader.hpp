@@ -1,7 +1,7 @@
 #pragma once
-#include "allocators.hpp"
+#include "Allocators.hpp"
 #include "lgfx/lgfx.h"
-#include "denseset.hpp"
+#include "DenseSet.hpp"
 #include "List.hpp"
 #include "Json.hpp"
 

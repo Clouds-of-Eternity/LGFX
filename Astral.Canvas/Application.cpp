@@ -7,8 +7,6 @@
 #include "lgfx/lgfx-glfw.h"
 #include "lgfx-astral/Shader.hpp"
 
-using namespace collections;
-
 namespace AstralCanvas
 {
 	Application applicationInstance;
@@ -46,7 +44,7 @@ namespace AstralCanvas
 	{
 		this->framesPerSecond = framesPerSecond;
 		this->allocator = allocator;
-		this->windows = vector<Window *>(allocator);
+		this->windows = collections::List<Window *>(allocator);
 		this->appName = string(allocator, appName);
 		this->engineName = string(allocator, engineName);
 		this->appVersion = appVersion;
