@@ -1,5 +1,5 @@
 #include "lgfx-astral/Application.hpp"
-#include "array.hpp"
+#include "Array.hpp"
 #include "string.hpp"
 #include "lgfx-astral/Input.hpp"
 #include "GLFW/glfw3.h"
@@ -20,7 +20,7 @@ namespace AstralCanvas
 	}
 	Application::Application()
 	{
-		windows = collections::vector<Window *>();
+		windows = collections::List<Window *>();
 		currentWindow = NULL;
 		allocator = IAllocator{};
 		windowsArena = ArenaAllocator();

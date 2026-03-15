@@ -1,5 +1,5 @@
 #pragma once
-#include "vector.hpp"
+#include "List.hpp"
 #include "denseset.hpp"
 #include "Maths/Vec2.hpp"
 #include "string.h"
@@ -213,11 +213,11 @@ namespace AstralCanvas
         collections::denseset<KeyStateStatus> keyStatuses;
         collections::denseset<KeyStateStatus> mouseStatuses;
 
-        collections::vector<u32> textInputCharacters;
+        collections::List<u32> textInputCharacters;
 
         inline InputState()
         {
-            textInputCharacters = collections::vector<u32>();
+            textInputCharacters = collections::List<u32>();
             oldControllerStates[0] = {};
             oldControllerStates[1] = {};
             oldControllerStates[2] = {};
@@ -237,7 +237,7 @@ namespace AstralCanvas
         }
         inline InputState(IAllocator allocator)
         {
-            textInputCharacters = collections::vector<u32>(allocator);
+            textInputCharacters = collections::List<u32>(allocator);
             oldControllerStates[0] = {};
             oldControllerStates[1] = {};
             oldControllerStates[2] = {};

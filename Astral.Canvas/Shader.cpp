@@ -7,7 +7,7 @@ using namespace Json;
 
 namespace AstralCanvas
 {
-    collections::vector<Shader *> allUsedShaders = collections::vector<Shader *>(GetCAllocator());
+    collections::List<Shader *> allUsedShaders = collections::List<Shader *>(GetCAllocator());
 
     Shader::Shader()
     {
@@ -16,7 +16,7 @@ namespace AstralCanvas
         uniforms = ShaderVariables();
 
         this->descriptorForThisDrawCall = 0;
-        this->variableBatches = collections::vector<LGFXFunctionVariableBatch>();
+        this->variableBatches = collections::List<LGFXFunctionVariableBatch>();
     }
     Shader::Shader(IAllocator allocator)
     {
@@ -25,7 +25,7 @@ namespace AstralCanvas
         uniforms = ShaderVariables(allocator);
 
         this->descriptorForThisDrawCall = 0;
-        this->variableBatches = collections::vector<LGFXFunctionVariableBatch>(allocator);
+        this->variableBatches = collections::List<LGFXFunctionVariableBatch>(allocator);
     }
     void ShaderResource::deinit()
     {
@@ -210,7 +210,7 @@ namespace AstralCanvas
         allUsedShaders.Add(this);
     }
 
-    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::vector<AstralCanvas::ShaderResource> &result)//, LGFXShaderInputAccessFlags accessedBy)
+    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::List<AstralCanvas::ShaderResource> &result)//, LGFXShaderInputAccessFlags accessedBy)
     {
         u32 maxBinding = 0;
         for (usize i = 0; i < variables->arrayElements.length; i++)
@@ -238,7 +238,7 @@ namespace AstralCanvas
             newResource.resource.binding = binding;
             newResource.resource.set = elem->GetProperty("set")->GetUint32();
             //newResource.resource.accessedBy = accessedBy;
-            newResource.states = collections::vector<LGFXFunctionVariable>(allocator);
+            newResource.states = collections::List<LGFXFunctionVariable>(allocator);
 
             Json::JsonElement *optElem = elem->GetProperty("arrayLength");
             if (optElem != NULL)
@@ -320,7 +320,7 @@ namespace AstralCanvas
                     newResource.resource.type = LGFXShaderResourceType_Uniform;
 
                     newResource.nameStr = name;
-                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    newResource.states = collections::List<LGFXFunctionVariable>(results->allocator);
 
                     results->Add(newResource); //->Insert((usize)binding, newResource);
                 }
@@ -360,7 +360,7 @@ namespace AstralCanvas
                     newResource.resource.size = 0;
 
                     newResource.nameStr = name;
-                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    newResource.states = collections::List<LGFXFunctionVariable>(results->allocator);
                     
                     results->Add(newResource);
                 }
@@ -399,7 +399,7 @@ namespace AstralCanvas
                     newResource.resource.size = 0;
 
                     newResource.nameStr = name;
-                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    newResource.states = collections::List<LGFXFunctionVariable>(results->allocator);
                     results->Add(newResource);
                 }
             }
@@ -438,7 +438,7 @@ namespace AstralCanvas
                     newResource.resource.size = 0;
 
                     newResource.nameStr = name;
-                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    newResource.states = collections::List<LGFXFunctionVariable>(results->allocator);
                     results->Add(newResource);
                 }
             }
@@ -475,7 +475,7 @@ namespace AstralCanvas
                     newResource.resource.size = 0;
 
                     newResource.nameStr = name;
-                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    newResource.states = collections::List<LGFXFunctionVariable>(results->allocator);
                     results->Add(newResource);
                 }
             }
@@ -512,7 +512,7 @@ namespace AstralCanvas
                     newResource.resource.size = 0;
 
                     newResource.nameStr = name;
-                    newResource.states = collections::vector<LGFXFunctionVariable>(results->allocator);
+                    newResource.states = collections::List<LGFXFunctionVariable>(results->allocator);
                     results->Add(newResource);
                 }
             }

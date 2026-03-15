@@ -1,6 +1,6 @@
 #pragma once
 #include "Linxc.h"
-#include "hashmap.hpp"
+#include "HashMap.hpp"
 #include "lgfx-astral/Shader.hpp"
 #include "lgfx/lgfx.h"
 
@@ -29,7 +29,7 @@ namespace AstralCanvas
     struct ShaderState
     {
         LGFXShaderStateCreateInfo createInfo;
-        collections::hashmap<ShaderStateBindZone, LGFXShaderState> zoneToInstance;
+        collections::HashMap<ShaderStateBindZone, LGFXShaderState> zoneToInstance;
         LGFXDevice device;
 
         ShaderState();

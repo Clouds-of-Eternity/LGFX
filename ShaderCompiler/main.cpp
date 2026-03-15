@@ -16,8 +16,8 @@ i32 main(i32 argc, char **argv)
     ShaderCompilerOptimizationLevel optLevel = ShaderCompilerOptimizationLevel_Default;
 
     u32 optArgsCount = argc - 2;
-    collections::vector<char *> includeDirectories = collections::vector<char *>(GetCAllocator());
-    Scope(collections::vector<char *>, includeDirectories);
+    collections::List<char *> includeDirectories = collections::List<char *>(GetCAllocator());
+    Scope(collections::List<char *>, includeDirectories);
     for (u32 i = 0; i < optArgsCount; i++)
     {
         u32 index = i + 2;

@@ -2,7 +2,7 @@
 #include "allocators.hpp"
 #include "lgfx/lgfx.h"
 #include "denseset.hpp"
-#include "vector.hpp"
+#include "List.hpp"
 #include "Json.hpp"
 
 namespace AstralCanvas
@@ -31,12 +31,12 @@ namespace AstralCanvas
     {
         string nameStr;
         LGFXShaderResource resource;
-        collections::vector<LGFXFunctionVariable> states;
+        collections::List<LGFXFunctionVariable> states;
 
         void deinit();
     };
 
-    typedef collections::vector<AstralCanvas::ShaderResource> ShaderVariables;
+    typedef collections::List<AstralCanvas::ShaderResource> ShaderVariables;
 
     struct Shader
     {
@@ -47,7 +47,7 @@ namespace AstralCanvas
         ShaderVariables uniforms;
 
         usize descriptorForThisDrawCall;
-        collections::vector<LGFXFunctionVariableBatch> variableBatches;
+        collections::List<LGFXFunctionVariableBatch> variableBatches;
         collections::Array<ShaderMaterialExport> usedMaterials;
 
         Shader();
@@ -66,11 +66,11 @@ namespace AstralCanvas
         void SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer computeBuffer);
     };
 
-    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::vector<AstralCanvas::ShaderResource> &result);
+    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::List<AstralCanvas::ShaderResource> &result);
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
 
     usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
     usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
 
-    extern collections::vector<Shader *> allUsedShaders;
+    extern collections::List<Shader *> allUsedShaders;
 }

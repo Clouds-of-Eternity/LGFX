@@ -6,12 +6,12 @@ namespace AstralCanvas
     {
         this->device = NULL;
         this->createInfo = {};
-        this->zoneToInstance = collections::hashmap<AstralCanvas::ShaderStateBindZone, LGFXShaderState>();
+        this->zoneToInstance = collections::HashMap<AstralCanvas::ShaderStateBindZone, LGFXShaderState>();
     }
     ShaderState::ShaderState(IAllocator allocator, LGFXDevice device, LGFXShaderStateCreateInfo createInfo)
     {
         this->createInfo = createInfo;
-        this->zoneToInstance = collections::hashmap<AstralCanvas::ShaderStateBindZone, LGFXShaderState>(allocator, &ShaderStateBindZoneHash, &ShaderStateBindZoneEql);
+        this->zoneToInstance = collections::HashMap<AstralCanvas::ShaderStateBindZone, LGFXShaderState>(allocator, &ShaderStateBindZoneHash, &ShaderStateBindZoneEql);
         this->device = device;
     }
     void ShaderState::deinit()

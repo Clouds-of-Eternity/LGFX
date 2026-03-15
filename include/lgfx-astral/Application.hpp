@@ -1,7 +1,7 @@
 #pragma once
 #include "lgfx-astral/Window.hpp"
 #include "lgfx/lgfx.h"
-#include "vector.hpp"
+#include "List.hpp"
 #include "ArenaAllocator.hpp"
 #include "Maths/All.h"
 
@@ -13,7 +13,7 @@ namespace AstralCanvas
 
 	struct Application
 	{
-		collections::vector<Window *> windows;
+		collections::List<Window *> windows;
 		Window *currentWindow;
 		ArenaAllocator windowsArena;
 		IAllocator allocator;
