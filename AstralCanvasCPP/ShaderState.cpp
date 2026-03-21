@@ -1,4 +1,4 @@
-#include "lgfx-astral/ShaderState.hpp"
+#include "AstralCanvasHPP/ShaderState.hpp"
 
 namespace AstralCanvas
 {

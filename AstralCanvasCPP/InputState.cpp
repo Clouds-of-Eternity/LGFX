@@ -1,5 +1,5 @@
 #include "GLFW/glfw3.h"
-#include "lgfx-astral/InputState.hpp"
+#include "AstralCanvasHPP/InputState.hpp"
 
 namespace AstralCanvas
 {

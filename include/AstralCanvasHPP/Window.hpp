@@ -1,5 +1,5 @@
 #pragma once
-#include "lgfx-astral/InputState.hpp"
+#include "AstralCanvasHPP/InputState.hpp"
 #include "lgfx/lgfx.h"
 #include "Maths/All.h"
 #include "Linxc.h"

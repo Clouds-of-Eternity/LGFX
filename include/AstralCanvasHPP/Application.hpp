@@ -1,5 +1,5 @@
 #pragma once
-#include "lgfx-astral/Window.hpp"
+#include "AstralCanvasHPP/Window.hpp"
 #include "lgfx/lgfx.h"
 #include "List.hpp"
 #include "ArenaAllocator.hpp"

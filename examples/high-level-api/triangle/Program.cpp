@@ -1,7 +1,6 @@
 #include "Linxc.h"
-#include "lgfx-astral/lgfx-astral-types.hpp"
-#include "lgfx-astral/Application.hpp"
-#include "lgfx-astral/Shader.hpp"
+#include "AstralCanvasHPP/Application.hpp"
+#include "AstralCanvasHPP/Shader.hpp"
 
 LGFXRenderProgram rp;
 
@@ -39,12 +38,32 @@ void PostEndDraw(float deltaTime)
 {
 
 }
+struct VertexPositionColor
+{
+    Maths::Vec4 position;
+    Maths::Vec4 color;
+
+    inline VertexPositionColor(Maths::Vec3 position, Maths::Vec4 color)
+    {
+        this->position = Maths::Vec4(position, 0.0f);
+        this->color = color;
+    }
+};
+
+inline LGFXVertexDeclaration GetVertexPositionColorDecl()
+{
+    LGFXVertexElementFormat formats[2] = {
+        LGFXVertexElementFormat_Vector4,
+        LGFXVertexElementFormat_Vector4
+    };
+    return LGFXCreateVertexDeclaration(formats, 2, false, true);
+}
 void Init()
 {
     LGFXDevice device = AstralCanvas::applicationInstance.device;
 
     //render program
-    LGFXRenderAttachmentInfo attachments;
+    LGFXRenderAttachmentInfo attachments = {};
     attachments.clear = true;
     attachments.format = LGFXTextureFormat_BGRA8Unorm;
     attachments.outputType = LGFXRenderAttachmentOutput_ToScreen;
@@ -52,7 +71,7 @@ void Init()
 
     i32 firstAttachment = 0;
 
-    LGFXRenderPassInfo passes;
+    LGFXRenderPassInfo passes = {};
     passes.colorAttachmentIDs = &firstAttachment;
     passes.colorAttachmentsCount = 1;
     passes.depthAttachmentID = -1;
@@ -60,7 +79,7 @@ void Init()
     passes.readAttachmentsCount = 0;
     passes.resolveAttachmentID = -1;
 
-    LGFXRenderProgramCreateInfo rpCreateInfo;
+    LGFXRenderProgramCreateInfo rpCreateInfo = {};
     rpCreateInfo.attachmentsCount = 1;
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
@@ -70,10 +89,10 @@ void Init()
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //vertex buffer
-    LGFXBufferCreateInfo bufferCreateInfo;
+    LGFXBufferCreateInfo bufferCreateInfo = {};
     bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_VertexBuffer | LGFXBufferUsage_TransferDest);
     bufferCreateInfo.memoryUsage = LGFXMemoryUsage_GPU_ONLY;
-    bufferCreateInfo.size = sizeof(LGFX::VertexPositionColor) * 3;
+    bufferCreateInfo.size = sizeof(VertexPositionColor) * 3;
     vertexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
 
     //index buffer
@@ -81,13 +100,13 @@ void Init()
     bufferCreateInfo.size = sizeof(u32) * 3;
     indexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
 
-    vertexDecl = LGFX::GetVertexPositionColorDecl();
+    vertexDecl = GetVertexPositionColorDecl();
 
     //vertex data
-    LGFX::VertexPositionColor vertices[3] = {
-        LGFX::VertexPositionColor(Maths::Vec3(0.0, -1.0, 0.0), Maths::Vec4(1.0, 0.0, 0.0, 1.0)),
-        LGFX::VertexPositionColor(Maths::Vec3(-1.0, 1.0, 0.0), Maths::Vec4(0.0, 1.0, 0.0, 1.0)),
-        LGFX::VertexPositionColor(Maths::Vec3(1.0, 1.0, 0.0), Maths::Vec4(0.0, 0.0, 1.0, 1.0))
+    VertexPositionColor vertices[3] = {
+        VertexPositionColor(Maths::Vec3(0.0, -1.0, 0.0), Maths::Vec4(1.0, 0.0, 0.0, 1.0)),
+        VertexPositionColor(Maths::Vec3(-1.0, 1.0, 0.0), Maths::Vec4(0.0, 1.0, 0.0, 1.0)),
+        VertexPositionColor(Maths::Vec3(1.0, 1.0, 0.0), Maths::Vec4(0.0, 0.0, 1.0, 1.0))
     };
     LGFXSetBufferDataOptimizedData(vertexBuffer, NULL, (u8*)vertices, sizeof(vertices));
 

@@ -1,4 +1,4 @@
-project "Astral.Canvas.LGFX"
+project "AstralCanvasCPP"
     kind "StaticLib"
     language "C++"
     rtti "Off"

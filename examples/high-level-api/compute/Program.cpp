@@ -1,7 +1,6 @@
 #include "Linxc.h"
-#include "lgfx-astral/lgfx-astral-types.hpp"
-#include "lgfx-astral/Application.hpp"
-#include "lgfx-astral/Shader.hpp"
+#include "AstralCanvasHPP/Application.hpp"
+#include "AstralCanvasHPP/Shader.hpp"
 #include "Random.hpp"
 #include "stdint.h"
 
@@ -114,7 +113,7 @@ void Init()
     passes.readAttachmentsCount = 0;
     passes.resolveAttachmentID = -1;
 
-    LGFXRenderProgramCreateInfo rpCreateInfo;
+    LGFXRenderProgramCreateInfo rpCreateInfo = {};
     rpCreateInfo.attachmentsCount = 1;
     rpCreateInfo.attachments = &attachments;
     rpCreateInfo.renderPassCount = 1;
@@ -124,7 +123,7 @@ void Init()
     rp = LGFXCreateRenderProgram(device, &rpCreateInfo);
 
     //compute buffer
-    LGFXBufferCreateInfo bufferCreateInfo;
+    LGFXBufferCreateInfo bufferCreateInfo = {};
     bufferCreateInfo.bufferUsage = (LGFXBufferUsage)(LGFXBufferUsage_StorageBuffer | LGFXBufferUsage_VertexBuffer | LGFXBufferUsage_TransferDest);
     bufferCreateInfo.memoryUsage = LGFXMemoryUsage_GPU_ONLY;
     bufferCreateInfo.size = sizeof(Particle) * PARTICLES_COUNT;

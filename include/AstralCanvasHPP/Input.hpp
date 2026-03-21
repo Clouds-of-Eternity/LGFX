@@ -1,5 +1,5 @@
 #pragma once
-#include "lgfx-astral/Application.hpp"
+#include "AstralCanvasHPP/Application.hpp"
 #include "InputState.hpp"
 #include "Maths/Vec2.hpp"
 

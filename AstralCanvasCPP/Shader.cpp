@@ -1,4 +1,4 @@
-#include "lgfx-astral/Shader.hpp"
+#include "AstralCanvasHPP/Shader.hpp"
 #include <math.h>
 #include <stdio.h>
 #include "Scope.hpp"

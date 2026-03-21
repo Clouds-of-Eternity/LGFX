@@ -5,10 +5,12 @@
             "includePath": [
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/src",
+                "${workspaceFolder}/Astral.Canvas",
                 "${workspaceFolder}/dependencies/glfw/include",
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",
-                "C:/VulkanSDK/1.4.328.1/Include"
+                "${workspaceFolder}/Astral.Core/Astral.Base",
+                "C:/VulkanSDK/1.4.341.1/Include"
             ],
             "defines": [
                 "WINDOWS",
@@ -19,8 +21,7 @@
                 "GLFW_EXPOSE_NATIVE_WIN32"
             ],
             "cStandard": "c17",
-            "cppStandard": "c++17",
-            "windowsSdkVersion": "10.0.19041.0"
+            "cppStandard": "c++17"
         },
         {
             "name": "Linux (X11)",

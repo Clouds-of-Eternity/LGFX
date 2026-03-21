@@ -46,7 +46,8 @@ workspace "LGFX"
 
     include("src")
 
-    include("Astral.Canvas")
+    -- include("AstralCanvasC")
+    include("AstralCanvasCPP")
     
     include("ShaderCompiler")
 

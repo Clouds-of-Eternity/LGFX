@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
-#include "lgfx-astral/Application.hpp"
+#include "AstralCanvasHPP/Application.hpp"
 
 using namespace Maths;
 

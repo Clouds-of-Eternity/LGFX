@@ -1,11 +1,11 @@
-#include "lgfx-astral/Application.hpp"
+#include "AstralCanvasHPP/Application.hpp"
 #include "Array.hpp"
 #include "string.hpp"
-#include "lgfx-astral/Input.hpp"
+#include "AstralCanvasHPP/Input.hpp"
 #include "GLFW/glfw3.h"
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
-#include "lgfx-astral/Shader.hpp"
+#include "AstralCanvasHPP/Shader.hpp"
 
 namespace AstralCanvas
 {

@@ -25,31 +25,6 @@
             "MIMode": "lldb"
         },
         {
-            "name": "Run Low-Level Triangle Example (Linux)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
             "name": "Run High-Level Triangle Example (Linux)",
             "type": "cppdbg",
             "request": "launch",
@@ -123,17 +98,6 @@
                     "ignoreFailures": true
                 }
             ]
-        },
-        {
-            "name": "Run Low-Level Triangle Example",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
-            "environment": [],
-            "console": "externalTerminal"
         },
         {
             "name": "Run High-Level Triangle Example",

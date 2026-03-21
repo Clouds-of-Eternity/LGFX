@@ -1,7 +1,7 @@
 #pragma once
 #include "Linxc.h"
 #include "HashMap.hpp"
-#include "lgfx-astral/Shader.hpp"
+#include "AstralCanvasHPP/Shader.hpp"
 #include "lgfx/lgfx.h"
 
 namespace AstralCanvas

@@ -9,7 +9,7 @@ project "AstralCanvasTriangle"
         "../../../Astral.Core/Astral.Core",
         "../../../dependencies/glfw/include"
     }
-    links {"LGFX", "Astral.Canvas.LGFX", "GLFW"}
+    links {"LGFX", "AstralCanvasCPP", "GLFW"}
 
     files {
         "Program.cpp",
