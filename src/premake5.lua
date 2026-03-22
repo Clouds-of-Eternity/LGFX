@@ -9,6 +9,7 @@ project "LGFX"
     includedirs {
         "../include",
         "../dependencies/volk",
+        "../Astral.Core/Astral.Base",
         "%{VULKAN_SDK}/include",
         "./",
     }

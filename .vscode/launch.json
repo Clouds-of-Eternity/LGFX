@@ -1,170 +1,107 @@
 {
     "configurations": [
         {
-            "name": "Run High-Level Triangle Example (MacOS)",
+            "name": "Run CPP Triangle Example (POSIX)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle",
+            "program": "${workspaceFolder}/examples/AstralCanvasCPP/triangle/bin/Debug/TriangleCPP",
+            
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug",
+            "cwd": "${workspaceFolder}/examples/AstralCanvasCPP/triangle/bin/Debug/",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+
+            "windows": {
+                "program": "${workspaceFolder}/examples/AstralCanvasCPP/triangle/bin/Debug/TriangleCPP",
+                "MIMode": "lldb"
+            },
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "/usr/bin/gdb",
+            }
         },
         {
-            "name": "Run High-Level Compute Example (MacOS)",
+            "name": "Run CPP Compute Example (POSIX)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute",
+            "program": "${workspaceFolder}/examples/AstralCanvasCPP/compute/bin/Debug/ComputeCPP",
+            "cwd": "${workspaceFolder}/examples/AstralCanvasCPP/compute/bin/Debug",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+
+            "windows": {
+                "program": "${workspaceFolder}/examples/AstralCanvasCPP/compute/bin/Debug/ComputeCPP.exe",
+                "MIMode": "lldb"
+            },
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "/usr/bin/gdb"
+            }
         },
+
         {
-            "name": "Run Low-Level Triangle Example (Linux)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "Run High-Level Triangle Example (Linux)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "Run High-Level Compute Example (Linux)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "Run High-Level Compute Example (Release, Linux)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "Run Low-Level Triangle Example",
+            "name": "Run CPP Triangle Example (Windows VS Debugger)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/Triangle.exe",
+            "program": "${workspaceFolder}/examples/AstralCanvasCPP/triangle/bin/Debug/TriangleCPP.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/low-level-api/triangle/bin/Debug/",
+            "cwd": "${workspaceFolder}/examples/AstralCanvasCPP/triangle/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
         {
-            "name": "Run High-Level Triangle Example",
+            "name": "Run CPP Compute Example (Windows VS Debugger)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/AstralCanvasTriangle.exe",
+            "program": "${workspaceFolder}/examples/AstralCanvasCPP/compute/bin/Debug/ComputeCPP.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/triangle/bin/Debug/",
+            "cwd": "${workspaceFolder}/examples/AstralCanvasCPP/compute/bin/Debug/",
+            "environment": [],
+            "console": "externalTerminal"
+        },
+        
+        {
+            "name": "Run Triangle Example (Windows VS Debugger)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/AstralCanvas/triangle/bin/Debug/Triangle.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/examples/AstralCanvas/triangle/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
         {
-            "name": "Run High-Level Compute Example",
+            "name": "Run Compute Example (Windows VS Debugger)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/AstralCanvasCompute.exe",
+            "program": "${workspaceFolder}/examples/AstralCanvas/compute/bin/Debug/Compute.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Debug/",
+            "cwd": "${workspaceFolder}/examples/AstralCanvas/compute/bin/Debug/",
             "environment": [],
             "console": "externalTerminal"
         },
+
         {
-            "name": "Run High-Level Compute Example (Release)",
+            "name": "Compile Example Shaders",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/AstralCanvasCompute.exe",
-            "args": [],
+            "program": "${workspaceFolder}/ShaderCompiler/bin/Debug/ShaderCompiler.exe",
+            "args": ["${workspaceFolder}/examples/AstralCanvasCPP/compute"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
+            "cwd": "${workspaceFolder}/ShaderCompiler/bin/Debug",
             "environment": [],
             "console": "externalTerminal"
         }

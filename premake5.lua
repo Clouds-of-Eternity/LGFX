@@ -21,7 +21,7 @@ workspace "LGFX"
     
     filter "options:clang"
         toolset "clang"
-        buildoptions { "-fpermissive", "-g", "-gcodeview" }
+        buildoptions { "-g", "-gcodeview", "-Wno-deprecated-declarations", "-Wno-nullability-completeness", "-Werror=incompatible-pointer-types" }
         linkoptions { "-fuse-ld=lld", "-g" }
 
     filter "system:windows"
@@ -46,10 +46,12 @@ workspace "LGFX"
 
     include("src")
 
-    include("Astral.Canvas")
+    include("AstralCanvasC")
+    include("AstralCanvasCPP")
     
     include("ShaderCompiler")
 
-    include("examples/high-level-api/triangle")
-
-    include("examples/high-level-api/compute")
+    include("examples/AstralCanvasCPP/triangle")
+    include("examples/AstralCanvasCPP/compute")
+    include("examples/AstralCanvas/triangle")
+    include("examples/AstralCanvas/compute")

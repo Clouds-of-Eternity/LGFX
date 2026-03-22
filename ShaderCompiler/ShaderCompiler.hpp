@@ -1,12 +1,37 @@
 #pragma once
 #include "slang/slang.h"
-#include "string.hpp"
 #include "stb_sprintf.h"
 #include "StringBuilder.hpp"
-#include "vector.hpp"
+#include "List.hpp"
 #include "ArenaAllocator.hpp"
 #include "io.hpp"
-#include "path.hpp"
+#include "Path.hpp"
+
+#define FUNC_BINARY_FILE_VERSION 1
+
+enum ShaderCompilerOptimizationLevel : i32
+{
+    ShaderCompilerOptimizationLevel_None,
+    ShaderCompilerOptimizationLevel_Default,
+    ShaderCompilerOptimizationLevel_High,
+    ShaderCompilerOptimizationLevel_Maximum
+};
+enum ShaderCompilerResourceType
+{
+    ShaderCompilerResourceType_Uniform,
+    ShaderCompilerResourceType_Sampler,
+    ShaderCompilerResourceType_Texture,
+    ShaderCompilerResourceType_StructuredBuffer,
+    ShaderCompilerResourceType_InputAttachment,
+    ShaderCompilerResourceType_StorageTexture,
+    ShaderCompilerResourceType_Unknown = 0xFFFFFFFF
+};
+enum ShaderCompilerShaderStage
+{
+    ShaderCompilerShaderStage_Vertex,
+    ShaderCompilerShaderStage_Fragment,
+    ShaderCompilerShaderStage_Compute
+};
 
 struct LoadedModule
 {
@@ -51,11 +76,11 @@ struct ShaderCompiler
     }
 };
 
-void AssetcShaderCompilerInitialize();
+bool AssetcShaderCompilerInitialize();
 void AssetcShaderCompilerUnload();
 
 BeginExports()
-ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount);
+ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount, ShaderCompilerOptimizationLevel optimizationLevel);
 void ShaderCompiler_Deinit(ShaderCompiler *self);
 i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text outputPath);
 text ShaderCompiler_GetErrorMessages(ShaderCompiler *self);

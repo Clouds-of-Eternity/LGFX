@@ -1,5 +1,7 @@
 {
     "files.associations": {
+        "*.c": "c",
+        "*.h": "c",
         "*.linxc": "cpp",
         "string": "cpp",
         "xstring": "cpp",

@@ -1,0 +1,54 @@
+#pragma once
+#include "AstralCanvasHPP/Window.hpp"
+#include "lgfx/lgfx.h"
+#include "List.hpp"
+#include "ArenaAllocator.hpp"
+#include "Maths/All.h"
+
+namespace AstralCanvas
+{
+	def_delegate(ApplicationUpdateFunction, void, float);
+	def_delegate(ApplicationDrawFunction, void, float, Window *);
+	def_delegate(ApplicationVoidFunction, void);
+
+	struct Application
+	{
+		collections::List<Window *> windows;
+		Window *currentWindow;
+		ArenaAllocator windowsArena;
+		IAllocator allocator;
+
+		LGFXInstance instance;
+		LGFXDevice device;
+
+		bool alwaysUpdate;
+		bool shouldShutdown;
+
+		string appName;
+		string engineName;
+		u32 appVersion;
+		u32 engineVersion;
+		float startTime;
+		float endTime;
+		float updateTimer;
+		float fixedUpdateTimer;
+		bool shouldResetDeltaTimer;
+
+		float framesPerSecond;
+		float fixedTimeStep;
+		float timeScale;
+
+		Application();
+		Application(IAllocator allocator, text appName, text engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow);
+		
+		bool AddWindow(text name, i32 width, i32 height, bool resizeable, bool fullscree, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
+		void Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc);
+		void ResetDeltaTimer();
+	};
+
+	extern Application applicationInstance;
+
+	text GetClipboardText();
+	void SetClipboardText(text text);
+	double GetElapsedTime();
+}

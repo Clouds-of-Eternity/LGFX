@@ -5,7 +5,7 @@
 
 #include "vulkan/LGFXVulkan.h"
 
-u8 LGFXGetPixelSize(LGFXTextureFormat format)
+uint8_t LGFXGetPixelSize(LGFXTextureFormat format)
 {
     switch (format)
     {
@@ -72,14 +72,14 @@ u8 LGFXGetPixelSize(LGFXTextureFormat format)
     }
 }
 
-LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *elementFormats, u32 elementsCount, bool isPerInstance, bool tightlyPacked)
+LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *elementFormats, uint32_t elementsCount, bool isPerInstance, bool tightlyPacked)
 {
     LGFXVertexDeclaration result = {0};
     result.elements = Allocate(LGFXVertexAttribute, elementsCount);
     result.elementsCount = elementsCount;
 
-    u32 total = 0;
-    for (u32 i = 0; i < elementsCount; i++)
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < elementsCount; i++)
     {
         result.elements[i].format = elementFormats[i];
         switch(elementFormats[i])
@@ -105,7 +105,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                     {
                         if (total % 8 != 0)
                         {
-                            total = (u32)ceilf((float)total / 8.0f - 0.01f) * 8;
+                            total = (uint32_t)ceilf((float)total / 8.0f - 0.01f) * 8;
                         }
                     }
                 }
@@ -119,7 +119,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 {
                     if (total % 8 != 0)
                     {
-                        total = (u32)ceilf((float)total / 8.0f - 0.01f) * 8;
+                        total = (uint32_t)ceilf((float)total / 8.0f - 0.01f) * 8;
                     }
                 }
                 result.elements[i].offset = total;
@@ -133,8 +133,8 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 {
                     if (total % 12 != 0 && total % 16 != 0)
                     {
-                        u32 a = (u32)ceilf((float)total / 12.0f - 0.01f) * 12;
-                        u32 b = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
+                        uint32_t a = (uint32_t)ceilf((float)total / 12.0f - 0.01f) * 12;
+                        uint32_t b = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
                         total = a < b ? a : b;
                     }
                 }
@@ -148,7 +148,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 {
                     if (total % 16 != 0)
                     {
-                        total = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
+                        total = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
                     }
                 }
                 result.elements[i].offset = total;
@@ -161,7 +161,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
     }
     if (!tightlyPacked)
     {
-        total = (u32)ceilf((float)total / 16.0f - 0.01f) * 16;
+        total = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
     }
 
     result.packedSize = total;
@@ -288,6 +288,7 @@ LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain)
         return VkLGFXSwapchainGetAwaitRenderedSemaphore(swapchain);
     }
     LGFX_ERROR("LGFXSwapchainGetAwaitRenderedSemaphore: Unknown backend\n");
+    return NULL; // return something temporary
 }
 LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
 {
@@ -296,6 +297,7 @@ LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
         return VkLGFXSwapchainGetAwaitPresentedSemaphore(swapchain);
     }
     LGFX_ERROR("LGFXSwapchainGetAwaitPresentedSemaphore: Unknown backend\n");
+    return NULL; // return something temporary
 }
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
@@ -358,7 +360,7 @@ void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain)
 {
     LGFXAwaitFence(swapchain->fence);
 }
-u32 LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain)
+uint32_t LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain)
 {
     return swapchain->backbufferTexturesCount;
 }
@@ -390,7 +392,7 @@ LGFXTexture LGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
     LGFX_ERROR("LGFXCreateTexture: Unknown backend\n");
     return NULL;
 }
-void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, u32 mipToTransition, u32 mipTransitionDepth)
+void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTextureLayout targetLayout, LGFXCommandBuffer commandBuffer, uint32_t mipToTransition, uint32_t mipTransitionDepth)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -399,7 +401,7 @@ void LGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXTex
     }
     LGFX_ERROR("LGFXTextureTransitionLayout: Unknown backend\n");
 }
-void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize length)
+void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, uint8_t* bytes, size_t length)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -408,7 +410,7 @@ void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, u8* bytes, usize
     }
     LGFX_ERROR("LGFXTextureSetData: Unknown backend\n");
 }
-void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, u32 toMip)
+void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, uint32_t toMip)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -417,7 +419,7 @@ void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer,
     }
     LGFX_ERROR("LGFXCopyBufferToTexture: Unknown backend\n");
 }
-void LGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, LGFXPoint3 extents, LGFXPoint3 offset, u32 toMip)
+void LGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, LGFXPoint3 extents, LGFXPoint3 offset, uint32_t toMip)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -426,7 +428,7 @@ void LGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer com
     }
     LGFX_ERROR("LGFXCopyBufferToTextureWithExtents: Unknown backend\n");
 }
-void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, u32 toMip)
+void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, uint32_t toMip)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -435,7 +437,7 @@ void LGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer,
     }
     LGFX_ERROR("LGFXCopyTextureToBuffer: Unknown backend\n");
 }
-void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, u32 fromMip, LGFXPoint3 toOffset, u32 toMip, LGFXPoint3 copyAreaSize, bool autoTransition)
+void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, uint32_t fromMip, LGFXPoint3 toOffset, uint32_t toMip, LGFXPoint3 copyAreaSize, bool autoTransition)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -510,7 +512,7 @@ void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, 
     }
     LGFX_ERROR("LGFXCopyBufferToBuffer: Unknown backend\n");
 }
-void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, u8 *data, usize dataLength)
+void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t dataLength)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
@@ -519,7 +521,7 @@ void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer command
     }
     LGFX_ERROR("LGFXSetBufferDataOptimizedData: Unknown backend\n");
 }
-void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength)
+void LGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t dataLength)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
@@ -528,7 +530,7 @@ void LGFXSetBufferDataFast(LGFXBuffer buffer, u8 *data, usize dataLength)
     }
     LGFX_ERROR("LGFXSetBufferDataFast: Unknown backend\n");
 }
-void LGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, u32 value)
+void LGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t value)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
@@ -546,7 +548,7 @@ void LGFXDestroyBuffer(LGFXBuffer buffer)
     }
     LGFX_ERROR("LGFXDestroyBuffer: Unknown backend\n");
 }
-void *LGFXGetBufferData(LGFXBuffer buffer, usize *bytesLength)
+void *LGFXGetBufferData(LGFXBuffer buffer, size_t *bytesLength)
 {
     if (bytesLength != NULL)
     {
@@ -559,7 +561,7 @@ void *LGFXGetBufferData(LGFXBuffer buffer, usize *bytesLength)
     LGFX_ERROR("LGFXGetBufferData: Unknown backend\n");
     return NULL;
 }
-void *LGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(usize))
+void *LGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_t))
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
@@ -652,7 +654,7 @@ void LGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVar
     LGFX_ERROR("LGFXDestroyFunctionVariableBatchTemplate: Unknown backend\n");
 }
 
-LGFXFunction LGFXCreateFunction(LGFXDevice device, LGFXFunctionCreateInfo *info)
+LGFXFunction LGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInfo *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -689,7 +691,7 @@ LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderRes
     LGFXFunctionVariable empty = {0};
     return empty;
 }
-LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, u32 forVariableOfIndex)
+LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, uint32_t forVariableOfIndex)
 {
     if (function->device->backend == LGFXBackendType_Vulkan)
     {
@@ -699,7 +701,7 @@ LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, u32 f
     LGFXFunctionVariable empty = {0};
     return empty;
 }
-void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, u32 variablesCount)
+void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, uint32_t variablesCount)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -708,7 +710,7 @@ void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch
     }
     LGFX_ERROR("LGFXFunctionSendVariablesToGPU: Unknown backend\n");
 }
-void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, u32 setIndex)
+void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, uint32_t setIndex)
 {
     if (commandBuffer->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -839,7 +841,7 @@ void LGFXCommandBufferReset(LGFXCommandBuffer buffer)
     LGFX_ERROR("LGFXCommandBufferReset: Unknown backend\n");
 }
 
-void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usize offset)
+void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, size_t offset)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -848,7 +850,7 @@ void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, usiz
     }
     LGFX_ERROR("LGFXUseIndexBuffer: Unknown backend\n");
 }
-void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, u32 vertexBuffersCount)
+void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -857,7 +859,7 @@ void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, 
     }
     LGFX_ERROR("LGFXUseVertexBuffer: Unknown backend\n");
 }
-void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, u32 firstIndex, u32 vertexOffset, u32 firstInstance)
+void LGFXDrawIndexed(LGFXCommandBuffer commands, uint32_t indexCount, uint32_t instances, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -866,7 +868,7 @@ void LGFXDrawIndexed(LGFXCommandBuffer commands, u32 indexCount, u32 instances, 
     }
     LGFX_ERROR("LGFXDrawIndexed: Unknown backend\n");
 }
-void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, usize bufferOffset, usize drawCount, usize drawParamsStride)
+void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, size_t bufferOffset, size_t drawCount, size_t drawParamsStride)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -876,7 +878,7 @@ void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBu
     LGFX_ERROR("LGFXDrawIndexedIndirect: Unknown backend\n");
 }
 
-void LGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u32 groupsZ)
+void LGFXDispatchCompute(LGFXCommandBuffer commands, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -885,7 +887,7 @@ void LGFXDispatchCompute(LGFXCommandBuffer commands, u32 groupsX, u32 groupsY, u
     }
     LGFX_ERROR("LGFXDispatchCompute: Unknown backend\n");
 }
-void LGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, usize offset)
+void LGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, size_t offset)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -895,7 +897,7 @@ void LGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatch
     LGFX_ERROR("LGFXDispatchComputeIndirect: Unknown backend\n");
 }
 
-bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, u32 frameWidth, u32 frameHeight)
+bool LGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, uint32_t frameWidth, uint32_t frameHeight)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
