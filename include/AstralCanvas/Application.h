@@ -1,5 +1,5 @@
 #pragma once
-#include "Astral.Canvas/Window.h"
+#include "AstralCanvas/Window.h"
 #include "lgfx/lgfx.h"
 
 typedef struct Application Application;

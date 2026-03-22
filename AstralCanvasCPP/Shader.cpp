@@ -765,7 +765,6 @@ namespace AstralCanvas
             const u32 paramCount = input.Read<u32>();
             LGFXShaderResource *inputResources = NULL;
             LGFXFunctionCreateInfo info = {};
-            u32 uniformsCount = 0;
 
             for (u32 i = 0; i < paramCount; i++)
             {
@@ -816,13 +815,13 @@ namespace AstralCanvas
                 result->uniforms.Add(newResource);
             }
             
-            inputResources = (LGFXShaderResource *)arena.AsAllocator().Allocate(sizeof(LGFXShaderResource) * uniformsCount);
-            for (usize i = 0; i < uniformsCount; i++)
+            inputResources = (LGFXShaderResource *)arena.AsAllocator().Allocate(sizeof(LGFXShaderResource) * paramCount);
+            for (usize i = 0; i < paramCount; i++)
             {
                 inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
             }
 
-            info.uniformsCount = uniformsCount;
+            info.uniformsCount = paramCount;
             info.uniforms = inputResources;
 
             LGFXFunctionType funcType;

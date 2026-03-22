@@ -1,7 +1,7 @@
 #pragma once
 #include "Maths/Points.h"
 #include "lgfx/lgfx.h"
-#include "Astral.Canvas/InputState.h"
+#include "AstralCanvas/InputState.h"
 #include "Strings.h"
 
 typedef enum WindowMouseState

@@ -1,4 +1,5 @@
-#include "Astral.Canvas/ShaderFunction.h"
+#include "AstralCanvas/ShaderFunction.h"
+#include "ByteStreamOps.h"
 #include "Application_c.h"
 #include "FileUtils.h"
 
@@ -226,13 +227,162 @@ LGFXFunctionVariableBatch ShaderFunctionState_GetCurrentVariableGroup(const Shad
     return LIST_GET(&self->variableSlotGroups, LGFXFunctionVariableBatch, self->currentGroup);
 }
 
+size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataStream *stream, ShaderFunction *outputResult)
+{
+    const u32 fileVersion = IDataStream_ReadU32(stream);
+    if (fileVersion == 1)
+    {
+        ShaderFunction result = (ShaderFunction)malloc(sizeof(ShaderFunctionImpl));
+        ArenaAllocator arena = ArenaAllocator_Create(GetCAllocator());
+        IAllocator arenaAlloc = ArenaAllocator_AsAllocator(&arena);
+
+        const u32 shaderType = IDataStream_ReadU32(stream);
+        const u32 paramCount = IDataStream_ReadU32(stream);
+        LGFXShaderResource *inputResources = NULL;
+        LGFXFunctionCreateInfo info = {};
+        u32 uniformsCount = 0;
+
+        result->shaderResources = (ShaderResource *)IAllocator_Allocate(allocator, sizeof(ShaderResource));
+        for (u32 i = 0; i < paramCount; i++)
+        {
+            string str = IDataStream_ReadString(stream, allocator);
+            u32 bindingSpace = IDataStream_ReadU32(stream);
+            u32 bindingIndex = IDataStream_ReadU32(stream);
+
+            ShaderResource newResource = {};
+            newResource.nameStr = str;
+            newResource.resource.variableName = newResource.nameStr.buffer;
+            newResource.resource.set = bindingSpace;
+            newResource.resource.binding = bindingIndex;
+            //newResource.states = collections::List<LGFXFunctionVariable>(allocator);
+            
+            newResource.resource.arrayLength = IDataStream_ReadU32(stream);
+
+            ShaderFunctionResourceType resourceType = (ShaderFunctionResourceType)IDataStream_ReadU32(stream);
+            if (resourceType == ShaderFunctionResourceType_Uniform)
+            {
+                newResource.resource.type = LGFXShaderResourceType_Uniform;
+                newResource.resource.size = IDataStream_ReadU32(stream);
+            }
+            else if (resourceType == ShaderFunctionResourceType_Sampler)
+            {
+                newResource.resource.type = LGFXShaderResourceType_Sampler;
+            }
+            else if (resourceType == ShaderFunctionResourceType_Texture)
+            {
+                newResource.resource.type = LGFXShaderResourceType_Texture;
+            }
+            else if (resourceType == ShaderFunctionResourceType_StorageTexture)
+            {
+                newResource.resource.type = LGFXShaderResourceType_StorageTexture;
+            }
+            else if (resourceType == ShaderFunctionResourceType_StructuredBuffer)
+            {
+                newResource.resource.type = LGFXShaderResourceType_StructuredBuffer;
+            }
+            else if (resourceType == ShaderFunctionResourceType_InputAttachment)
+            {
+                newResource.resource.type = LGFXShaderResourceType_InputAttachment;
+            }
+            else
+            {
+                ArenaAllocator_Deinit(&arena);
+                return 1;
+            }
+            
+            result->shaderResources[i] = newResource;
+        }
+        
+        inputResources = (LGFXShaderResource *)IAllocator_Allocate(arenaAlloc, sizeof(LGFXShaderResource) * paramCount);
+        for (usize i = 0; i < uniformsCount; i++)
+        {
+            inputResources[result->shaderResources[i].resource.binding] = result->shaderResources[i].resource;
+        }
+
+        info.uniformsCount = uniformsCount;
+        info.uniforms = inputResources;
+
+        LGFXFunctionType funcType;
+        if (shaderType == 0)
+        {
+            //vertex-fragment
+            funcType = (LGFXFunctionType)(LGFXFunctionType_Vertex | LGFXFunctionType_Fragment);
+
+            ShaderFunctionStage stage1 = (ShaderFunctionStage)IDataStream_ReadU32(stream);
+            if (stage1 != ShaderFunctionStage_Vertex)
+            {
+                ArenaAllocator_Deinit(&arena);
+                return 1;
+            }
+            usize lenBytes = IDataStream_ReadU32(stream);
+            info.module1DataLength = lenBytes / 4;
+            info.module1Data = (u32 *)IAllocator_Allocate(arenaAlloc, lenBytes);
+            IDataStream_ReadByteArray(stream, info.module1Data, lenBytes);
+            
+            ShaderFunctionStage stage2 = (ShaderFunctionStage)IDataStream_ReadU32(stream);
+            if (stage2 != ShaderFunctionStage_Fragment)
+            {
+                ArenaAllocator_Deinit(&arena);
+                return 1;
+            }
+            lenBytes = IDataStream_ReadU32(stream);
+            info.module2DataLength = lenBytes / 4;
+            info.module2Data = (u32 *)IAllocator_Allocate(arenaAlloc, lenBytes);
+            IDataStream_ReadByteArray(stream, info.module2Data, lenBytes);
+        }
+        else if (shaderType == 1)
+        {
+            //compute
+            funcType = LGFXFunctionType_Compute;
+
+            ShaderFunctionStage stage1 = (ShaderFunctionStage)IDataStream_ReadU32(stream);
+            if (stage1 != ShaderFunctionStage_Compute)
+            {
+                ArenaAllocator_Deinit(&arena);
+                return 1;
+            }
+            usize lenBytes = IDataStream_ReadU32(stream);
+
+            info.module1DataLength = lenBytes / 4;
+            info.module1Data = (u32 *)IAllocator_Allocate(arenaAlloc, lenBytes);
+            IDataStream_ReadByteArray(stream, info.module1Data, lenBytes);
+        }
+        else 
+        {
+            ArenaAllocator_Deinit(&arena);
+            return 1;
+        }
+
+        info.type = funcType;
+
+        result->gpuFunction = LGFXCreateFunction(device, &info);
+        result->functionType = funcType;
+        ArenaAllocator_Deinit(&arena);
+    }
+    else
+    {
+        return 1;
+    }
+    return 0;
+}
+size_t ShaderFunction_FromBytes(LGFXDevice device, const uint8_t* bytes, ShaderFunction *outputResult)
+{
+    ByteStreamReader reader = ByteStreamReader_Create(bytes, 0, 0xFFFFFFFF);
+    IDataStream dataStream = ByteStreamReaderToStream(&reader);
+    return ShaderFunction_FromStream(device, GetCAllocator(), &dataStream, outputResult);
+}
 size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, ShaderFunction *outputResult)
 {
-    string fileContents = IOReadFile(GetCAllocator(), filePath, false);
-    size_t errorLine = ShaderFunction_FromString(device, fileContents.buffer, fileContents.length, outputResult);
-    String_Deinit(&fileContents);
+    FILE *fs = fopen(filePath, "rb");
+    if (fs == NULL)
+    {
+        return 0;
+    }
 
-    return errorLine;
+    IDataStream ds = GetFileDataStream(fs);
+    size_t errorCode = ShaderFunction_FromStream(device, GetCAllocator(), &ds, outputResult);
+    fclose(fs);
+    return errorCode;
 }
 void ShaderFunction_Deinit(ShaderFunction self)
 {

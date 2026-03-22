@@ -1,7 +1,25 @@
 #pragma once
 #include "Allocator.h"
+#include "DataStream.h"
 #include "lgfx/lgfx.h"
 #include "Strings.h"
+
+typedef enum ShaderFunctionResourceType
+{
+    ShaderFunctionResourceType_Uniform,
+    ShaderFunctionResourceType_Sampler,
+    ShaderFunctionResourceType_Texture,
+    ShaderFunctionResourceType_StructuredBuffer,
+    ShaderFunctionResourceType_InputAttachment,
+    ShaderFunctionResourceType_StorageTexture,
+    ShaderFunctionResourceType_Unknown = 0xFFFFFFFF
+} ShaderFunctionResourceType;
+typedef enum ShaderFunctionStage
+{
+    ShaderFunctionStage_Vertex,
+    ShaderFunctionStage_Fragment,
+    ShaderFunctionStage_Compute
+} ShaderFunctionStage;
 
 typedef struct ShaderFunctionImpl *ShaderFunction;
 typedef struct ShaderFunctionStateImpl *ShaderFunctionState;
@@ -21,5 +39,6 @@ DynamicFunction void ShaderFunctionState_SyncWithGPU(ShaderFunctionState self, L
 DynamicFunction ShaderFunction ShaderFunctionState_GetUnderlyingShaderFunction(const ShaderFunctionState self);
 DynamicFunction LGFXFunctionVariableBatch ShaderFunctionState_GetCurrentVariableGroup(const ShaderFunctionState self);
 
-DynamicFunction size_t ShaderFunction_FromString(LGFXDevice device, const char *jsonString, size_t stringLengthWithNullTerminator, ShaderFunction *outputResult);
+DynamicFunction size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataStream *stream, ShaderFunction *outputResult);
+DynamicFunction size_t ShaderFunction_FromBytes(LGFXDevice device, const uint8_t* bytes, ShaderFunction *outputResult);
 DynamicFunction size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, ShaderFunction *outputResult);
