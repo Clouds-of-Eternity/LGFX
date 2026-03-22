@@ -631,7 +631,7 @@ void VkLGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType 
 		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 		memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
 	}
-	else if (funcType == LGFXFunctionType_Fragment || funcType == LGFXFunctionType_Vertex)
+	else if (funcType == (LGFXFunctionType)(LGFXFunctionType_Vertex | LGFXFunctionType_Fragment) || funcType == LGFXFunctionType_Fragment || funcType == LGFXFunctionType_Vertex)
 	{
 		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 		memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;

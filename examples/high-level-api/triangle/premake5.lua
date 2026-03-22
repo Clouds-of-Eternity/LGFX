@@ -17,7 +17,7 @@ project "AstralCanvasTriangle"
     }
 
     postbuildcommands { 
-        "{COPYFILE}	 \"Triangle.func\" \"bin/%{cfg.buildcfg}/Triangle.func\""
+        "{COPYFILE}	 \"Triangle.sfn\" \"bin/%{cfg.buildcfg}/Triangle.sfn\""
     }
 
     filter "system:windows"

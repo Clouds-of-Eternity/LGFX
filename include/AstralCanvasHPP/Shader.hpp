@@ -4,9 +4,26 @@
 #include "DenseSet.hpp"
 #include "List.hpp"
 #include "Json.hpp"
+#include "DataStream.hpp"
 
 namespace AstralCanvas
 {
+    enum ShaderFunctionResourceType
+    {
+        ShaderFunctionResourceType_Uniform,
+        ShaderFunctionResourceType_Sampler,
+        ShaderFunctionResourceType_Texture,
+        ShaderFunctionResourceType_StructuredBuffer,
+        ShaderFunctionResourceType_InputAttachment,
+        ShaderFunctionResourceType_StorageTexture,
+        ShaderFunctionResourceType_Unknown = 0xFFFFFFFF
+    };
+    enum ShaderFunctionStage
+    {
+        ShaderFunctionStage_Vertex,
+        ShaderFunctionStage_Fragment,
+        ShaderFunctionStage_Compute
+    };
     struct ShaderMaterialExportParam
     {
         string name;
@@ -71,6 +88,10 @@ namespace AstralCanvas
 
     usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
     usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
+
+    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, Shader *result);
+    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, Shader *result);
+    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, Shader *result);
 
     extern collections::List<Shader *> allUsedShaders;
 }

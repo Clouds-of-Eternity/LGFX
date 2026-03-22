@@ -156,19 +156,29 @@ void Init()
     LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (uint8_t*)indices, 6 * sizeof(uint32_t));
 
     //shader
-    string fileContents = io::ReadFile(GetCAllocator(), "UpdateParticles.func", false);
-    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &computeShader) != 0)
+    if (AstralCanvas::CreateShaderFromSFNFilePath(device, GetCAllocator(), "UpdateParticles.sfn", &computeShader) != 0)
     {
-        printf("Error loading compute shader json\n");
+        printf("Error loading compute shader binary\n");
+        assert(false);
     }
-    fileContents.deinit();
+    if (AstralCanvas::CreateShaderFromSFNFilePath(device, GetCAllocator(), "DrawParticles.sfn", &computeShader) != 0)
+    {
+        printf("Error loading rendering shader binary\n");
+        assert(false);
+    }
+    // string fileContents = io::ReadFile(GetCAllocator(), "UpdateParticles.func", false);
+    // if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &computeShader) != 0)
+    // {
+    //     printf("Error loading compute shader json\n");
+    // }
+    // fileContents.deinit();
 
-    fileContents = io::ReadFile(GetCAllocator(), "DrawParticles.func", false);
-    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &renderShader) != 0)
-    {
-        printf("Error loading render shader json\n");
-    }
-    fileContents.deinit();
+    // fileContents = io::ReadFile(GetCAllocator(), "DrawParticles.func", false);
+    // if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &renderShader) != 0)
+    // {
+    //     printf("Error loading render shader json\n");
+    // }
+    // fileContents.deinit();
 
     //shader state
     LGFXShaderStateCreateInfo stateCreateInfo = {0};

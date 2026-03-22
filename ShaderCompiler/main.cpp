@@ -67,7 +67,7 @@ i32 main(i32 argc, char **argv)
         if (allFilePaths[i].EndsWith(".slang") && !allFilePaths[i].EndsWith(".inc.slang"))
         {
             string relative = allFilePaths[i].CloneTrimStart(arena.AsAllocator(), strlen(argv[1]) + 1);
-            string outputPath = path::SwapExtension(arena.AsAllocator(), allFilePaths[i], ".func");
+            string outputPath = path::SwapExtension(arena.AsAllocator(), allFilePaths[i], ".sfn");
             printf("Compiling %s\n", relative.buffer);
             returnCode = ShaderCompiler_Compile(result, allFilePaths[i].buffer, outputPath.buffer);
             if (returnCode != 0)

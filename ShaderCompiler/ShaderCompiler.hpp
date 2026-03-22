@@ -1,12 +1,13 @@
 #pragma once
 #include "slang/slang.h"
-#include "string.hpp"
 #include "stb_sprintf.h"
 #include "StringBuilder.hpp"
 #include "List.hpp"
 #include "ArenaAllocator.hpp"
 #include "io.hpp"
 #include "Path.hpp"
+
+#define FUNC_BINARY_FILE_VERSION 1
 
 enum ShaderCompilerOptimizationLevel : i32
 {
@@ -15,6 +16,23 @@ enum ShaderCompilerOptimizationLevel : i32
     ShaderCompilerOptimizationLevel_High,
     ShaderCompilerOptimizationLevel_Maximum
 };
+enum ShaderCompilerResourceType
+{
+    ShaderCompilerResourceType_Uniform,
+    ShaderCompilerResourceType_Sampler,
+    ShaderCompilerResourceType_Texture,
+    ShaderCompilerResourceType_StructuredBuffer,
+    ShaderCompilerResourceType_InputAttachment,
+    ShaderCompilerResourceType_StorageTexture,
+    ShaderCompilerResourceType_Unknown = 0xFFFFFFFF
+};
+enum ShaderCompilerShaderStage
+{
+    ShaderCompilerShaderStage_Vertex,
+    ShaderCompilerShaderStage_Fragment,
+    ShaderCompilerShaderStage_Compute
+};
+
 struct LoadedModule
 {
     slang::IModule *module;

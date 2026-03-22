@@ -131,6 +131,17 @@
             "cwd": "${workspaceFolder}/examples/high-level-api/compute/bin/Release/",
             "environment": [],
             "console": "externalTerminal"
+        },
+        {
+            "name": "Test ShaderCompiler",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/ShaderCompiler/bin/Debug/ShaderCompiler.exe",
+            "args": ["${workspaceFolder}/examples/high-level-api/compute"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/ShaderCompiler/bin/Debug",
+            "environment": [],
+            "console": "externalTerminal"
         }
     ]
 }

@@ -116,13 +116,29 @@ void Init()
     LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8 *)indices, sizeof(indices));
 
     //shader
-    string fileContents = io::ReadFile(GetCAllocator(), "Triangle.func", false);
-    if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &shader) != 0)
+    FILE *fs = fopen("Triangle.sfn", "rb");
+    if (fs != NULL)
     {
-        printf("Error loading shader json\n");
+        const usize errorCode = AstralCanvas::CreateShaderFromSFN(device, GetCAllocator(), GetFileDataStream(fs), &shader);
+        if (errorCode != 0)
+        {
+            printf("Error loading shader binary\n");
+            initializedSuccessfully = false;
+        }
+        fclose(fs);
+    }
+    else
+    {
+        printf("Error opening shader file\n");
         initializedSuccessfully = false;
     }
-    fileContents.deinit();
+    // string fileContents = io::ReadFile(GetCAllocator(), "Triangle.func", false);
+    // if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &shader) != 0)
+    // {
+    //     printf("Error loading shader json\n");
+    //     initializedSuccessfully = false;
+    // }
+    // fileContents.deinit();
 
     //shader state
     LGFXShaderStateCreateInfo stateCreateInfo = {0};

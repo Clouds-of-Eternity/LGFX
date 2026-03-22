@@ -17,8 +17,8 @@ project "AstralCanvasCompute"
     }
 
     postbuildcommands { 
-        "{COPYFILE}	 \"DrawParticles.func\" \"bin/%{cfg.buildcfg}/DrawParticles.func\"",
-        "{COPYFILE}	 \"UpdateParticles.func\" \"bin/%{cfg.buildcfg}/UpdateParticles.func\""
+        "{COPYFILE}	 \"DrawParticles.sfn\" \"bin/%{cfg.buildcfg}/DrawParticles.sfn\"",
+        "{COPYFILE}	 \"UpdateParticles.sfn\" \"bin/%{cfg.buildcfg}/UpdateParticles.sfn\""
     }
 
     filter "system:windows"
