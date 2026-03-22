@@ -1,7 +1,7 @@
-#include "Astral.Canvas/InputState.h"
+#include "AstralCanvas/InputState.h"
 #include "GLFW/glfw3.h"
 
-bool Input_IsControllerConnected(uint32_t controllerIndex)
+bool Input_ControllerIsConnected(uint32_t controllerIndex)
 {
     return glfwJoystickPresent((int)controllerIndex);
 }

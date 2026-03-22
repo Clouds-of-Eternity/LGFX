@@ -166,19 +166,6 @@ void Init()
         printf("Error loading rendering shader binary\n");
         assert(false);
     }
-    // string fileContents = io::ReadFile(GetCAllocator(), "UpdateParticles.func", false);
-    // if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &computeShader) != 0)
-    // {
-    //     printf("Error loading compute shader json\n");
-    // }
-    // fileContents.deinit();
-
-    // fileContents = io::ReadFile(GetCAllocator(), "DrawParticles.func", false);
-    // if (AstralCanvas::CreateShaderFromString2(device, GetCAllocator(), fileContents, &renderShader) != 0)
-    // {
-    //     printf("Error loading render shader json\n");
-    // }
-    // fileContents.deinit();
 
     //shader state
     LGFXShaderStateCreateInfo stateCreateInfo = {0};

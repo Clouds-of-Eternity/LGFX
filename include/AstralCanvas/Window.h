@@ -12,6 +12,7 @@ typedef enum WindowMouseState
 } WindowMouseState;
 
 typedef struct Window Window;
+typedef struct Application Application;
 
 def_delegate(WindowOnTextInputFunction, void, Window *window, uint32_t characterUnicode);
 def_delegate(WindowOnKeyInteractedFunction, void, Window *window, Keys key, int32_t action);
@@ -33,9 +34,7 @@ typedef struct WindowCreationInfo
     uint32_t iconHeight;
 } WindowCreationInfo;
 
-DynamicFunction Window *Window_Create(const WindowCreationInfo *createInfo);
-
-DynamicFunction bool Window_Update(Window *self);
+DynamicFunction Window *Window_Create(Application *application, const WindowCreationInfo *createInfo);
 
 DynamicFunction void Window_SetTitle(Window *self, const char *title);
 DynamicFunction void Window_SetMaximized(Window *self, bool value);

@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include "Scope.hpp"
 
-using namespace Json;
-
 namespace AstralCanvas
 {
     collections::List<Shader *> allUsedShaders = collections::List<Shader *>(GetCAllocator());
@@ -74,8 +72,6 @@ namespace AstralCanvas
             
             if (uniforms.ptr[i].nameStr == variableName)
             {
-                //uniformsHasBeenSet = true;
-                uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].mutated = true;
                 ((LGFXBuffer *)uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].currentValues)[0] = buffer;
                 break;
             }
@@ -93,7 +89,6 @@ namespace AstralCanvas
             
             if (uniforms.ptr[i].nameStr == variableName)
             {
-                uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].mutated = true;
                 LGFXSetBufferDataFast(((LGFXBuffer *)uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].currentValues)[0], (u8*)ptr, size);
                 return;
                 //uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].ub.SetData(ptr, size);
@@ -113,7 +108,6 @@ namespace AstralCanvas
             if (uniforms.ptr[i].nameStr == variableName)
             {
                 LGFXFunctionVariable *mutableState = &uniforms.ptr[i].states.ptr[descriptorForThisDrawCall];
-                mutableState->mutated = true;
                 for (usize j = 0; j < count; j++)
                 {
                    ((LGFXTexture *)mutableState->currentValues)[j] = textures[j];
@@ -139,7 +133,6 @@ namespace AstralCanvas
             if (uniforms.ptr[i].nameStr == variableName)
             {
                 LGFXFunctionVariable *mutableState = &uniforms.ptr[i].states.ptr[descriptorForThisDrawCall];
-                mutableState->mutated = true;
                 for (usize j = 0; j < count; j++)
                 {
                    ((LGFXSamplerState *)mutableState->currentValues)[j] = samplers[j];
@@ -210,10 +203,11 @@ namespace AstralCanvas
         allUsedShaders.Add(this);
     }
 
+    #ifdef ASTRALCANVAS_JSON_SHADER
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)
     {
         i32 length = -1;
-        JsonElement *uniforms = json->GetProperty("uniforms");
+        Json::JsonElement *uniforms = json->GetProperty("uniforms");
         if (uniforms != NULL)
         {
             for (usize i = 0; i < uniforms->arrayElements.length; i++)
@@ -253,7 +247,7 @@ namespace AstralCanvas
                 //results->uniforms.Add(binding, {name, set, binding, stride});
             }
         }
-        JsonElement *textures = json->GetProperty("images");
+        Json::JsonElement *textures = json->GetProperty("images");
         if (textures != NULL)
         {
             for (usize i = 0; i < textures->arrayElements.length; i++)
@@ -292,7 +286,7 @@ namespace AstralCanvas
                 }
             }
         }
-        JsonElement *samplers = json->GetProperty("samplers");
+        Json::JsonElement *samplers = json->GetProperty("samplers");
         if (samplers != NULL)
         {
             for (usize i = 0; i < samplers->arrayElements.length; i++)
@@ -330,7 +324,7 @@ namespace AstralCanvas
                 }
             }
         }
-        JsonElement *inputAttachments = json->GetProperty("inputAttachments");
+        Json::JsonElement *inputAttachments = json->GetProperty("inputAttachments");
         if (inputAttachments != NULL)
         {
             for (usize i = 0; i < inputAttachments->arrayElements.length; i++)
@@ -369,7 +363,7 @@ namespace AstralCanvas
                 }
             }
         }
-        JsonElement *storageBuffers = json->GetProperty("storageBuffers");
+        Json::JsonElement *storageBuffers = json->GetProperty("storageBuffers");
         if (storageBuffers != NULL)
         {
             for (usize i = 0; i < storageBuffers->arrayElements.length; i++)
@@ -406,7 +400,7 @@ namespace AstralCanvas
                 }
             }
         }
-        JsonElement *storageTextures = json->GetProperty("storageTextures");
+        Json::JsonElement *storageTextures = json->GetProperty("storageTextures");
         if (storageTextures != NULL)
         {
             for (usize i = 0; i < storageTextures->arrayElements.length; i++)
@@ -453,7 +447,7 @@ namespace AstralCanvas
         result->device = device;
         ArenaAllocator localArena = ArenaAllocator(GetCAllocator());
         
-        JsonElement root;
+        Json::JsonElement root;
         usize parseJsonResult = ParseJsonDocument(localArena.AsAllocator(), jsonString, &root);
         if (parseJsonResult != 0)
         {
@@ -461,7 +455,7 @@ namespace AstralCanvas
             return parseJsonResult;
         }
 
-        JsonElement *computeElement = root.GetProperty("compute");
+        Json::JsonElement *computeElement = root.GetProperty("compute");
 
         Json::JsonElement *materialsElement = root.GetProperty("materials");
         if (materialsElement != NULL)
@@ -486,7 +480,7 @@ namespace AstralCanvas
         {
             u32 maxBinding = ParseShaderVariables(computeElement, &result->uniforms, LGFXShaderInputAccess_Compute);
             u32 uniformsCount = result->uniforms.count;
-            JsonElement *computeSpirv = computeElement->GetProperty("spirv");
+            Json::JsonElement *computeSpirv = computeElement->GetProperty("spirv");
             collections::Array<u32> computeSpirvData = collections::Array<u32>(localArena.AsAllocator(), computeSpirv->arrayElements.length);
             for (usize i = 0; i < computeSpirv->arrayElements.length; i++)
             {
@@ -514,8 +508,8 @@ namespace AstralCanvas
         }
         else
         {
-            JsonElement *vertexElement = root.GetProperty("vertex");
-            JsonElement *fragmentElement = root.GetProperty("fragment");
+            Json::JsonElement *vertexElement = root.GetProperty("vertex");
+            Json::JsonElement *fragmentElement = root.GetProperty("fragment");
 
             if (vertexElement != NULL && fragmentElement != NULL)
             {
@@ -523,8 +517,8 @@ namespace AstralCanvas
                 u32 max2 = ParseShaderVariables(fragmentElement, &result->uniforms, LGFXShaderInputAccess_Fragment);
                 u32 uniformsCount = max1 > max2 ? max1 : max2;
 
-                JsonElement *vertexSpirv = vertexElement->GetProperty("spirv");
-                JsonElement *fragmentSpirv = fragmentElement->GetProperty("spirv");
+                Json::JsonElement *vertexSpirv = vertexElement->GetProperty("spirv");
+                Json::JsonElement *fragmentSpirv = fragmentElement->GetProperty("spirv");
 
                 collections::Array<u32> vertexSpirvData = collections::Array<u32>(localArena.AsAllocator(), vertexSpirv->arrayElements.length);
                 collections::Array<u32> fragmentSpirvData = collections::Array<u32>(localArena.AsAllocator(), fragmentSpirv->arrayElements.length);
@@ -575,7 +569,7 @@ namespace AstralCanvas
         ArenaAllocator localArena = ArenaAllocator(GetCAllocator());
         Scope(ArenaAllocator, localArena);
 
-        JsonElement root;
+        Json::JsonElement root;
         usize parseJsonResult = ParseJsonDocument(localArena.AsAllocator(), jsonString, &root);
         if (parseJsonResult != 0)
         {
@@ -583,7 +577,7 @@ namespace AstralCanvas
         }
 
         LGFXFunctionType type = LGFXFunctionType_Vertex;
-        JsonElement *typeElem = root.GetProperty("type");
+        Json::JsonElement *typeElem = root.GetProperty("type");
         if (typeElem != NULL)
         {
             if (typeElem->AsString() == "Vertex-Fragment")
@@ -604,7 +598,7 @@ namespace AstralCanvas
         LGFXFunctionCreateInfo info = {};
         info.type = type;
 
-        JsonElement *uniforms = root.GetProperty("uniforms");
+        Json::JsonElement *uniforms = root.GetProperty("uniforms");
         if (uniforms != NULL)
         {
             u32 uniformsCount = 0;
@@ -676,7 +670,7 @@ namespace AstralCanvas
             info.uniforms = inputResources;
         }
 
-        JsonElement *spvElem = root.GetProperty("spv");
+        Json::JsonElement *spvElem = root.GetProperty("spv");
         if (spvElem != NULL)
         {
             collections::Array<u32> spirvData = collections::Array<u32>(localArena.AsAllocator(), spvElem->arrayElements.length);
@@ -695,8 +689,8 @@ namespace AstralCanvas
         }
         else
         {
-            JsonElement *vertElem = root.GetProperty("vertex");
-            JsonElement *fragElem = root.GetProperty("fragment");
+            Json::JsonElement *vertElem = root.GetProperty("vertex");
+            Json::JsonElement *fragElem = root.GetProperty("fragment");
 
             if (vertElem != NULL && fragElem != NULL)
             {
@@ -733,6 +727,7 @@ namespace AstralCanvas
 
         return 0;
     }
+    #endif
 
     usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, Shader *result)
     {
@@ -809,7 +804,7 @@ namespace AstralCanvas
                 }
                 else
                 {
-                    return false;
+                    return 1;
                 }
                 
                 result->uniforms.Add(newResource);

@@ -1,59 +1,86 @@
-#include "Application_c.h"
 #include "lgfx/lgfx-glfw.h"
+#define WINDOW_TYPE GLFWwindow
+#include "Window_c.h"
 
-typedef struct Window
+int32_t Windowing_InitializeBackend()
 {
-    GLFWwindow *handle;
-    void *customCursorHandle;
-    LGFXSwapchain swapchain;
-    LGFXCommandBuffer mainCommandBuffer;
+    #ifdef X11
+    glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
+    #endif
+    return glfwInit();
+}
+const char **Windowing_GetRequiredInstanceExtensions(uint32_t *outExtensionsCount)
+{
+    return glfwGetRequiredInstanceExtensions(outExtensionsCount);
+}
+double Windowing_GetTime()
+{
+    return glfwGetTime();
+}
+void Windowing_CollectEvents()
+{
+    glfwPollEvents();
+}
+void Windowing_AwaitEvents()
+{
+    glfwWaitEvents();
+}
 
-    Point2 resolution;
-    Point2 frameBufferSize;
-    Point2 position;
-    InputState windowInputState;
-    string windowTitle;
-    bool isFullscreen;
-    bool isMaximized;
-    bool isVSync;
-    bool justResized;
-    bool isDisposed;
+static inline GLFWmonitor* GetCurrentMonitor(GLFWwindow *window)
+{
+    int32_t nmonitors, i;
+    int32_t wx, wy, ww, wh;
+    int32_t mx, my, mw, mh;
+    int32_t overlap, bestoverlap;
+	GLFWmonitor *bestmonitor = NULL;
+	GLFWmonitor **monitors;
+    const GLFWvidmode *mode;
 
-    WindowOnTextInputFunction onTextInputFunc;
-    WindowOnKeyInteractedFunction onKeyInteractFunc;
-    WindowOnDropFunction onDropFunc;
-    WindowCloseFunction onCloseFunc;
-} Window;
+    bestoverlap = 0;
+    bestmonitor = NULL;
 
+    glfwGetWindowPos(window, &wx, &wy);
+    glfwGetWindowSize(window, &ww, &wh);
+    monitors = glfwGetMonitors(&nmonitors);
+
+    for (i = 0; i < nmonitors; i++) 
+	{
+        mode = glfwGetVideoMode(monitors[i]);
+        glfwGetMonitorPos(monitors[i], &mx, &my);
+        mw = mode->width;
+        mh = mode->height;
+
+        overlap =
+            fmaxl(0, fminl(wx + ww, mx + mw) - fmaxl(wx, mx)) *
+            fmaxl(0, fminl(wy + wh, my + mh) - fmaxl(wy, my));
+
+        if (bestoverlap < overlap) {
+            bestoverlap = overlap;
+            bestmonitor = monitors[i];
+        }
+    }
+
+    return bestmonitor;
+}
+
+typedef struct Application Application;
 static void Window_Deinit(Window *self)
 {
     if (!self->isDisposed)
     {
         LGFXAwaitSwapchainIdle(self->swapchain);
-        glfwDestroyWindow((GLFWwindow*)self->handle);
+        if (self->handle != NULL)
+        {
+            glfwDestroyWindow((GLFWwindow*)self->handle);
+        }
         LGFXDestroySwapchain(self->swapchain, true);
 
         self->handle = NULL;
         self->isDisposed = true;
     }
 }
-bool Window_Update(Window *self)
-{
-    if (self->handle != NULL && !glfwWindowShouldClose(self->handle))
-    {
-        InputState_ResetPerFrameStates(&self->windowInputState);
-        return false;
-    }
-    return true;
-    // else
-    // {
-    //     Window_Deinit(self);
-    //     free(self);
-    //     return true;
-    // }
-}
 
-void WindowHidden(GLFWwindow* window, i32 iconified)
+void WindowHidden(GLFWwindow* window, int32_t iconified)
 {
     if (iconified)
     {
@@ -63,13 +90,13 @@ void WindowHidden(GLFWwindow* window, i32 iconified)
     }
 }
 /// Called when the window is maximized or restored to original size
-void WindowMaximized(GLFWwindow* window, i32 maximized)
+void WindowMaximized(GLFWwindow* window, int32_t maximized)
 {
     Window *canvas = (Window*)glfwGetWindowUserPointer(window);
     glfwGetWindowSize(window, &canvas->resolution.X, &canvas->resolution.Y);
     canvas->isMaximized = maximized;
 }
-void WindowOnTextInput(GLFWwindow* window, u32 characterUnicode)
+void WindowOnTextInput(GLFWwindow* window, uint32_t characterUnicode)
 {
     Window *canvas = (Window*)glfwGetWindowUserPointer(window);
     List_Add(&canvas->windowInputState.textInputCharacters, &characterUnicode);
@@ -79,14 +106,14 @@ void WindowOnTextInput(GLFWwindow* window, u32 characterUnicode)
         canvas->onTextInputFunc(canvas, characterUnicode);
     }
 }
-void WindowSizeChanged(GLFWwindow *window, i32 width, i32 height)
+void WindowSizeChanged(GLFWwindow *window, int32_t width, int32_t height)
 {
     Window *canvas = (Window*)glfwGetWindowUserPointer(window);
     canvas->resolution.X = width;
     canvas->resolution.Y = height;
     canvas->justResized = true;
 }
-void WindowFramebufferSizeChanged(GLFWwindow* window, i32 width, i32 height)
+void WindowFramebufferSizeChanged(GLFWwindow* window, int32_t width, int32_t height)
 {
     Window *canvas = (Window*)glfwGetWindowUserPointer(window);
     canvas->frameBufferSize.X = width;
@@ -108,10 +135,10 @@ void WindowOnClose(GLFWwindow* window)
     {
         astralWindow->onCloseFunc(astralWindow);
     }
+    astralWindow->handle = NULL;
     Window_Deinit(astralWindow);
-    free(astralWindow);
 }
-void WindowOnKeyInteracted(GLFWwindow* window, i32 glfwKey, i32 scancode, i32 action, i32 mods)
+void WindowOnKeyInteracted(GLFWwindow* window, int32_t glfwKey, int32_t scancode, int32_t action, int32_t mods)
 {
     Window *canvas = (Window*)glfwGetWindowUserPointer(window);
     if (glfwKey == GLFW_KEY_UNKNOWN)
@@ -140,7 +167,7 @@ void WindowOnKeyInteracted(GLFWwindow* window, i32 glfwKey, i32 scancode, i32 ac
         if (action == GLFW_PRESS || action == GLFW_REPEAT)
         {
             const uint32_t backspaceChar = (uint32_t)'\b';
-            List_Add(&canvas->windowInputState, &backspaceChar);
+            List_Add(&canvas->windowInputState.textInputCharacters, &backspaceChar);
         }
     }
     if (canvas->onKeyInteractFunc != NULL)
@@ -148,7 +175,7 @@ void WindowOnKeyInteracted(GLFWwindow* window, i32 glfwKey, i32 scancode, i32 ac
         canvas->onKeyInteractFunc(canvas, key, action);
     }
 }
-void WindowOnMouseInteracted(GLFWwindow *window, i32 button, i32 action, i32 mods)
+void WindowOnMouseInteracted(GLFWwindow *window, int32_t button, int32_t action, int32_t mods)
 {
     Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 
@@ -198,7 +225,7 @@ void WindowOnCursorMoved(GLFWwindow *window, double xPos, double yPos)
     canvas->windowInputState.mousePosition = CreateVec2((float)xPos, (float)yPos);
 }
 
-Window *Window_Create(const WindowCreationInfo *createInfo)
+Window *Window_Create(Application *application, const WindowCreationInfo *createInfo)
 {
     Window empty = {};
     Window *result = (Window *)malloc(sizeof(Window));
@@ -208,9 +235,8 @@ Window *Window_Create(const WindowCreationInfo *createInfo)
     int32_t height = createInfo->height;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, (i32)createInfo->resizeable);
-    glfwWindowHint(GLFW_MAXIMIZED, (i32)createInfo->maximized);
-
+    glfwWindowHint(GLFW_RESIZABLE, (int32_t)createInfo->resizeable);
+    glfwWindowHint(GLFW_MAXIMIZED, (int32_t)createInfo->maximized);
 
     GLFWmonitor *toFullscreenOn = NULL;
     if (createInfo->fullscreen)
@@ -224,6 +250,7 @@ Window *Window_Create(const WindowCreationInfo *createInfo)
     result->handle = glfwCreateWindow(width, height, createInfo->name, toFullscreenOn, NULL);
     if (result->handle != NULL)
     {
+        glfwSetWindowUserPointer(result->handle, result);
         if (createInfo->iconData != NULL)
         {
             GLFWimage image;
@@ -262,16 +289,16 @@ Window *Window_Create(const WindowCreationInfo *createInfo)
         result->isVSync = swapchainCreateInfo.presentationMode == LGFXSwapchainPresentationMode_Fifo;
         
         glfwGetFramebufferSize(result->handle, &result->frameBufferSize.X, &result->frameBufferSize.Y);
-        swapchainCreateInfo.width = (u32)result->frameBufferSize.X;
-        swapchainCreateInfo.height = (u32)result->frameBufferSize.Y;
+        swapchainCreateInfo.width = (uint32_t)result->frameBufferSize.X;
+        swapchainCreateInfo.height = (uint32_t)result->frameBufferSize.Y;
         swapchainCreateInfo.createSurfaceFunc = (LGFXCreateWindowSurfaceFunc)&glfwCreateWindowSurface;
         swapchainCreateInfo.windowHandle = result->handle;//nativeWindowHandle = LGFXGetNativeWindowHandle(handle);
         //swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay(handle);
 
-        result->swapchain = LGFXCreateSwapchain(instance.device, &swapchainCreateInfo);
-        result->mainCommandBuffer = LGFXCreateCommandBuffer(instance.device, false);
+        result->swapchain = LGFXCreateSwapchain(application->device, &swapchainCreateInfo);
+        result->mainCommandBuffer = LGFXCreateCommandBuffer(application->device, false);
 
-        List_Add(&instance.windows, &result);
+        List_Add(&application->windows, &result);
         return result;
     }
 
@@ -308,10 +335,10 @@ void Window_SetFullscreen(Window *self, bool value)
         {
             monitor = glfwGetPrimaryMonitor();
         }
-        i32 xpos;
-        i32 ypos;
-        i32 w;
-        i32 h;
+        int32_t xpos;
+        int32_t ypos;
+        int32_t w;
+        int32_t h;
         glfwGetMonitorWorkarea(monitor, &xpos, &ypos, &w, &h);
 
         const GLFWvidmode *videoMode = glfwGetVideoMode(monitor);
@@ -332,12 +359,12 @@ void Window_SetResolution(Window *self, uint32_t width, uint32_t height)
     {
         return;
     }
-    i32 w;
-    i32 h;
+    int32_t w;
+    int32_t h;
     GLFWmonitor *monitor = GetCurrentMonitor((GLFWwindow *)self->handle);
     glfwGetMonitorWorkarea(monitor, NULL, NULL, &w, &h);
 
-    glfwSetWindowSize((GLFWwindow *)self->handle, (u32)width, (u32)height);
+    glfwSetWindowSize((GLFWwindow *)self->handle, (uint32_t)width, (uint32_t)height);
     if (self->isMaximized)
     {
         glfwRestoreWindow((GLFWwindow *)self->handle);
@@ -480,8 +507,8 @@ int32_t Window_GetCurrentMonitorFramerate(const Window *self)
 Vec2 Window_GetCurrentMonitorResolution(const Window *self)
 {
     GLFWmonitor *monitor = GetCurrentMonitor((GLFWwindow*)self->handle);
-    i32 w;
-    i32 h;
+    int32_t w;
+    int32_t h;
     glfwGetMonitorWorkarea(monitor, NULL, NULL, &w, &h);
 
     return CreateVec2((float)w, (float)h);

@@ -1,6 +1,5 @@
 #pragma once
 #include "AstralCanvasHPP/Application.hpp"
-#include "InputState.hpp"
 #include "Maths/Vec2.hpp"
 
 namespace AstralCanvas

@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/src",
-                "${workspaceFolder}/Astral.Canvas",
+                "${workspaceFolder}/AstralCanvasC",
+                "${workspaceFolder}/AstralCanvasCPP",
                 "${workspaceFolder}/dependencies/glfw/include",
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",

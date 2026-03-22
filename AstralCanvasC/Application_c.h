@@ -14,8 +14,8 @@ typedef struct Application
 
     string appName;
     string engineName;
-    u32 appVersion;
-    u32 engineVersion;
+    uint32_t appVersion;
+    uint32_t engineVersion;
     float startTime;
     float endTime;
     float updateTimer;

@@ -16,7 +16,7 @@ typedef struct LGFXInstanceImpl
 typedef struct LGFXFencePool
 {
 	LGFXFence fences[LGFX_FENCE_POOL_SIZE];
-    u32 numFences;
+    uint32_t numFences;
 } LGFXFencePool;
 
 LGFXFence LGFXFencePool_Rent(LGFXFencePool *pool, LGFXDevice device, bool initiallySignalled);
@@ -43,7 +43,7 @@ typedef struct LGFXCommandQueueImpl
 {
     void *queue;
     Lock queueLock;
-    u32 queueFamilyID;
+    uint32_t queueFamilyID;
 
     void *regularCommandPool;
     void *transientCommandPool;
@@ -64,13 +64,13 @@ typedef struct LGFXSwapchainImpl
     LGFXCreateWindowSurfaceFunc createSurfaceFunc;
     void *windowHandle;
     LGFXDevice device;
-    u32 currentImageIndex;
+    uint32_t currentImageIndex;
     LGFXSwapchainPresentationMode presentMode;
-    u32 width;
-    u32 height;
+    uint32_t width;
+    uint32_t height;
     LGFXTexture *backbufferTextures;
     LGFXTexture *backDepthbuffers;
-    u32 backbufferTexturesCount;
+    uint32_t backbufferTexturesCount;
 
     LGFXFence fence;
     LGFXSemaphore awaitPresentComplete;
@@ -99,16 +99,16 @@ typedef struct LGFXCommandBufferImpl
 typedef struct LGFXRenderProgramImpl
 {
     void *handle;
-    u32 currentPass;
+    uint32_t currentPass;
     LGFXDevice device;
 
     LGFXRenderTarget *targets;
-    u32 targetsCount;
+    uint32_t targetsCount;
 
     LGFXRenderTarget currentTarget;
 
     LGFXRenderAttachmentInfo *attachments;
-    u32 attachmentsCount;
+    uint32_t attachmentsCount;
 
     bool outputToBackbuffer;
 } LGFXRenderProgramImpl;
@@ -123,7 +123,7 @@ typedef struct LGFXFunctionImpl
     LGFXFunctionType type;
 
     LGFXShaderResource *uniforms;
-    u32 uniformsCount;
+    uint32_t uniformsCount;
     LGFXDevice device;
 } LGFXFunctionImpl;
 

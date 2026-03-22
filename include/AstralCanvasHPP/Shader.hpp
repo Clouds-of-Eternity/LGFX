@@ -3,8 +3,11 @@
 #include "lgfx/lgfx.h"
 #include "DenseSet.hpp"
 #include "List.hpp"
+#include "ByteStreamOps.hpp"
+
+#ifdef ASTRALCANVAS_JSON_SHADER
 #include "Json.hpp"
-#include "DataStream.hpp"
+#endif
 
 namespace AstralCanvas
 {
@@ -83,11 +86,12 @@ namespace AstralCanvas
         void SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer computeBuffer);
     };
 
-    u32 ParseShaderVariables2(IAllocator allocator, Json::JsonElement *variables, collections::List<AstralCanvas::ShaderResource> &result);
+    #ifdef ASTRALCANVAS_JSON_SHADER
     u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
 
     usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
     usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result);
+    #endif
 
     usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, Shader *result);
     usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, Shader *result);

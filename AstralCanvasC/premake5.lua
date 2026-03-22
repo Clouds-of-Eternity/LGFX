@@ -1,4 +1,4 @@
-project "AstralCanvasC"
+project "AstralCanvas"
     kind "StaticLib"
     language "C"
     cdialect "C11"
@@ -6,8 +6,8 @@ project "AstralCanvasC"
     targetdir "bin/%{cfg.buildcfg}"
     includedirs {
         "../include",
-        "../Astral.Core/Astral.Core",
-        "../src",
+        "./",
+        "../Astral.Core/Astral.Base",
         "../dependencies/glfw/include",
         "%{VULKAN_SDK}/include"
     }

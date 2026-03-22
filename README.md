@@ -7,9 +7,7 @@
 
 **LGFX** is an abstraction layer for Vulkan and perhaps other APIs in the future, aiming to be similar in many ways to WebGPU's API but with more freedom of control, including matters like synchronization.
 
-LGFX itself is written in C, and does not come with any windowing library or input system. However, a higher-level helper API written in C++ is also provided, known as **AstralCanvas**. It uses GLFW and is meant to help users kickstart simple graphical apps by further bootstrapping functionality like instance and device creation, as well as providing an update, fixed update and render callback.
-
-A rewrite for AstralCanvas to be in pure C but with C++ bindings is underway, but will probably not be completed soon due to the situation with ShaderCompiler and the shader format taking precedence.
+LGFX itself is written in C, and does not come with any windowing library or input system. However, higher-level helper APIs are also provided, known as **AstralCanvas**. AstralCanvas has an implementation in both C++ and pure C, and uses GLFW underneath. It is meant to help you kickstart simple graphical apps by further bootstrapping functionality like instance, device and window(s) creation, as well as providing relevant callbacks. It is not a fully fledged framework.
 
 While perhaps lower level than other interfaces, LGFX is *still* remarkably simple to use if you already know 'vanilla' Vulkan. A triangle takes less than 180 LOC.
 
@@ -26,6 +24,4 @@ ShaderCompiler detects what type of shader a .slang file is by checking the name
 
 The ShaderCompiler CLI takes 1 necessary argument: The root directory containing all your .slang files. Thereafter, all arguments should be directory paths to include directories. 
 
-ShaderCompiler treats all files with the `.inc.slang` extension as a utility file and not a complete shader on its own.
-
-ShaderCompiler will eventually be moved into its own repository in a planned v2 rewrite, while its dependence on JSON as an output format will be replaced with something else.
+ShaderCompiler treats all files with the `.inc.slang` extensions as a utility or module dependency file and not a complete shader on its own, and thus will not compile them.

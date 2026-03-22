@@ -1,4 +1,4 @@
-#include "Astral.Canvas/InputState.h"
+#include "AstralCanvas/InputState.h"
 
 ControllerState ControllerState_Empty()
 {
@@ -128,6 +128,191 @@ void InputState_SimulateMouseRelease(InputState *self, MouseButtons button)
 {
     self->mouseStatuses[(uint32_t)button].perFrameState = KeyState_Released;
     self->mouseStatuses[(uint32_t)button].status = false;
+}
+
+bool InputState_ControllerIsButtonPressed(const InputState *self, int32_t controllerIndex, ControllerButtons button)
+{
+    const ControllerState *states = self->controllerStates;
+    const ControllerState *oldStates = self->oldControllerStates;
+
+    if (button == ControllerButton_L2)
+    {
+        if (controllerIndex == -1)
+        {
+            for (uint32_t i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].L2DownAmount > 0.1f && oldStates[i].L2DownAmount <= 0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f && oldStates[controllerIndex].L2DownAmount <= 0.1f;
+    }
+    if (button == ControllerButton_R2)
+    {
+        if (controllerIndex == -1)
+        {
+            for (uint32_t i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].R2DownAmount > 0.1f && oldStates[i].R2DownAmount <= 0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f && oldStates[controllerIndex].R2DownAmount <= 0.1f;
+    }
+    if (controllerIndex == -1)
+    {
+        for (uint32_t i = 0; i < 4; i++)
+        {
+            if (states[i].connected && states[i].buttonStates[(size_t)button] && !oldStates[i].buttonStates[(size_t)button])
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    else
+    {
+        return states[controllerIndex].connected && 
+        states[controllerIndex].buttonStates[(size_t)button]
+        && !oldStates[controllerIndex].buttonStates[(size_t)button];
+    }
+}
+bool InputState_ControllerIsButtonDown(const InputState *self, int32_t controllerIndex, ControllerButtons button)
+{
+    const ControllerState *states = self->controllerStates;
+    if (button == ControllerButton_L2)
+    {
+        if (controllerIndex == -1)
+        {
+            for (uint32_t i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].L2DownAmount > 0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount > 0.1f;
+    }
+    if (button == ControllerButton_R2)
+    {
+        if (controllerIndex == -1)
+        {
+            for (uint32_t i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].R2DownAmount > 0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount > 0.1f;
+    }
+    if (controllerIndex == -1)
+    {
+        for (uint32_t i = 0; i < 4; i++)
+        {
+            if (states[i].connected && states[i].buttonStates[(size_t)button])
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    else return states[controllerIndex].connected && states[controllerIndex].buttonStates[(size_t)button];
+}
+bool InputState_ControllerIsButtonReleased(const InputState *self, int32_t controllerIndex, ControllerButtons button)
+{
+    ControllerState *states = self->controllerStates;
+    ControllerState *oldStates = self->oldControllerStates;
+
+    if (button == ControllerButton_L2)
+    {
+        if (controllerIndex == -1)
+        {
+            for (uint32_t i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].L2DownAmount <= 0.1f && oldStates[i].L2DownAmount > 0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return states[controllerIndex].connected && states[controllerIndex].L2DownAmount <= 0.1f && oldStates[controllerIndex].L2DownAmount > 0.1f;
+    }
+    if (button == ControllerButton_R2)
+    {
+        if (controllerIndex == -1)
+        {
+            for (uint32_t i = 0; i < 4; i++)
+            {
+                if (states[i].connected && states[i].R2DownAmount <= 0.1f && oldStates[i].R2DownAmount > 0.1f)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return states[controllerIndex].connected && states[controllerIndex].R2DownAmount <= 0.1f && oldStates[controllerIndex].R2DownAmount > 0.1f;
+    }
+    if (controllerIndex == -1)
+    {
+        for (uint32_t i = 0; i < 4; i++)
+        {
+            if (states[i].connected && !states[i].buttonStates[(size_t)button] && oldStates[i].buttonStates[(size_t)button])
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    else
+    {
+        return states[controllerIndex].connected && 
+        !states[controllerIndex].buttonStates[(size_t)button]
+        && oldStates[controllerIndex].buttonStates[(size_t)button];
+    }
+}
+float InputState_ControllerGetL2DownAmount(const InputState *self, uint32_t controllerIndex)
+{
+    if (controllerIndex >= 4)
+    {
+        return 0.0f;
+    }
+    return self->controllerStates[controllerIndex].L2DownAmount;
+}
+float InputState_ControllerGetR2DownAmount(const InputState *self, uint32_t controllerIndex)
+{
+    if (controllerIndex >= 4)
+    {
+        return 0.0f;
+    }
+    return self->controllerStates[controllerIndex].R2DownAmount;
+}
+Vec2 InputState_ControllerGetLeftStickAxis(const InputState *self, uint32_t controllerIndex)
+{
+    if (controllerIndex >= 4)
+    {
+        return CreateVec2(0.0f, 0.0f);
+    }
+    return self->controllerStates[controllerIndex].leftStickAxis;
+}
+Vec2 InputState_ControllerGetRightStickAxis(const InputState *self, uint32_t controllerIndex)
+{
+    if (controllerIndex >= 4)
+    {
+        return CreateVec2(0.0f, 0.0f);
+    }
+    return self->controllerStates[controllerIndex].rightStickAxis;
 }
 
 void InputState_ResetPerFrameStates(InputState *self)

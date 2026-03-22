@@ -1,4 +1,4 @@
-project "AstralCanvasCompute"
+project "ComputeCPP"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++14"
@@ -12,13 +12,12 @@ project "AstralCanvasCompute"
     links {"LGFX", "AstralCanvasCPP", "GLFW"}
 
     files {
-        "Program.cpp",
-        "Json.cpp"
+        "Program.cpp"
     }
 
     postbuildcommands { 
-        "{COPYFILE}	 \"DrawParticles.sfn\" \"bin/%{cfg.buildcfg}/DrawParticles.sfn\"",
-        "{COPYFILE}	 \"UpdateParticles.sfn\" \"bin/%{cfg.buildcfg}/UpdateParticles.sfn\""
+        "{COPYFILE}	 \"../../Shaders/DrawParticles.sfn\" \"bin/%{cfg.buildcfg}/DrawParticles.sfn\"",
+        "{COPYFILE}	 \"../../Shaders/UpdateParticles.sfn\" \"bin/%{cfg.buildcfg}/UpdateParticles.sfn\""
     }
 
     filter "system:windows"

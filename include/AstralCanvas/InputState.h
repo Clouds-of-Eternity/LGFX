@@ -245,8 +245,16 @@ DynamicFunction void InputState_SimulateMousePress(InputState *self, MouseButton
 /// and does not actually simulate a mouse press for the operating system itself.
 DynamicFunction void InputState_SimulateMouseRelease(InputState *self, MouseButtons button);
 
-DynamicFunction bool Input_IsControllerConnected(uint32_t controllerIndex);
+DynamicFunction bool Input_ControllerIsConnected(uint32_t controllerIndex);
 DynamicFunction ControllerState Input_GetControllerState(uint32_t controllerIndex);
+DynamicFunction bool InputState_ControllerIsButtonPressed(const InputState *self, int32_t controllerIndex, ControllerButtons button);
+DynamicFunction bool InputState_ControllerIsButtonDown(const InputState *self, int32_t controllerIndex, ControllerButtons button);
+DynamicFunction bool InputState_ControllerIsButtonReleased(const InputState *self, int32_t controllerIndex, ControllerButtons button);
+
+DynamicFunction float InputState_ControllerGetL2DownAmount(const InputState *self, uint32_t controllerIndex);
+DynamicFunction float InputState_ControllerGetR2DownAmount(const InputState *self, uint32_t controllerIndex);
+DynamicFunction Vec2 InputState_ControllerGetLeftStickAxis(const InputState *self, uint32_t controllerIndex);
+DynamicFunction Vec2 InputState_ControllerGetRightStickAxis(const InputState *self, uint32_t controllerIndex);
 
 ///@brief Resets the cache of key, mouse and controller inputs, as well as the 
 /// internal textInputCharacters store. This is called at the end of each (active) frame.

@@ -1,4 +1,5 @@
 #include "Application_c.h"
+#include "Window_c.h"
 
 Application instance;
 
@@ -6,7 +7,7 @@ Application *AstralCanvas_GetApplication()
 {
     return &instance;
 }
-LGFXDevice AstralCanvas_GetDevice()
+LGFXDevice AstralCanvas_GetGraphicsDevice()
 {
     return instance.device;
 }
@@ -15,7 +16,51 @@ LGFXInstance AstralCanvas_GetGraphicsInstance()
     return instance.instance;
 }
 
-void AstralCanvas_Init(const char *appName, const char *engineName, uint32_t appVersion, uint32_t engineVersion, bool noWindow)
+Window *AstralCanvas_GetCurrentWindow()
+{
+    return instance.currentWindow;
+}
+LGFXSwapchain AstralCanvas_GetCurrentSwapchain()
+{
+    return instance.currentWindow->swapchain;
+}
+Window *AstralCanvas_GetWindow(size_t index)
+{
+    return LIST_GET(&instance.windows, Window *, index);
+}
+LGFXSwapchain AstralCanvas_GetWindowSwapchain(size_t index)
+{
+    Window *win = LIST_GET(&instance.windows, Window *, index);
+    if (win == NULL)
+    {
+        return NULL;
+    }
+    return win->swapchain;
+}
+
+Window *Application_GetCurrentWindow(const Application *self)
+{
+    return self->currentWindow;
+}
+LGFXSwapchain Application_GetCurrentSwapchain(const Application *self)
+{
+    return self->currentWindow->swapchain;
+}
+Window *Application_GetWindow(Application *self, size_t index)
+{
+    return LIST_GET(&self->windows, Window *, index);
+}
+LGFXSwapchain Application_GetWindowSwapchain(Application *self, size_t index)
+{
+    Window *win = LIST_GET(&self->windows, Window *, index);
+    if (win == NULL)
+    {
+        return NULL;
+    }
+    return win->swapchain;
+}
+
+Application *AstralCanvas_Init(const char *appName, const char *engineName, uint32_t appVersion, uint32_t engineVersion, bool noWindow)
 {
     instance.windows = List_Create(GetCAllocator(), sizeof(Window *));
     instance.currentWindow = NULL;
@@ -31,12 +76,9 @@ void AstralCanvas_Init(const char *appName, const char *engineName, uint32_t app
 
     if (!noWindow)
     {
-        #ifdef X11
-        glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
-        #endif
-        glfwInit();
-        u32 extensionsCount;
-        const char **extensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
+        Windowing_InitializeBackend();
+        uint32_t extensionsCount;
+        const char **extensions = Windowing_GetRequiredInstanceExtensions(&extensionsCount);
 
         LGFXInstanceCreateInfo instanceCreateInfo = {0};
         instanceCreateInfo.appName = appName;
@@ -60,6 +102,7 @@ void AstralCanvas_Init(const char *appName, const char *engineName, uint32_t app
         //deviceCreateInfo.requiredFeatures.wideLines = true;
         instance.device = LGFXCreateDevice(instance.instance, &deviceCreateInfo);
     }
+    return &instance;
 }
 
 void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc)
@@ -69,7 +112,7 @@ void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFun
     {
         initFunc();
     }
-    instance.startTime = (float)glfwGetTime();
+    instance.startTime = (float)Windowing_GetTime();
     instance.endTime = instance.startTime;
     bool noWindows = instance.windows.count == 0;
     if (noWindows)
@@ -82,15 +125,21 @@ void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFun
     {
         float deltaTime = instance.endTime - instance.startTime;
 
-        glfwPollEvents();
+        Windowing_CollectEvents();
         instance.updateTimer += deltaTime;
         instance.fixedUpdateTimer += deltaTime;
 
         //bool runUpdate = instance.framesPerSecond < 1.0f || instance.updateTimer >= 1.0f / framesPerSecond;
         bool minimized = instance.windows.count > 0;
-        for (u32 i = 0; i < instance.windows.count; i++)
+        for (int32_t i = (int32_t)instance.windows.count - 1; i >= 0; i--)
         {
             Window *window = LIST_GET(&instance.windows, Window *, i);
+            if (window->isDisposed)
+            {
+                free(window);
+                List_RemoveAtPullback(&instance.windows, (size_t)i);
+                continue;
+            }
             Point2 res = Window_GetResolution(window);
 
             if (res.X > 0 && res.Y > 0)
@@ -99,10 +148,14 @@ void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFun
                 break;
             }
         }
+        if (instance.windows.count == 0 && !noWindows)
+        {
+            break;
+        }
         if (minimized)
         {
-            glfwWaitEvents();
-            instance.endTime = (float)glfwGetTime();
+            Windowing_AwaitEvents();
+            instance.endTime = (float)Windowing_GetTime();
         }
 
         //fixed update
@@ -135,27 +188,22 @@ void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFun
                 updateFunc(instance.updateTimer * instance.timeScale);
             }
 
-            bool hasClosed = Window_Update(window);
-            if (hasClosed)
-            {
-                List_RemoveAtPullback(&instance.windows, (size_t)i);
-                continue;
-            }
+            InputState_ResetPerFrameStates(&window->windowInputState);
 
             //begin draw
-            LGFXSwapchain swapchain = Window_GetSwapchain(window);
+            LGFXSwapchain *swapchainPtr = &window->swapchain;
             LGFXCommandBuffer mainCommandBuffer = Window_GetMainCommandBuffer(window);
 
-            if (LGFXNewFrame(instance.device, swapchain, (u32)frameSize.X, (u32)frameSize.Y))
+            if (LGFXNewFrame(instance.device, swapchainPtr, (uint32_t)frameSize.X, (uint32_t)frameSize.Y))
             {
                 LGFXCommandBufferReset(mainCommandBuffer);
                 LGFXCommandBufferBegin(mainCommandBuffer, true);
 
-                drawFunc(deltaTime, &window);
+                drawFunc(deltaTime, window);
 
                 //end draw
-                LGFXCommandBufferEndSwapchain(mainCommandBuffer, swapchain);
-                LGFXSubmitFrame(instance.device, swapchain);
+                LGFXCommandBufferEndSwapchain(mainCommandBuffer, *swapchainPtr);
+                LGFXSubmitFrame(instance.device, *swapchainPtr);
 
                 if (postEndDrawFunc != NULL)
                 {
@@ -171,15 +219,10 @@ void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFun
             }
         }
 
-        if (instance.windows.count == 0 && !noWindows)
-        {
-            break;
-        }
         instance.updateTimer = 0.0f;
-        
 
         instance.startTime = instance.endTime;
-        instance.endTime = (float)glfwGetTime();
+        instance.endTime = (float)Windowing_GetTime();
         if (instance.shouldResetDeltaTimer)
         {
             instance.startTime = instance.endTime;
@@ -188,7 +231,7 @@ void AstralCanvas_Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFun
         if (instance.shouldShutdown)
         {
             shouldStop = true;
-            for (usize i = 0; i < instance.windows.count; i++)
+            for (size_t i = 0; i < instance.windows.count; i++)
             {
                 Window *window = LIST_GET(&instance.windows, Window *, i);
                 Window_Close(window);

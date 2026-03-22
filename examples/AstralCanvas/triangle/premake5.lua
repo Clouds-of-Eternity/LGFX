@@ -1,23 +1,22 @@
-project "AstralCanvasTriangle"
+project "Triangle"
     kind "ConsoleApp"
-    language "C++"
-    cppdialect "C++14"
+    language "C"
+    cdialect "C11"
     staticruntime "Off"
     targetdir "bin/%{cfg.buildcfg}"
     includedirs {
         "../../../include",
-        "../../../Astral.Core/Astral.Core",
+        "../../../Astral.Core/Astral.Base",
         "../../../dependencies/glfw/include"
     }
-    links {"LGFX", "AstralCanvasCPP", "GLFW"}
+    links {"LGFX", "AstralCanvas", "GLFW"}
 
     files {
-        "Program.cpp",
-        "Json.cpp"
+        "Program.c"
     }
 
     postbuildcommands { 
-        "{COPYFILE}	 \"Triangle.sfn\" \"bin/%{cfg.buildcfg}/Triangle.sfn\""
+        "{COPYFILE}	 \"../../Shaders/Triangle.sfn\" \"bin/%{cfg.buildcfg}/Triangle.sfn\""
     }
 
     filter "system:windows"

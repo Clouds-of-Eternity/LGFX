@@ -9,7 +9,6 @@ project "AstralCanvasCPP"
     includedirs {
         "../include",
         "../Astral.Core/Astral.Core",
-        "../src",
         "../dependencies/glfw/include",
         "%{VULKAN_SDK}/include"
     }
