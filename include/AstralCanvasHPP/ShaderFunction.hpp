@@ -89,7 +89,7 @@ namespace AstralCanvas
     //usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, ShaderFunction *result);
     #endif
 
-    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, ShaderFunction *result);
-    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, ShaderFunction *result);
-    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, ShaderFunction *result);
+    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result);
+    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result);
+    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result);
 }

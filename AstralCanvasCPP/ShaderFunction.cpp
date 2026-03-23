@@ -734,24 +734,24 @@ namespace AstralCanvas
     }
     #endif
 
-    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, ShaderFunction *result)
+    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result)
     {
         FILE *fs = fopen(name, "rb");
         if (fs == NULL)
         {
             return 1;   
         }
-        usize errorCode = CreateShaderFromSFN(device, allocator, GetFileDataStream(fs), result);
+        usize errorCode = CreateShaderFromSFN(device, allocator, GetFileDataStream(fs), numExtraBatchTypes, extraBatchTypes, result);
         fclose(fs);
         return errorCode;
     }
-    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, ShaderFunction *result)
+    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result)
     {
         ByteStreamReader reader = ByteStreamReader(bytes, 0xFFFFFFFF, 0);
-        usize errorCode = CreateShaderFromSFN(device, allocator, reader.ToDataStream(), result);
+        usize errorCode = CreateShaderFromSFN(device, allocator, reader.ToDataStream(), numExtraBatchTypes, extraBatchTypes, result);
         return errorCode;
     }
-    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, ShaderFunction *result)
+    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result)
     {
         const u32 fileVersion = input.Read<u32>();
         if (fileVersion == 1)
@@ -869,6 +869,8 @@ namespace AstralCanvas
             else return 1;
 
             info.type = funcType;
+            info.extraFunctionVariableBatchTypesCount = numExtraBatchTypes;
+            info.extraFunctionVariableBatchTypes = extraBatchTypes;
 
             result->gpuFunction = LGFXCreateFunction(device, &info);
             result->functionType = funcType;

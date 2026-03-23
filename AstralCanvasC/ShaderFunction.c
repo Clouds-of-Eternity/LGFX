@@ -227,7 +227,7 @@ LGFXFunctionVariableBatch ShaderFunctionState_GetCurrentVariableGroup(const Shad
     return LIST_GET(&self->variableSlotGroups, LGFXFunctionVariableBatch, self->currentGroup);
 }
 
-size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataStream *stream, ShaderFunction *outputResult)
+size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataStream *stream, uint32_t numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *outputResult)
 {
     const uint32_t fileVersion = IDataStream_ReadU32(stream);
     if (fileVersion == 1)
@@ -356,6 +356,8 @@ size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataS
         }
 
         info.type = funcType;
+        info.extraFunctionVariableBatchTypes = extraBatchTypes;
+        info.extraFunctionVariableBatchTypesCount = numExtraBatchTypes;
 
         result->gpuFunction = LGFXCreateFunction(device, &info);
         result->functionType = funcType;
@@ -369,13 +371,13 @@ size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataS
     }
     return 0;
 }
-size_t ShaderFunction_FromBytes(LGFXDevice device, const uint8_t* bytes, ShaderFunction *outputResult)
+size_t ShaderFunction_FromBytes(LGFXDevice device, const uint8_t* bytes, uint32_t numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *outputResult)
 {
     ByteStreamReader reader = ByteStreamReader_Create(bytes, 0, 0xFFFFFFFF);
     IDataStream dataStream = ByteStreamReaderToStream(&reader);
-    return ShaderFunction_FromStream(device, GetCAllocator(), &dataStream, outputResult);
+    return ShaderFunction_FromStream(device, GetCAllocator(), &dataStream, numExtraBatchTypes, extraBatchTypes, outputResult);
 }
-size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, ShaderFunction *outputResult)
+size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, uint32_t numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *outputResult)
 {
     FILE *fs = fopen(filePath, "rb");
     if (fs == NULL)
@@ -383,7 +385,7 @@ size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, ShaderFu
         return 1;
     }
     IDataStream ds = GetFileDataStream(fs);
-    size_t errorCode = ShaderFunction_FromStream(device, GetCAllocator(), &ds, outputResult);
+    size_t errorCode = ShaderFunction_FromStream(device, GetCAllocator(), &ds, numExtraBatchTypes, extraBatchTypes, outputResult);
     fclose(fs);
     return errorCode;
 }

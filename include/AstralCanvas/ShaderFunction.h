@@ -39,9 +39,9 @@ DynamicFunction void ShaderFunctionState_SyncWithGPU(ShaderFunctionState self, L
 DynamicFunction ShaderFunction ShaderFunctionState_GetUnderlyingShaderFunction(const ShaderFunctionState self);
 DynamicFunction LGFXFunctionVariableBatch ShaderFunctionState_GetCurrentVariableGroup(const ShaderFunctionState self);
 
-DynamicFunction size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataStream *stream, ShaderFunction *outputResult);
-DynamicFunction size_t ShaderFunction_FromBytes(LGFXDevice device, const uint8_t* bytes, ShaderFunction *outputResult);
-DynamicFunction size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, ShaderFunction *outputResult);
+DynamicFunction size_t ShaderFunction_FromStream(LGFXDevice device, IAllocator allocator, IDataStream *stream, uint32_t numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *outputResult);
+DynamicFunction size_t ShaderFunction_FromBytes(LGFXDevice device, const uint8_t* bytes, uint32_t numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *outputResult);
+DynamicFunction size_t ShaderFunction_FromFile(LGFXDevice device, const char *filePath, uint32_t numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *outputResult);
 DynamicFunction LGFXFunction ShaderFunction_GetFunc(const ShaderFunction self);
 DynamicFunction LGFXFunctionType ShaderFunction_GetType(const ShaderFunction self);
 DynamicFunction uint32_t ShaderFunction_GetResourcesCount(const ShaderFunction self);
