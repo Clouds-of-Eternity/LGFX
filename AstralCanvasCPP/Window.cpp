@@ -51,6 +51,7 @@ namespace AstralCanvas
 		{
 			Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 			canvas->windowInputState.ClearAllInputStates();
+			//canvas->isMaximized = false;
 		}
 	}
 	/// Called when the window is maximized or restored to original size
@@ -60,7 +61,7 @@ namespace AstralCanvas
 		glfwGetWindowSize(window, &canvas->resolution.X, &canvas->resolution.Y);
 		canvas->isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
 	}
-	void WindowOnTextInput(GLFWwindow* window, u32 characterUnicode)
+	void OnTextInput(GLFWwindow* window, u32 characterUnicode)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		canvas->windowInputState.textInputCharacters.Add(characterUnicode);
@@ -70,7 +71,7 @@ namespace AstralCanvas
 			canvas->onTextInputFunc(canvas, characterUnicode);
 		}
 	}
-	void WindowOnKeyInteracted(GLFWwindow* window, i32 glfwKey, i32 scancode, i32 action, i32 mods)
+	void OnKeyInteracted(GLFWwindow* window, i32 glfwKey, i32 scancode, i32 action, i32 mods)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		if (glfwKey == GLFW_KEY_UNKNOWN)
@@ -104,7 +105,7 @@ namespace AstralCanvas
 			canvas->onKeyInteractFunc(canvas, key, action);
 		}
 	}
-	void WindowOnMouseInteracted(GLFWwindow *window, i32 button, i32 action, i32 mods)
+	void OnMouseInteracted(GLFWwindow *window, i32 button, i32 action, i32 mods)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 
@@ -143,12 +144,12 @@ namespace AstralCanvas
 			}
 		}
 	}
-	void WindowOnMouseScrolled(GLFWwindow *window, double xPos, double yPos)
+	void OnMouseScrolled(GLFWwindow *window, double xPos, double yPos)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		canvas->windowInputState.scroll = Maths::Vec2((float)xPos, (float)yPos);
 	}
-	void WindowOnCursorMoved(GLFWwindow *window, double xPos, double yPos)
+	void OnCursorMoved(GLFWwindow *window, double xPos, double yPos)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		canvas->windowInputState.mousePosition = Maths::Vec2((float)xPos, (float)yPos);
@@ -168,7 +169,7 @@ namespace AstralCanvas
 		canvas->justResized = true;
 	}
 
-    void WindowOnDrop(GLFWwindow* window, int count, const char** paths)
+    void OnDrop(GLFWwindow* window, int count, const char** paths)
     {
 		Window* astralWindow = (Window*)glfwGetWindowUserPointer(window);
         if (astralWindow->onDropFunc)
@@ -177,15 +178,13 @@ namespace AstralCanvas
         }
     }
 
-    void WindowOnClose(GLFWwindow* window)
+    void OnWindowClose(GLFWwindow* window)
     {
         Window* astralWindow = (Window*)glfwGetWindowUserPointer(window);
         if (astralWindow->onCloseFunc)
         {
             astralWindow->onCloseFunc(astralWindow);
         }
-    	astralWindow->handle = NULL;
-    	astralWindow->deinit();
     }
 	
 	Window::Window()
@@ -271,14 +270,15 @@ namespace AstralCanvas
 			glfwSetWindowMaximizeCallback(handle, &WindowMaximized);
             glfwSetWindowSizeCallback(handle, &WindowSizeChanged);
 			glfwSetFramebufferSizeCallback(handle, &WindowFramebufferSizeChanged);
-			glfwSetCharCallback(handle, &WindowOnTextInput);
-			glfwSetKeyCallback(handle, &WindowOnKeyInteracted);
-			glfwSetMouseButtonCallback(handle, &WindowOnMouseInteracted);
-			glfwSetScrollCallback(handle, &WindowOnMouseScrolled);
-			glfwSetCursorPosCallback(handle, &WindowOnCursorMoved);
+			glfwSetCharCallback(handle, &OnTextInput);
+			glfwSetKeyCallback(handle, &OnKeyInteracted);
+			glfwSetMouseButtonCallback(handle, &OnMouseInteracted);
+			glfwSetScrollCallback(handle, &OnMouseScrolled);
+			glfwSetCursorPosCallback(handle, &OnCursorMoved);
 			glfwGetWindowPos(handle, &this->position.Y, &this->position.Y);
-            glfwSetDropCallback(handle, &WindowOnDrop);
-            glfwSetWindowCloseCallback(handle, &WindowOnClose);
+            glfwSetDropCallback(handle, &OnDrop);
+            glfwSetWindowShouldClose(handle, 0);
+            glfwSetWindowCloseCallback(handle, &OnWindowClose);
 
 			//init swapchain here
 			//create swapchain
@@ -303,14 +303,11 @@ namespace AstralCanvas
 	{
 		if (!isDisposed)
 		{
-			LGFXAwaitSwapchainIdle(swapchain);
-			if (handle != NULL)
-			{
-				glfwDestroyWindow((GLFWwindow*)handle);
-			}
-			LGFXDestroySwapchain(swapchain, true);
+            LGFXAwaitSwapchainIdle(swapchain);
+			glfwDestroyWindow((GLFWwindow*)this->handle);
+            LGFXDestroySwapchain(swapchain, true);
 
-			handle = NULL;
+			this->handle = NULL;
 			isDisposed = true;
 		}
 	}

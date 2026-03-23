@@ -3006,7 +3006,7 @@ void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVar
 	// 	0, NULL); //dynamic offsets count
 }
 
-LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info)
+LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info)
 {
 	VkPipeline result;
 	if (info->function->type == LGFXFunctionType_Compute)
@@ -3228,21 +3228,21 @@ LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipel
 		}
 	}
 
-	LGFXShaderPipeline shader = Allocate(LGFXShaderPipelineImpl, 1);
+	LGFXShaderState shader = Allocate(LGFXShaderStateImpl, 1);
 	shader->device = device;
 	shader->handle = result;
 	shader->function = info->function;
 
 	return shader;
 }
-void VkLGFXUseShaderPipeline(LGFXCommandBuffer buffer, LGFXShaderPipeline shaderPipeline)
+void VkLGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState)
 {
 	VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	if (shaderPipeline->function->type == LGFXFunctionType_Compute)
+	if (shaderState->function->type == LGFXFunctionType_Compute)
 	{
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
-	vkCmdBindPipeline((VkCommandBuffer)buffer->cmdBuffer, bindPoint, (VkPipeline)shaderPipeline->handle);
+	vkCmdBindPipeline((VkCommandBuffer)buffer->cmdBuffer, bindPoint, (VkPipeline)shaderState->handle);
 }
 
 void VkLGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area)
@@ -3493,13 +3493,13 @@ void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer)
 	}
 	free(commandBuffer);
 }
-void VkLGFXDestroyShaderPipeline(LGFXShaderPipeline shaderPipeline)
+void VkLGFXDestroyShaderState(LGFXShaderState shaderState)
 {
-	if (shaderPipeline->handle != NULL)
+	if (shaderState->handle != NULL)
 	{
-		vkDestroyPipeline((VkDevice)shaderPipeline->device->logicalDevice, (VkPipeline)shaderPipeline->handle, NULL);
+		vkDestroyPipeline((VkDevice)shaderState->device->logicalDevice, (VkPipeline)shaderState->handle, NULL);
 	}
-	free(shaderPipeline);
+	free(shaderState);
 }
 void VkLGFXDestroyFunction(LGFXFunction func)
 {

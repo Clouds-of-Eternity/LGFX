@@ -729,32 +729,32 @@ void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable)
     LGFX_ERROR("LGFXDestroyFunctionVariable: Unknown backend\n");
 }
 
-LGFXShaderPipeline LGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info)
+LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
-        return VkLGFXCreateShaderPipeline(device, info);
+        return VkLGFXCreateShaderState(device, info);
     }
-    LGFX_ERROR("LGFXCreateShaderPipeline: Unknown backend\n");
+    LGFX_ERROR("LGFXCreateShaderState: Unknown backend\n");
     return NULL;
 }
-void LGFXDestroyShaderPipeline(LGFXShaderPipeline shaderPipeline)
+void LGFXDestroyShaderState(LGFXShaderState shaderState)
 {
-    if (shaderPipeline->device->backend == LGFXBackendType_Vulkan)
+    if (shaderState->device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXDestroyShaderPipeline(shaderPipeline);
+        VkLGFXDestroyShaderState(shaderState);
         return;
     }
-    LGFX_ERROR("LGFXDestroyShaderPipeline: Unknown backend\n");
+    LGFX_ERROR("LGFXDestroyShaderState: Unknown backend\n");
 }
-void LGFXUseShaderPipeline(LGFXCommandBuffer buffer, LGFXShaderPipeline shaderPipeline)
+void LGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState)
 {
-    if (shaderPipeline->device->backend == LGFXBackendType_Vulkan)
+    if (shaderState->device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXUseShaderPipeline(buffer, shaderPipeline);
+        VkLGFXUseShaderState(buffer, shaderState);
         return;
     }
-    LGFX_ERROR("LGFXUseShaderPipeline: Unknown backend\n");
+    LGFX_ERROR("LGFXUseShaderState: Unknown backend\n");
 }
 
 

@@ -1,87 +1,113 @@
-#include "AstralCanvasHPP/ShaderFunction.hpp"
+#include "AstralCanvasHPP/Shader.hpp"
 #include <math.h>
 #include <stdio.h>
 #include "Scope.hpp"
 
 namespace AstralCanvas
 {
-    ShaderFunction::ShaderFunction()
+    collections::List<Shader *> allUsedShaders = collections::List<Shader *>(GetCAllocator());
+
+    Shader::Shader()
     {
         this->allocator = IAllocator{};
         gpuFunction = NULL;
-        uniforms = collections::Array<ShaderResource>();
+        uniforms = ShaderVariables();
+
+        this->descriptorForThisDrawCall = 0;
+        this->variableBatches = collections::List<LGFXFunctionVariableBatch>();
     }
-    ShaderFunction::ShaderFunction(IAllocator allocator, usize arrayLength)
+    Shader::Shader(IAllocator allocator)
     {
         this->allocator = allocator;
         gpuFunction = NULL;
-        uniforms = collections::Array<ShaderResource>(allocator, arrayLength);
+        uniforms = ShaderVariables(allocator);
+
+        this->descriptorForThisDrawCall = 0;
+        this->variableBatches = collections::List<LGFXFunctionVariableBatch>(allocator);
     }
     void ShaderResource::deinit()
     {
         nameStr.deinit();
+        LGFXShaderResourceType resourceType = resource.type;
+        for (u32 j = 0; j < states.count; j++)
+        {
+            LGFXDestroyFunctionVariable(states.ptr[j]);
+        }
+        states.deinit();
     }
-    void ShaderFunction::deinit()
+    void Shader::deinit()
     {
         LGFXDestroyFunction(gpuFunction);
-        if (uniforms.data != NULL)
+        if (uniforms.ptr != NULL)
         {
-            for (u32 i = 0; i < uniforms.length; i++)
+            for (u32 i = 0; i < uniforms.count; i++)
             {
-                uniforms.data[i].deinit();
+                if (uniforms.ptr[i].nameStr.buffer == NULL)
+                {
+                    continue;
+                }
+                uniforms.ptr[i].deinit();
             }
             uniforms.deinit();
         }
+        if (usedMaterials.data != NULL)
+        {
+            for (usize i = 0; i < usedMaterials.length; i++)
+            {
+                usedMaterials.data[i].deinit();
+            }
+            usedMaterials.deinit();
+        }
     }
 
-    void ShaderFunctionState::SetComputeBuffer(const char* variableName, LGFXBuffer buffer)
+    void Shader::SetShaderVariableComputeBuffer(const char* variableName, LGFXBuffer buffer)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < shader->uniforms.length; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
-            if (shader->uniforms.data[i].nameStr.buffer == NULL)
+            if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
                 break;
             }
             
-            if (shader->uniforms.data[i].nameStr == variableName)
+            if (uniforms.ptr[i].nameStr == variableName)
             {
-                ((LGFXBuffer *)shaderResourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0] = buffer;
+                ((LGFXBuffer *)uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].currentValues)[0] = buffer;
                 break;
             }
         }
     }
-    void ShaderFunctionState::SetUniform(const char* variableName, void* ptr, usize size)
+    void Shader::SetShaderVariable(const char* variableName, void* ptr, usize size)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < shader->uniforms.length; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
-            if (shader->uniforms.data[i].nameStr.buffer == NULL)
+            if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
                 break;
             }
             
-            if (shader->uniforms.data[i].nameStr == variableName)
+            if (uniforms.ptr[i].nameStr == variableName)
             {
-                LGFXSetBufferDataFast(((LGFXBuffer *)shaderResourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0], (u8*)ptr, size);
+                LGFXSetBufferDataFast(((LGFXBuffer *)uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].currentValues)[0], (u8*)ptr, size);
                 return;
-                //uniforms.data[i].states.ptr[descriptorForThisDrawCall].ub.SetData(ptr, size);
+                //uniforms.ptr[i].states.ptr[descriptorForThisDrawCall].ub.SetData(ptr, size);
             }
         }
         fprintf(stderr, "Shader does not possess a variable of name %s\n", variableName);
     }
-    void ShaderFunctionState::SetTextures(const char* variableName, LGFXTexture*textures, usize count)
+    void Shader::SetShaderVariableTextures(const char* variableName, LGFXTexture*textures, usize count)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < shader->uniforms.length; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
-            if (shader->uniforms.data[i].nameStr.buffer == NULL)
+            if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
                 break;
             }
-            if (shader->uniforms.data[i].nameStr == variableName)
+            if (uniforms.ptr[i].nameStr == variableName)
             {
-                LGFXFunctionVariable *mutableState = &shaderResourceStates[i].variableSlots.ptr[currentGroup];
+                LGFXFunctionVariable *mutableState = &uniforms.ptr[i].states.ptr[descriptorForThisDrawCall];
                 for (usize j = 0; j < count; j++)
                 {
                    ((LGFXTexture *)mutableState->currentValues)[j] = textures[j];
@@ -91,22 +117,22 @@ namespace AstralCanvas
         }
         fprintf(stderr, "Shader does not possess a variable of name %s\n", variableName);
     }
-    void ShaderFunctionState::SetTexture(const char* variableName, LGFXTexture texture)
+    void Shader::SetShaderVariableTexture(const char* variableName, LGFXTexture texture)
     {
-        this->SetTextures(variableName, &texture, 1);
+        this->SetShaderVariableTextures(variableName, &texture, 1);
     }
-    void ShaderFunctionState::SetSamplers(const char* variableName, LGFXSamplerState *samplers, usize count)
+    void Shader::SetShaderVariableSamplers(const char* variableName, LGFXSamplerState *samplers, usize count)
     {
         CheckDescriptorSetAvailability();
-        for (usize i = 0; i < shader->uniforms.length; i++)
+        for (usize i = 0; i < uniforms.count; i++)
         {
-            if (shader->uniforms.data[i].nameStr.buffer == NULL)
+            if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
                 break;
             }
-            if (shader->uniforms.data[i].nameStr == variableName)
+            if (uniforms.ptr[i].nameStr == variableName)
             {
-                LGFXFunctionVariable *mutableState = &shaderResourceStates[i].variableSlots.ptr[currentGroup];
+                LGFXFunctionVariable *mutableState = &uniforms.ptr[i].states.ptr[descriptorForThisDrawCall];
                 for (usize j = 0; j < count; j++)
                 {
                    ((LGFXSamplerState *)mutableState->currentValues)[j] = samplers[j];
@@ -116,113 +142,69 @@ namespace AstralCanvas
         }
         fprintf(stderr, "Shader does not possess a variable of name %s\n", variableName);
     }
-    void ShaderFunctionState::SetSampler(const char* variableName, LGFXSamplerState sampler)
+    void Shader::SetShaderVariableSampler(const char* variableName, LGFXSamplerState sampler)
     {
-        this->SetSamplers(variableName, &sampler, 1);
+        this->SetShaderVariableSamplers(variableName, &sampler, 1);
     }
 
-    i32 ShaderFunction::GetVariableBinding(text variableName)
+    i32 Shader::GetVariableBinding(text variableName)
     {
-        for (i32 i = 0; i < this->uniforms.length; i++)
+        for (i32 i = 0; i < this->uniforms.count; i++)
         {
-            if (uniforms.data[i].nameStr == variableName)
+            if (uniforms.ptr[i].nameStr == variableName)
             {
                 return i;
             }
         }
         return -1;
     }
-
-    ShaderFunctionState::ShaderFunctionState()
-    {
-        allocator = {};
-        shader = NULL;
-        currentGroup = 0;
-        shaderResourceStates = NULL;
-        variableSlotGroups = collections::List<LGFXFunctionVariableBatch>();
-    }
-    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, ShaderFunction *shader)
-    {
-        this->allocator = allocator;
-        this->shader = shader;
-        currentGroup = 0;
-        if (shader->uniforms.length > 0)
-        {
-            shaderResourceStates = (ShaderResourceState *)allocator.Allocate(sizeof(ShaderResourceState) * shader->uniforms.length);
-            for (u32 i = 0; i < shader->uniforms.length; i++)
-            {
-                shaderResourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
-            }
-        }
-        else
-        {
-            shaderResourceStates = NULL;
-        }
-        variableSlotGroups = collections::List<LGFXFunctionVariableBatch>(allocator);
-    }
-    void ShaderFunctionState::deinit()
-    {
-        if (shader != NULL && shaderResourceStates != NULL)
-        {
-            for (u32 i = 0; i < shader->uniforms.length; i++)
-            {
-                for (u32 j = 0; j < shaderResourceStates[i].variableSlots.count; j++)
-                {
-                    LGFXDestroyFunctionVariable(shaderResourceStates[i].variableSlots[j]);
-                }
-                shaderResourceStates[i].variableSlots.deinit();
-            }
-            allocator.Free(shaderResourceStates);
-            shaderResourceStates = NULL;
-        }
-
-        variableSlotGroups.deinit();
-    }
-    void ShaderFunctionState::CheckDescriptorSetAvailability(bool forceAddNewDescriptor)
+    void Shader::CheckDescriptorSetAvailability(bool forceAddNewDescriptor)
     {
         bool added = false;
-        for (u32 i = 0; i < this->shader->uniforms.length; i++)
+        for (u32 i = 0; i < this->uniforms.count; i++)
         {
-            if (shader->uniforms.data[i].nameStr.buffer == NULL)
+            if (uniforms.ptr[i].nameStr.buffer == NULL)
             {
                 break;
             }
 
-            if (forceAddNewDescriptor || currentGroup >= variableSlotGroups.count)
+            if (forceAddNewDescriptor || this->descriptorForThisDrawCall >= this->variableBatches.count)
             {
-                LGFXFunctionVariable newVarSlot = LGFXCreateFunctionVariableSlot(shader->gpuFunction, shader->uniforms[i].resource.binding);
-                shaderResourceStates[i].variableSlots.Add(newVarSlot);
+                LGFXFunctionVariable newVarSlot = LGFXCreateFunctionVariableSlot(this->gpuFunction, this->uniforms[i].resource.binding);
+                this->uniforms.ptr[i].states.Add(newVarSlot);
                 added = true;
             }
         }
         if (added)
         {
-            LGFXFunctionVariableBatch batch = LGFXCreateFunctionVariableBatch(shader->gpuFunction);
-            variableSlotGroups.Add(batch);
+            LGFXFunctionVariableBatch batch = LGFXCreateFunctionVariableBatch(this->gpuFunction);
+            this->variableBatches.Add(batch);
         }
     }
-    void ShaderFunctionState::SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer, bool pushToUsedShaderStack)
+    void Shader::SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer, bool pushToUsedShaderStack)
     {
         LGFXFunctionVariable variables[32];
         u32 variablesCount = 0;
-        for (usize i = 0; i < shader->uniforms.length; i++)
+        for (usize i = 0; i < this->uniforms.count; i++)
         {
-            if (shader->uniforms.data[i].nameStr.buffer == NULL)
+            if (this->uniforms.ptr[i].nameStr.buffer == NULL)
             {
                 break;
             }
-            variables[i] = shaderResourceStates[i].variableSlots.ptr[this->currentGroup];
+            variables[i] = this->uniforms.ptr[i].states.ptr[this->descriptorForThisDrawCall];
             variablesCount++;
         }
-        LGFXFunctionVariableBatch batch = this->variableSlotGroups.ptr[this->currentGroup];
-        LGFXFunctionSendVariablesToGPU(shader->device, batch, variables, variablesCount);
-        LGFXUseFunctionVariables(commandBuffer, batch, shader->gpuFunction, 0);
+        LGFXFunctionVariableBatch batch = this->variableBatches.ptr[this->descriptorForThisDrawCall];
+        LGFXFunctionSendVariablesToGPU(this->device, batch, variables, variablesCount);
+        LGFXUseFunctionVariables(commandBuffer, batch, gpuFunction, 0);
 
-        currentGroup += 1;
+        descriptorForThisDrawCall += 1;
+
+        allUsedShaders.Add(this);
     }
 
     #ifdef ASTRALCANVAS_JSON_SHADER
-    /*u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)
+    u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType)
     {
         i32 length = -1;
         Json::JsonElement *uniforms = json->GetProperty("uniforms");
@@ -459,11 +441,10 @@ namespace AstralCanvas
         return (u32)(length + 1);
     }
 
-    usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, ShaderFunction* result)
+    usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, Shader* result)
     {
-        *result = ShaderFunction(allocator, 0);
+        *result = Shader(allocator);
         result->device = device;
-
         ArenaAllocator localArena = ArenaAllocator(GetCAllocator());
         
         Json::JsonElement root;
@@ -476,10 +457,29 @@ namespace AstralCanvas
 
         Json::JsonElement *computeElement = root.GetProperty("compute");
 
+        Json::JsonElement *materialsElement = root.GetProperty("materials");
+        if (materialsElement != NULL)
+        {
+            result->usedMaterials = collections::Array<ShaderMaterialExport>(result->allocator, materialsElement->arrayElements.length);
+
+            for (usize i = 0; i < materialsElement->arrayElements.length; i++)
+            {
+                Json::JsonElement *materialElement = &materialsElement->arrayElements[i].value;
+                result->usedMaterials.data[i].name = materialsElement->arrayElements[i].key.Clone(result->allocator);
+                result->usedMaterials.data[i].params = collections::Array<ShaderMaterialExportParam>(result->allocator, materialElement->arrayElements.length);
+
+                for (usize j = 0; j < materialElement->arrayElements.length; j++)
+                {
+                    result->usedMaterials.data[i].params.data[j].name = materialElement->arrayElements[j].key.Clone(result->allocator);
+                    result->usedMaterials.data[i].params.data[j].size = materialElement->arrayElements[j].value.GetUint32();
+                }
+            }
+        }
+
         if (computeElement != NULL)
         {
             u32 maxBinding = ParseShaderVariables(computeElement, &result->uniforms, LGFXShaderInputAccess_Compute);
-            u32 uniformsCount = result->uniforms.length;
+            u32 uniformsCount = result->uniforms.count;
             Json::JsonElement *computeSpirv = computeElement->GetProperty("spirv");
             collections::Array<u32> computeSpirvData = collections::Array<u32>(localArena.AsAllocator(), computeSpirv->arrayElements.length);
             for (usize i = 0; i < computeSpirv->arrayElements.length; i++)
@@ -490,7 +490,7 @@ namespace AstralCanvas
             LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
             for (usize i = 0; i < uniformsCount; i++)
             {
-                inputResources[result->uniforms.data[i].resource.binding] = result->uniforms.data[i].resource;
+                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
             }
 
             LGFXFunctionCreateInfo info = {};
@@ -535,7 +535,7 @@ namespace AstralCanvas
                 LGFXShaderResource *inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
                 for (usize i = 0; i < uniformsCount; i++)
                 {
-                    inputResources[result->uniforms.data[i].resource.binding] = result->uniforms.data[i].resource;
+                    inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
                 }
 
                 LGFXFunctionCreateInfo info = {};
@@ -561,9 +561,11 @@ namespace AstralCanvas
 
         localArena.deinit();
         return 0;
-    }*/
-    usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, ShaderFunction *result)
+    }
+    usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, Shader *result)
     {
+        *result = Shader(allocator);
+        result->device = device;
         ArenaAllocator localArena = ArenaAllocator(GetCAllocator());
         Scope(ArenaAllocator, localArena);
 
@@ -597,13 +599,6 @@ namespace AstralCanvas
         info.type = type;
 
         Json::JsonElement *uniforms = root.GetProperty("uniforms");
-        usize len = 0;
-        if (uniforms != NULL)
-        {
-            len = uniforms->arrayElements.length;
-        }
-        *result = ShaderFunction(allocator, len);
-        result->device = device;
         if (uniforms != NULL)
         {
             u32 uniformsCount = 0;
@@ -668,7 +663,7 @@ namespace AstralCanvas
             inputResources = (LGFXShaderResource *)malloc(sizeof(LGFXShaderResource) * uniformsCount);
             for (usize i = 0; i < uniformsCount; i++)
             {
-                inputResources[result->uniforms.data[i].resource.binding] = result->uniforms.data[i].resource;
+                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
             }
 
             info.uniformsCount = uniformsCount;
@@ -734,7 +729,7 @@ namespace AstralCanvas
     }
     #endif
 
-    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, ShaderFunction *result)
+    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, Shader *result)
     {
         FILE *fs = fopen(name, "rb");
         if (fs == NULL)
@@ -745,17 +740,19 @@ namespace AstralCanvas
         fclose(fs);
         return errorCode;
     }
-    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, ShaderFunction *result)
+    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, Shader *result)
     {
         ByteStreamReader reader = ByteStreamReader(bytes, 0xFFFFFFFF, 0);
         usize errorCode = CreateShaderFromSFN(device, allocator, reader.ToDataStream(), result);
         return errorCode;
     }
-    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, ShaderFunction *result)
+    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, Shader *result)
     {
         const u32 fileVersion = input.Read<u32>();
         if (fileVersion == 1)
         {
+            *result = Shader(allocator);
+            result->device = device;
             ArenaAllocator arena = ArenaAllocator(GetCAllocator());
             Scope(ArenaAllocator, arena);
 
@@ -764,8 +761,6 @@ namespace AstralCanvas
             LGFXShaderResource *inputResources = NULL;
             LGFXFunctionCreateInfo info = {};
 
-            *result = ShaderFunction(allocator, paramCount);
-            result->device = device;
             for (u32 i = 0; i < paramCount; i++)
             {
                 string str = input.ReadString(allocator);
@@ -777,6 +772,7 @@ namespace AstralCanvas
                 newResource.resource.variableName = newResource.nameStr.buffer;
                 newResource.resource.set = bindingSpace;
                 newResource.resource.binding = bindingIndex;
+                newResource.states = collections::List<LGFXFunctionVariable>(allocator);
                 
                 newResource.resource.arrayLength = input.Read<u32>();
 
@@ -811,13 +807,13 @@ namespace AstralCanvas
                     return 1;
                 }
                 
-                result->uniforms[bindingIndex] = newResource;
+                result->uniforms.Add(newResource);
             }
             
             inputResources = (LGFXShaderResource *)arena.AsAllocator().Allocate(sizeof(LGFXShaderResource) * paramCount);
             for (usize i = 0; i < paramCount; i++)
             {
-                inputResources[result->uniforms.data[i].resource.binding] = result->uniforms.data[i].resource;
+                inputResources[result->uniforms.ptr[i].resource.binding] = result->uniforms.ptr[i].resource;
             }
 
             info.uniformsCount = paramCount;
