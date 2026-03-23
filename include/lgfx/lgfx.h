@@ -54,7 +54,7 @@ typedef struct LGFXTextureImpl *LGFXTexture;
 typedef struct LGFXRenderTargetImpl *LGFXRenderTarget;
 typedef struct LGFXRenderProgramImpl *LGFXRenderProgram;
 typedef struct LGFXFunctionImpl *LGFXFunction;
-typedef struct LGFXShaderStateImpl *LGFXShaderState;
+typedef struct LGFXShaderPipelineImpl *LGFXShaderPipeline;
 typedef struct LGFXComputeImpl *LGFXCompute;
 typedef struct LGFXSamplerStateImpl *LGFXSamplerState;
 typedef struct LGFXFunctionVariableBatchImpl *LGFXFunctionVariableBatch;
@@ -655,7 +655,7 @@ typedef struct
     bool forCompute;
 } LGFXFunctionVariableBatchTemplateCreateInfo;
 
-typedef struct LGFXShaderStateCreateInfo
+typedef struct LGFXShaderPipelineCreateInfo
 {
     LGFXFunction function;
     bool dynamicViewportScissor;
@@ -675,7 +675,7 @@ typedef struct LGFXShaderStateCreateInfo
 
     const char *entryPoint1Name;
     const char *entryPoint2Name;
-} LGFXShaderStateCreateInfo;
+} LGFXShaderPipelineCreateInfo;
 
 LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
 void LGFXDestroyInstance(LGFXInstance instance);
@@ -759,9 +759,9 @@ void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch
 void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, uint32_t setIndex);
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
-LGFXShaderState LGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
-void LGFXDestroyShaderState(LGFXShaderState shaderState);
-void LGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState);
+LGFXShaderPipeline LGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info);
+void LGFXDestroyShaderPipeline(LGFXShaderPipeline shaderPipeline);
+void LGFXUseShaderPipeline(LGFXCommandBuffer buffer, LGFXShaderPipeline shaderPipeline);
 
 void LGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area);
 void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);

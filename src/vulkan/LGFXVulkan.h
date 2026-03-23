@@ -87,9 +87,9 @@ void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBat
 void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, uint32_t setIndex);
 void VkLGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
 
-LGFXShaderState VkLGFXCreateShaderState(LGFXDevice device, LGFXShaderStateCreateInfo *info);
-void VkLGFXDestroyShaderState(LGFXShaderState shaderState);
-void VkLGFXUseShaderState(LGFXCommandBuffer buffer, LGFXShaderState shaderState);
+LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info);
+void VkLGFXDestroyShaderPipeline(LGFXShaderPipeline shaderPipeline);
+void VkLGFXUseShaderPipeline(LGFXCommandBuffer buffer, LGFXShaderPipeline shaderPipeline);
 
 LGFXCommandBuffer VkLGFXCreateCommandBuffer(LGFXDevice device, bool forCompute);
 void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmission);

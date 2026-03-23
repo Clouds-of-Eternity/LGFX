@@ -1,6 +1,6 @@
 #include "Linxc.h"
 #include "AstralCanvasHPP/Application.hpp"
-#include "AstralCanvasHPP/Shader.hpp"
+#include "AstralCanvasHPP/ShaderFunction.hpp"
 #include "Random.hpp"
 #include "stdint.h"
 
@@ -13,11 +13,13 @@ LGFXBuffer outputBuffer;
 LGFXBuffer indexBuffer;
 LGFXVertexDeclaration particleAsVertexDecl;
 
-AstralCanvas::Shader computeShader;
-LGFXShaderState computeShaderState;
+AstralCanvas::ShaderFunction computeShader;
+AstralCanvas::ShaderFunctionState computeShaderState;
+LGFXShaderPipeline computeShaderPipeline;
 
-AstralCanvas::Shader renderShader;
-LGFXShaderState renderShaderState;
+AstralCanvas::ShaderFunction renderShader;
+AstralCanvas::ShaderFunctionState renderShaderState;
+LGFXShaderPipeline renderShaderPipeline;
 
 struct Particle
 {
@@ -49,13 +51,13 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     LGFXCommandBuffer mainCmds = window->mainCommandBuffer;
     ContextData contextData = { PARTICLES_COUNT, deltaTime };
 
-    computeShader.SetShaderVariableComputeBuffer("ParticlesIn", inputBuffer);
-    computeShader.SetShaderVariableComputeBuffer("ParticlesOut", outputBuffer);
-    computeShader.SetShaderVariable("Context", &contextData, sizeof(ContextData));
-    computeShader.SyncUniformsWithGPU(mainCmds);
+    computeShaderState.SetComputeBuffer("ParticlesIn", inputBuffer);
+    computeShaderState.SetComputeBuffer("ParticlesOut", outputBuffer);
+    computeShaderState.SetUniform("Context", &contextData, sizeof(ContextData));
+    computeShaderState.SyncUniformsWithGPU(mainCmds);
 
     //first run compute
-    LGFXUseShaderState(mainCmds, computeShaderState);
+    LGFXUseShaderPipeline(mainCmds, computeShaderPipeline);
     LGFXDispatchCompute(mainCmds, PARTICLES_COUNT / 256, 1, 1);
 
     //then run draw
@@ -66,22 +68,19 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     //view matrix (aka inverse of camera world position) is identity
     Maths::Matrix4x4 viewProjection = Maths::Matrix4x4::CreateOrthographic(80.0f, 45.0f, -1000.0f, 1000.0f);
 
-    renderShader.SetShaderVariable("ViewProjection", &viewProjection, sizeof(Maths::Matrix4x4));
-    renderShader.SyncUniformsWithGPU(mainCmds);
+    renderShaderState.SetUniform("ViewProjection", &viewProjection, sizeof(Maths::Matrix4x4));
+    renderShaderState.SyncUniformsWithGPU(mainCmds);
 
     LGFXSetViewport(mainCmds, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
     LGFXSetClipArea(mainCmds, {0, 0, (uint32_t)window->frameBufferSize.X, (uint32_t)window->frameBufferSize.Y});
 
-    LGFXUseShaderState(mainCmds, renderShaderState);
+    LGFXUseShaderPipeline(mainCmds, renderShaderPipeline);
     LGFXUseVertexBuffer(mainCmds, &outputBuffer, 1);
     LGFXUseIndexBuffer(mainCmds, indexBuffer, 0);
 
     LGFXDrawIndexed(mainCmds, 6, PARTICLES_COUNT, 0, 0,0 );
 
     LGFXEndRenderProgram(rp, mainCmds);
-
-    computeShader.descriptorForThisDrawCall = 0;
-    renderShader.descriptorForThisDrawCall = 0;
 
     //swap buffers
     LGFXBuffer temp = outputBuffer;
@@ -90,7 +89,8 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 }
 void PostEndDraw(float deltaTime)
 {
-
+    computeShaderState.Clear();
+    renderShaderState.Clear();
 }
 void Init()
 {
@@ -161,37 +161,42 @@ void Init()
         printf("Error loading compute shader binary\n");
         assert(false);
     }
-    if (AstralCanvas::CreateShaderFromSFNFilePath(device, GetCAllocator(), "DrawParticles.sfn", &computeShader) != 0)
+    if (AstralCanvas::CreateShaderFromSFNFilePath(device, GetCAllocator(), "DrawParticles.sfn", &renderShader) != 0)
     {
         printf("Error loading rendering shader binary\n");
         assert(false);
     }
 
-    //shader state
-    LGFXShaderStateCreateInfo stateCreateInfo = {0};
-    stateCreateInfo.function = computeShader.gpuFunction;
-    computeShaderState = LGFXCreateShaderState(device, &stateCreateInfo);
+    computeShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), &computeShader);
+    renderShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), &renderShader);
 
-    stateCreateInfo.function = renderShader.gpuFunction;
-    stateCreateInfo.cullMode = LGFXCullMode_None;
-    stateCreateInfo.dynamicLineWidth = false;
-    stateCreateInfo.dynamicViewportScissor = true;
-    stateCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
-    stateCreateInfo.blendState = {};
-    stateCreateInfo.depthTest = false;
-    stateCreateInfo.depthWrite = false;
-    stateCreateInfo.vertexDeclarations = &particleAsVertexDecl;
-    stateCreateInfo.vertexDeclarationCount = 1;
-    stateCreateInfo.forRenderProgram = rp;
-    stateCreateInfo.forRenderPass = 0;
-    stateCreateInfo.entryPoint1Name = "VertexFunction";
-    stateCreateInfo.entryPoint2Name = "FragmentFunction";
-    renderShaderState = LGFXCreateShaderState(device, &stateCreateInfo);
+    //shader state
+    LGFXShaderPipelineCreateInfo pipelineCreateInfo = {0};
+    pipelineCreateInfo.function = computeShader.gpuFunction;
+    computeShaderPipeline = LGFXCreateShaderPipeline(device, &pipelineCreateInfo);
+
+    pipelineCreateInfo.function = renderShader.gpuFunction;
+    pipelineCreateInfo.cullMode = LGFXCullMode_None;
+    pipelineCreateInfo.dynamicLineWidth = false;
+    pipelineCreateInfo.dynamicViewportScissor = true;
+    pipelineCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
+    pipelineCreateInfo.blendState = {};
+    pipelineCreateInfo.depthTest = false;
+    pipelineCreateInfo.depthWrite = false;
+    pipelineCreateInfo.vertexDeclarations = &particleAsVertexDecl;
+    pipelineCreateInfo.vertexDeclarationCount = 1;
+    pipelineCreateInfo.forRenderProgram = rp;
+    pipelineCreateInfo.forRenderPass = 0;
+    pipelineCreateInfo.entryPoint1Name = "VertexFunction";
+    pipelineCreateInfo.entryPoint2Name = "FragmentFunction";
+    renderShaderPipeline = LGFXCreateShaderPipeline(device, &pipelineCreateInfo);
 }
 void Deinit()
 {
-    LGFXDestroyShaderState(computeShaderState);
-    LGFXDestroyShaderState(renderShaderState);
+    computeShaderState.deinit();
+    renderShaderState.deinit();
+    LGFXDestroyShaderPipeline(computeShaderPipeline);
+    LGFXDestroyShaderPipeline(renderShaderPipeline);
     computeShader.deinit();
     renderShader.deinit();
     LGFXDestroyBuffer(indexBuffer);

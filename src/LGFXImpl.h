@@ -127,12 +127,12 @@ typedef struct LGFXFunctionImpl
     LGFXDevice device;
 } LGFXFunctionImpl;
 
-typedef struct LGFXShaderStateImpl
+typedef struct LGFXShaderPipelineImpl
 {
     void *handle;
     LGFXFunction function;
     LGFXDevice device;
-} LGFXShaderStateImpl;
+} LGFXShaderPipelineImpl;
 
 typedef struct LGFXSamplerStateImpl
 {

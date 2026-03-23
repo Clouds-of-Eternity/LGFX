@@ -15,7 +15,6 @@ namespace AstralCanvas
 	{
 		collections::List<Window *> windows;
 		Window *currentWindow;
-		ArenaAllocator windowsArena;
 		IAllocator allocator;
 
 		LGFXInstance instance;

@@ -1,6 +1,6 @@
 #include "Linxc.h"
 #include "AstralCanvasHPP/Application.hpp"
-#include "AstralCanvasHPP/Shader.hpp"
+#include "AstralCanvasHPP/ShaderFunction.hpp"
 
 LGFXRenderProgram rp;
 
@@ -8,8 +8,8 @@ LGFXVertexDeclaration vertexDecl;
 LGFXBuffer vertexBuffer;
 LGFXBuffer indexBuffer;
 
-AstralCanvas::Shader shader;
-LGFXShaderState shaderState;
+AstralCanvas::ShaderFunction shader;
+LGFXShaderPipeline shaderPipeline;
 bool initializedSuccessfully;
 
 void Update(float deltaTime)
@@ -27,7 +27,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 
         LGFXUseVertexBuffer(window->mainCommandBuffer, &vertexBuffer, 1);
         LGFXUseIndexBuffer(window->mainCommandBuffer, indexBuffer, 0);
-        LGFXUseShaderState(window->mainCommandBuffer, shaderState);
+        LGFXUseShaderPipeline(window->mainCommandBuffer, shaderPipeline);
 
         LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
 
@@ -124,25 +124,25 @@ void Init()
     }
 
     //shader state
-    LGFXShaderStateCreateInfo stateCreateInfo = {0};
-    stateCreateInfo.blendState = ALPHA_BLEND;
-    stateCreateInfo.cullMode = LGFXCullMode_None;
-    stateCreateInfo.depthTest = false;
-    stateCreateInfo.depthWrite = false;
-    stateCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
-    stateCreateInfo.dynamicViewportScissor = true;
-    stateCreateInfo.function = shader.gpuFunction;
-    stateCreateInfo.vertexDeclarationCount = 1;
-    stateCreateInfo.vertexDeclarations = &vertexDecl;
-    stateCreateInfo.forRenderProgram = rp;
-    stateCreateInfo.forRenderPass = 0;
-    stateCreateInfo.entryPoint1Name = "VertexFunction";
-    stateCreateInfo.entryPoint2Name = "FragmentFunction";
-    shaderState = LGFXCreateShaderState(device, &stateCreateInfo);
+    LGFXShaderPipelineCreateInfo pipelineCreateInfo = {0};
+    pipelineCreateInfo.blendState = ALPHA_BLEND;
+    pipelineCreateInfo.cullMode = LGFXCullMode_None;
+    pipelineCreateInfo.depthTest = false;
+    pipelineCreateInfo.depthWrite = false;
+    pipelineCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
+    pipelineCreateInfo.dynamicViewportScissor = true;
+    pipelineCreateInfo.function = shader.gpuFunction;
+    pipelineCreateInfo.vertexDeclarationCount = 1;
+    pipelineCreateInfo.vertexDeclarations = &vertexDecl;
+    pipelineCreateInfo.forRenderProgram = rp;
+    pipelineCreateInfo.forRenderPass = 0;
+    pipelineCreateInfo.entryPoint1Name = "VertexFunction";
+    pipelineCreateInfo.entryPoint2Name = "FragmentFunction";
+    shaderPipeline = LGFXCreateShaderPipeline(device, &pipelineCreateInfo);
 }
 void Deinit()
 {
-    LGFXDestroyShaderState(shaderState);
+    LGFXDestroyShaderPipeline(shaderPipeline);
     shader.deinit();
     LGFXDestroyBuffer(vertexBuffer);
     LGFXDestroyBuffer(indexBuffer);

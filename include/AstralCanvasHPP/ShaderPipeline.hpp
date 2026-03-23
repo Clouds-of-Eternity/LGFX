@@ -1,7 +1,6 @@
 #pragma once
 #include "Linxc.h"
 #include "HashMap.hpp"
-#include "AstralCanvasHPP/Shader.hpp"
 #include "lgfx/lgfx.h"
 
 namespace AstralCanvas
@@ -9,34 +8,34 @@ namespace AstralCanvas
     //Because the creation of a ShaderState handles requires a render program and pass,
     //we should cache and reuse ShaderState handles wherever possible, like when
     //using the same pipeline for the same pass
-    struct ShaderStateBindZone
+    struct ShaderPipelineBindZone
     {
         LGFXRenderProgram renderProgram;
         u32 renderPass;
     };
-    inline u32 ShaderStateBindZoneHash(ShaderStateBindZone zone)
+    inline u32 ShaderPipelineBindZoneHash(ShaderPipelineBindZone zone)
     {
         u32 hash = 7;
         hash = hash * 31 + (u32)(usize)zone.renderProgram;
         hash = hash * 31 + zone.renderPass;
         return hash;
     }
-    inline bool ShaderStateBindZoneEql(ShaderStateBindZone A, ShaderStateBindZone B)
+    inline bool ShaderPipelineBindZoneEql(ShaderPipelineBindZone A, ShaderPipelineBindZone B)
     {
         return A.renderProgram == B.renderProgram && A.renderPass == B.renderPass;
     }
 
-    struct ShaderState
+    struct ShaderPipeline
     {
-        LGFXShaderStateCreateInfo createInfo;
-        collections::HashMap<ShaderStateBindZone, LGFXShaderState> zoneToInstance;
+        LGFXShaderPipelineCreateInfo createInfo;
+        collections::HashMap<ShaderPipelineBindZone, LGFXShaderPipeline> zoneToInstance;
         LGFXDevice device;
 
-        ShaderState();
-        ShaderState(IAllocator allocator, LGFXDevice device, LGFXShaderStateCreateInfo createInfo);
+        ShaderPipeline();
+        ShaderPipeline(IAllocator allocator, LGFXDevice device, LGFXShaderPipelineCreateInfo createInfo);
         void deinit();
         
         /// Retrieves or creates an instance of this state for use in the given render program and pass.
-        LGFXShaderState GetOrCreateFor(LGFXRenderProgram program, u32 renderPassToUse);
+        LGFXShaderPipeline GetOrCreateFor(LGFXRenderProgram program, u32 renderPassToUse);
     };
 }

@@ -5,7 +5,7 @@
 #include "GLFW/glfw3.h"
 #include "lgfx/lgfx.h"
 #include "lgfx/lgfx-glfw.h"
-#include "AstralCanvasHPP/Shader.hpp"
+#include "AstralCanvasHPP/ShaderFunction.hpp"
 
 namespace AstralCanvas
 {
@@ -21,7 +21,6 @@ namespace AstralCanvas
 		windows = collections::List<Window *>();
 		currentWindow = NULL;
 		allocator = IAllocator{};
-		windowsArena = ArenaAllocator();
 
 		instance = NULL;
 		device = NULL;
@@ -51,7 +50,6 @@ namespace AstralCanvas
 		this->engineVersion = engineVersion;
 		this->timeScale = 1.0f;
 		this->fixedTimeStep = 0.02f;
-		this->windowsArena = ArenaAllocator(allocator);
 		this->shouldShutdown = false;
 
 		if (!noWindow)
@@ -88,7 +86,7 @@ namespace AstralCanvas
 	}
 	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
 	{
-		Window *result = (Window *)this->windowsArena.AsAllocator().Allocate(sizeof(Window));
+		Window *result = (Window *)allocator.Allocate(sizeof(Window));
 
 		const GLFWvidmode *vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		if (width == 0)
@@ -99,7 +97,7 @@ namespace AstralCanvas
 		{
 			height = vidMode->height;
 		}
-		*result = Window(this->windowsArena.AsAllocator(), name, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode);
+		*result = Window(allocator, name, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode);
 		
 		if (framesPerSecond <= -1.0f)
 		{
@@ -143,13 +141,25 @@ namespace AstralCanvas
 
 			bool runUpdate = framesPerSecond < 1.0f || updateTimer >= 1.0f / framesPerSecond;
 			bool minimized = windows.count > 0;
-			for (u32 i = 0; i < windows.count; i++)
+			for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 			{
-				if (windows[i]->resolution.X > 0 && windows[i]->resolution.Y > 0)
+				Window *window = windows[i];
+				if (window->isDisposed)
+				{
+					allocator.Free(window);
+					windows.RemoveAt_Pullback((usize)i);
+					continue;
+				}
+
+				if (window->resolution.X > 0 && window->resolution.Y > 0)
 				{
 					minimized = false;
 					break;
 				}
+			}
+			if (windows.count == 0 && !noWindows)
+			{
+				break;
 			}
 			if (minimized)
 			{
@@ -173,9 +183,11 @@ namespace AstralCanvas
 
 			for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 			{
-				Window &window = *windows.ptr[i];
+				Window *window = windows[i];
+				Maths::Point2 resolution = window->resolution;
+				Maths::Point2 frameSize = window->frameBufferSize;
 				
-				if (window.resolution.X == 0 || window.resolution.Y == 0 || window.frameBufferSize.X == 0 || window.frameBufferSize.Y == 0)
+				if (resolution.X == 0 || resolution.Y == 0 || frameSize.X == 0 || frameSize.Y == 0)
 				{
 					continue;
 				}
@@ -184,39 +196,25 @@ namespace AstralCanvas
 				{
 					updateFunc(updateTimer * this->timeScale);
 				}
-				if (window.handle != NULL && !glfwWindowShouldClose((GLFWwindow*)window.handle))
-				{
-					window.windowInputState.ResetPerFrameInputStates();
-				}
-				else
-				{
-					window.deinit();
-					windows.RemoveAt_Swap(i);
-					continue;
-				}
+				
+            	window->windowInputState.ResetPerFrameInputStates();
 
 				//begin draw
-				if (LGFXNewFrame(device, &window.swapchain, (u32)window.frameBufferSize.X, (u32)window.frameBufferSize.Y))
+				if (LGFXNewFrame(device, &window->swapchain, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y))
 				{
-					LGFXCommandBufferReset(window.mainCommandBuffer);
-					LGFXCommandBufferBegin(window.mainCommandBuffer, true);
+					LGFXCommandBufferReset(window->mainCommandBuffer);
+					LGFXCommandBufferBegin(window->mainCommandBuffer, true);
 
-					drawFunc(deltaTime, &window);
+					drawFunc(deltaTime, window);
 
 					//end draw
-					LGFXCommandBufferEndSwapchain(window.mainCommandBuffer, window.swapchain);
-					LGFXSubmitFrame(device, window.swapchain);
+					LGFXCommandBufferEndSwapchain(window->mainCommandBuffer, window->swapchain);
+					LGFXSubmitFrame(device, window->swapchain);
 
 					if (postEndDrawFunc != NULL)
 					{
 						postEndDrawFunc(deltaTime);
 					}
-
-					for (u32 i = 0; i < AstralCanvas::allUsedShaders.count; i++)
-					{
-						AstralCanvas::allUsedShaders.ptr[i]->descriptorForThisDrawCall = 0;
-					}
-					AstralCanvas::allUsedShaders.Clear();
 				}
 			}
 
@@ -250,7 +248,6 @@ namespace AstralCanvas
 		{
 			deinitFunc();
 		}
-		windowsArena.deinit();
 
 		//deinitialize backend
 		if (device != NULL)
