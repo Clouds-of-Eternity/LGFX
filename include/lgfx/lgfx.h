@@ -130,7 +130,8 @@ typedef enum
     LGFXFunctionType_Fragment = 2,
     LGFXFunctionType_Compute = 4,
     LGFXFunctionType_Tessellation = 8,
-    LGFXFunctionType_Mesh = 16
+    LGFXFunctionType_Mesh = 16,
+    LGFXFunctionType_Unknown = 0xFFFFFFFF
 } LGFXFunctionType;
 
 typedef enum
@@ -608,23 +609,28 @@ inline LGFXBlendState LGFXBlendStateOpaque()
 #define LGFX_FENCE_POOL_SIZE 8
 #endif
 
-typedef struct LGFXShaderResource
+typedef struct LGFXFunctionVariableMetadata
 {
-    const char* variableName;
     LGFXShaderResourceType type;
     uint32_t set;
     uint32_t binding;
     uint32_t arrayLength;
     uint32_t inputAttachmentIndex;
     uint32_t size;
-    //LGFXShaderInputAccessFlags accessedBy;
-} LGFXShaderResource;
+} LGFXFunctionVariableMetadata;
+
+typedef struct LGFXFunctionVariableCreateInfo
+{
+    const char *name;
+    LGFXFunctionVariableMetadata data;
+} LGFXFunctionVariableCreateInfo;
+
 typedef struct
 {
     void **currentValues;
     uint32_t valuesCount;
     void *infos;
-    LGFXShaderResource variableMetadata;
+    LGFXFunctionVariableCreateInfo variableMetadata;
 
     LGFXDevice device;
     bool valueIsOwnedBuffer;
@@ -640,18 +646,15 @@ typedef struct
     uint32_t *module2Data;
     size_t module2DataLength;
 
-    LGFXShaderResource *uniforms;
-    uint32_t uniformsCount;
-
-    LGFXFunctionVariableBatchTemplate *extraFunctionVariableBatchTypes;
-    uint32_t extraFunctionVariableBatchTypesCount;
+    LGFXFunctionVariableBatchTemplate *variableBatchTemplates;
+    uint32_t variableBatchTemplatesCount;
 
 } LGFXFunctionCreateInfo;
 
 typedef struct
 {
-    LGFXShaderResource *uniforms;
-    uint32_t uniformsCount;
+    LGFXFunctionVariableCreateInfo *variables;
+    uint32_t variablesCount;
     bool forCompute;
 } LGFXFunctionVariableBatchTemplateCreateInfo;
 
@@ -746,15 +749,15 @@ void LGFXRenderProgramNextPass(LGFXCommandBuffer commandBuffer);
 void LGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer);
 void LGFXDestroyRenderProgram(LGFXRenderProgram program);
 
-LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info);
+LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *info);
 LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatchFromTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate fromTemplate);
 void LGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy);
 
 LGFXFunction LGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInfo *info);
 void LGFXDestroyFunction(LGFXFunction func);
-LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXFunction function);
-LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, uint32_t forVariableOfIndex);
-LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info);
+
+LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXDevice device, LGFXFunctionVariableBatchTemplate batchTemplate, uint32_t forVariableOfIndex);
+LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableCreateInfo *info);
 void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, uint32_t variablesCount);
 void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, uint32_t setIndex);
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);

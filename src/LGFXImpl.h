@@ -13,6 +13,13 @@ typedef struct LGFXInstanceImpl
     LGFXBackendType backend;
 } LGFXInstanceImpl;
 
+typedef struct LGFXFunctionVariableBatchTemplateImpl
+{
+    void *handle;
+    LGFXFunctionVariableCreateInfo *variables;
+    uint32_t variablesCount;
+} LGFXFunctionVariableBatchTemplateImpl;
+
 typedef struct LGFXFencePool
 {
 	LGFXFence fences[LGFX_FENCE_POOL_SIZE];
@@ -117,13 +124,9 @@ typedef struct LGFXFunctionImpl
 {
     void *module1;
     void *module2;
-    void *functionVariablesLayout;
     void *pipelineLayout;
 
     LGFXFunctionType type;
-
-    LGFXShaderResource *uniforms;
-    uint32_t uniformsCount;
     LGFXDevice device;
 } LGFXFunctionImpl;
 

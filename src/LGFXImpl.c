@@ -626,7 +626,7 @@ void LGFXDestroyRenderProgram(LGFXRenderProgram program)
     LGFX_ERROR("LGFXDestroyRenderProgram: Unknown backend\n");
 }
 
-LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info)
+LGFXFunctionVariableBatchTemplate LGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -672,16 +672,8 @@ void LGFXDestroyFunction(LGFXFunction func)
     }
     LGFX_ERROR("LGFXDestroyFunction: Unknown backend\n");
 }
-LGFXFunctionVariableBatch LGFXCreateFunctionVariableBatch(LGFXFunction function)
-{
-    if (function->device->backend == LGFXBackendType_Vulkan)
-    {
-        return VkLGFXCreateFunctionVariableBatch(function);
-    }
-    LGFX_ERROR("LGFXFunctionGetVariableBatch: Unknown backend\n");
-    return NULL;
-}
-LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info)
+
+LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableCreateInfo *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
@@ -691,11 +683,11 @@ LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderRes
     LGFXFunctionVariable empty = {0};
     return empty;
 }
-LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXFunction function, uint32_t forVariableOfIndex)
+LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXDevice device, LGFXFunctionVariableBatchTemplate batchTemplate, uint32_t forVariableOfIndex)
 {
-    if (function->device->backend == LGFXBackendType_Vulkan)
+    if (device->backend == LGFXBackendType_Vulkan)
     {
-        return VkLGFXCreateFunctionVariableSlot(function, forVariableOfIndex);
+        return VkLGFXCreateFunctionVariableSlot(device, batchTemplate, forVariableOfIndex);
     }
     LGFX_ERROR("LGFXFunctionCreateVariableSlot: Unknown backend\n");
     LGFXFunctionVariable empty = {0};

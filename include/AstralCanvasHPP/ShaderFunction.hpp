@@ -29,13 +29,22 @@ namespace AstralCanvas
     };
     struct ShaderResource
     {
-        string nameStr;
-        LGFXShaderResource resource;
+        string name;
+        LGFXFunctionVariableCreateInfo resource;
 
         void deinit();
     };
+    struct ShaderResourceSet
+    {
+        ShaderResource *resources;
+        u32 resourcesCount;
+        u32 setIndex;
+    };
     struct ShaderResourceState
     {
+        string name;
+        LGFXFunctionVariableMetadata data;
+
         collections::List<LGFXFunctionVariable> variableSlots;
     };
 
@@ -45,30 +54,33 @@ namespace AstralCanvas
         LGFXDevice device;
         LGFXFunction gpuFunction;
         LGFXFunctionType functionType;
-        collections::Array<ShaderResource> uniforms;
+        collections::Array<ShaderResourceSet> resourceSets;
 
         ShaderFunction();
-        ShaderFunction(IAllocator allocator, usize arrayLength);
+        ShaderFunction(IAllocator allocator, LGFXDevice device);
         void deinit();
 
-        i32 GetVariableBinding(text variableName);
+        i32 GetVariableBinding(i32 set, text variableName);
+        bool GetVariableBindingAndSet(text variableName, i32 &outputSetIndex, i32 &outputBindingIndex);
     };
 
     struct ShaderFunctionState
     {
-        IAllocator allocator;
-        AstralCanvas::ShaderFunction *shader;
+        LGFXFunctionVariableBatchTemplate batchTemplate;
+        LGFXFunctionVariable *stagingVariables;
+
+        collections::Array<ShaderResourceState> resourceStates;
+        collections::List<LGFXFunctionVariableBatch> variableSlotGroups;
+        LGFXDevice device;
         u32 currentGroup;
 
-        ShaderResourceState *shaderResourceStates;
-        collections::List<LGFXFunctionVariableBatch> variableSlotGroups;
-
         ShaderFunctionState();
-        ShaderFunctionState(IAllocator allocator, ShaderFunction *forShader);
+        ShaderFunctionState(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex);
+        ShaderFunctionState(IAllocator allocator, LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *createInfo);
         void deinit();
 
         void CheckDescriptorSetAvailability(bool forceAddNewDescriptor = false);
-        void SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer, bool pushToUsedShaderStack = true);
+        void SyncUniformsWithGPU(LGFXCommandBuffer commandBuffer, ShaderFunction *useForFunction = NULL, u32 setIndex = 0);
 
         void SetUniform(const char* variableName, void* ptr, usize size);
         void SetTexture(const char* variableName, LGFXTexture texture);
@@ -89,7 +101,7 @@ namespace AstralCanvas
     //usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, ShaderFunction *result);
     #endif
 
-    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result);
-    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result);
-    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, u32 numExtraBatchTypes, LGFXFunctionVariableBatchTemplate *extraBatchTypes, ShaderFunction *result);
+    usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, ShaderFunction *result);
+    usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, ShaderFunction *result);
+    usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, ShaderFunction *result);
 }

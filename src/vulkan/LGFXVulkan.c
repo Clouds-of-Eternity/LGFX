@@ -567,7 +567,7 @@ LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled)
 }
 void VkLGFXAwaitFence(LGFXFence fence)
 {
-	VkResult result = vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, UINT64_MAX); //3000000000
+	VkResult result = vkWaitForFences((VkDevice)fence->device->logicalDevice, 1, (VkFence *)&fence->fence, VK_TRUE, 0xffffffffffffffff);
 	#if DEBUG
 	if (result != VK_SUCCESS)
 	{
@@ -2629,26 +2629,26 @@ void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer command
 	program->currentTarget = NULL;
 }
 
-LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplateCreateInfo *info)
+LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *info)
 {
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.flags = 0;
-	layoutInfo.bindingCount = info->uniformsCount;
+	layoutInfo.bindingCount = info->variablesCount;
 	VkDescriptorSetLayoutBinding bindings[32];
-	if (info->uniformsCount > 0)
+	if (info->variablesCount > 0)
 	{
-		for (uint32_t i = 0; i < info->uniformsCount; i++)
+		for (uint32_t i = 0; i < info->variablesCount; i++)
 		{
 			VkDescriptorSetLayoutBinding layoutBinding = {0};
-			layoutBinding.binding = info->uniforms[i].binding;
-			layoutBinding.descriptorCount = info->uniforms[i].arrayLength;//max(info->uniforms[i].arrayLength, 1);
+			layoutBinding.binding = info->variables[i].data.binding;
+			layoutBinding.descriptorCount = info->variables[i].data.arrayLength;//max(info->uniforms[i].arrayLength, 1);
 			if (layoutBinding.descriptorCount == 0)
 			{
 				layoutBinding.descriptorCount = 1;
 			}
-			layoutBinding.descriptorType = LGFXShaderResourceType2Vulkan(info->uniforms[i].type);
-			if (info->uniforms[i].type == LGFXShaderResourceType_InputAttachment)
+			layoutBinding.descriptorType = LGFXShaderResourceType2Vulkan(info->variables[i].data.type);
+			if (info->variables[i].data.type == LGFXShaderResourceType_InputAttachment)
 			{
 				layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			}
@@ -2677,7 +2677,17 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 		LGFX_ERROR("Failed to create function variable batch template, error code %i\n", errorCode);
 		return NULL;
 	}
-	return (LGFXFunctionVariableBatchTemplate)descriptorLayout;
+	LGFXFunctionVariableBatchTemplate result = Allocate(LGFXFunctionVariableBatchTemplateImpl, 1);
+	result->handle = descriptorLayout;
+	result->variables = Allocate(LGFXFunctionVariableCreateInfo, info->variablesCount);
+	result->variablesCount = info->variablesCount;
+
+	for (uint32_t i = 0; i < info->variablesCount; i++)
+	{
+		result->variables[i] = info->variables[i];
+	}
+
+	return result;
 }
 LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatchFromTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate template)
 {
@@ -2726,11 +2736,11 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInf
 		}
 	}
 
-	LGFXFunctionVariableBatchTemplateCreateInfo templateCreateInfo = {0};
-	templateCreateInfo.forCompute = info->type == LGFXFunctionType_Compute;
-	templateCreateInfo.uniforms = info->uniforms;
-	templateCreateInfo.uniformsCount = info->uniformsCount;
-	VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout)VkLGFXCreateFunctionVariableBatchTemplate(device, &templateCreateInfo);
+	//LGFXFunctionVariableBatchTemplateCreateInfo templateCreateInfo = {0};
+	//templateCreateInfo.forCompute = info->type == LGFXFunctionType_Compute;
+	//templateCreateInfo.uniforms = info->uniforms;
+	//templateCreateInfo.uniformsCount = info->uniformsCount;
+	//VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout)VkLGFXCreateFunctionVariableBatchTemplate(device, &templateCreateInfo);
 
 	VkPipelineLayout pipelineLayout;
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {0};
@@ -2741,23 +2751,18 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInf
 
 	pipelineLayoutCreateInfo.setLayoutCount = 0;
 	VkDescriptorSetLayout layouts[16] = {0};
-	if (descriptorLayout != NULL)
+	// if (descriptorLayout != NULL)
+	// {
+	// 	layouts[0] = descriptorLayout;
+	// 	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	// 	pipelineLayoutCreateInfo.pSetLayouts = layouts; //(VkDescriptorSetLayout*)&descriptorLayout;
+	// }
+	pipelineLayoutCreateInfo.setLayoutCount = info->variableBatchTemplatesCount;
+	for (uint32_t i = 0; i< info->variableBatchTemplatesCount; i++)
 	{
-		layouts[0] = descriptorLayout;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = layouts; //(VkDescriptorSetLayout*)&descriptorLayout;
+		layouts[i] = (VkDescriptorSetLayout)info->variableBatchTemplates[i]->handle;
 	}
-	if (info->extraFunctionVariableBatchTypesCount > 0)
-	{
-		uint32_t start = pipelineLayoutCreateInfo.setLayoutCount;
-		pipelineLayoutCreateInfo.setLayoutCount += info->extraFunctionVariableBatchTypesCount;
-
-		for (uint32_t i = start; i < pipelineLayoutCreateInfo.setLayoutCount; i++)
-		{
-			layouts[i] = (VkDescriptorSetLayout)info->extraFunctionVariableBatchTypes[i - start];
-		}
-		pipelineLayoutCreateInfo.pSetLayouts = layouts;
-	}
+	pipelineLayoutCreateInfo.pSetLayouts = layouts;
 
 	VkResult pipelineCreateResult = vkCreatePipelineLayout((VkDevice)device->logicalDevice, &pipelineLayoutCreateInfo, NULL, (VkPipelineLayout*)&pipelineLayout);
 	if (pipelineCreateResult != VK_SUCCESS)
@@ -2768,39 +2773,20 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInf
 	LGFXFunction result = Allocate(LGFXFunctionImpl, 1);
 	result->module1 = shaderModule1;
 	result->module2 = shaderModule2;
-	if (info->uniformsCount > 0)
-	{
-		result->uniforms = Allocate(LGFXShaderResource, info->uniformsCount);
-		for (uint32_t i = 0; i < info->uniformsCount; i++)
-		{
-			result->uniforms[i] = info->uniforms[i];
-		}
-	}
-	else
-	{
-		result->uniforms = NULL;
-	}
-	result->uniformsCount = info->uniformsCount;
-	result->functionVariablesLayout = descriptorLayout;
 	result->device = device;
 	result->pipelineLayout = pipelineLayout;
 	result->type = info->type;
 
 	return result;
 }
-LGFXFunctionVariableBatch VkLGFXCreateFunctionVariableBatch(LGFXFunction function)
-{
-	return VkLGFXCreateFunctionVariableBatchFromTemplate(function->device, function->functionVariablesLayout);
-}
-LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderResource *info)
+LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableCreateInfo *info)
 {
 	LGFXFunctionVariable variable = {0};
 	variable.variableMetadata = *info;
-	variable.variableMetadata.variableName = NULL;
-	variable.valuesCount = info->arrayLength == 0 ? 1 : info->arrayLength;
+	variable.valuesCount = info->data.arrayLength == 0 ? 1 : info->data.arrayLength;
 	variable.device = device;
 
-	switch (info->type)
+	switch (info->data.type)
 	{
 		case LGFXShaderResourceType_StructuredBuffer:
 		case LGFXShaderResourceType_Uniform:
@@ -2808,11 +2794,11 @@ LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderR
 			variable.currentValues = (void **)Allocate(LGFXBuffer, variable.valuesCount);
 			variable.infos = (void **)Allocate(VkDescriptorBufferInfo, variable.valuesCount);
 
-			if (info->type == LGFXShaderResourceType_Uniform)
+			if (info->data.type == LGFXShaderResourceType_Uniform)
 			{
 				variable.valueIsOwnedBuffer = true;
 				LGFXBufferCreateInfo createInfo = {0};
-				createInfo.size = variable.variableMetadata.size;
+				createInfo.size = variable.variableMetadata.data.size;
 				createInfo.bufferUsage = LGFXBufferUsage_UniformBuffer;
 				createInfo.memoryUsage = LGFXMemoryUsage_CPU_TO_GPU;
 				((LGFXBuffer *)variable.currentValues)[0] = LGFXCreateBuffer(device, &createInfo);
@@ -2843,10 +2829,10 @@ LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXShaderR
 	}
 	return variable;
 }
-LGFXFunctionVariable VkLGFXCreateFunctionVariableSlot(LGFXFunction function, uint32_t forVariableOfIndex)
+LGFXFunctionVariable VkLGFXCreateFunctionVariableSlot(LGFXDevice device, LGFXFunctionVariableBatchTemplate batchTemplate, uint32_t forVariableOfIndex)
 {
-	LGFXShaderResource *resource = &function->uniforms[forVariableOfIndex];
-	return VkLGFXCreateFunctionVariable(function->device, resource);
+	LGFXFunctionVariableCreateInfo *createInfo = &batchTemplate->variables[forVariableOfIndex];
+	return VkLGFXCreateFunctionVariable(device, createInfo);
 }
 void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *shaderVariables, uint32_t shaderVariableCount)
 {
@@ -2857,9 +2843,9 @@ void VkLGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBat
 		VkWriteDescriptorSet setWrite = {0};
 		setWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		setWrite.dstSet = (VkDescriptorSet)batch;
-		setWrite.dstBinding = shaderVariables[i].variableMetadata.binding;
+		setWrite.dstBinding = shaderVariables[i].variableMetadata.data.binding;
 
-		switch (shaderVariables[i].variableMetadata.type)
+		switch (shaderVariables[i].variableMetadata.data.type)
 		{
 			case LGFXShaderResourceType_InputAttachment:
 			{
@@ -3515,14 +3501,6 @@ void VkLGFXDestroyFunction(LGFXFunction func)
 	{
 		vkDestroyShaderModule((VkDevice)func->device->logicalDevice, (VkShaderModule)func->module2, NULL);
 	}
-	if (func->functionVariablesLayout != NULL)
-	{
-		vkDestroyDescriptorSetLayout((VkDevice)func->device->logicalDevice, (VkDescriptorSetLayout)func->functionVariablesLayout, NULL);
-	}
-	if (func->uniforms != NULL)
-	{
-		free(func->uniforms);
-	}
 	free(func);
 }
 void VkLGFXDestroyRenderProgram(LGFXRenderProgram program)
@@ -3549,9 +3527,11 @@ void VkLGFXDestroyRenderTarget(LGFXRenderTarget target)
 	free(target->textures);
 	free(target);
 }
-void VkLGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate toDestroy)
+void VkLGFXDestroyFunctionVariableBatchTemplate(LGFXDevice device, LGFXFunctionVariableBatchTemplate batchTemplate)
 {
-	vkDestroyDescriptorSetLayout((VkDevice)device->logicalDevice, (VkDescriptorSetLayout)toDestroy, NULL);
+	free(batchTemplate->variables);
+
+	vkDestroyDescriptorSetLayout((VkDevice)device->logicalDevice, (VkDescriptorSetLayout)batchTemplate->handle, NULL);
 }
 void VkLGFXDestroyBuffer(LGFXBuffer buffer)
 {

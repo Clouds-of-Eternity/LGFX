@@ -1,5 +1,6 @@
 #include "ShaderCompiler.hpp"
 #include "Json.hpp"
+#include "DenseSet.hpp"
 #include "BinaryIO.hpp"
 #include "Scope.hpp"
 
@@ -134,33 +135,71 @@ bool ShaderCompilerWriteBinaryFuncType(FILE *fs, slang::TypeLayoutReflection *ty
         }
     }
 }
+
+typedef slang::VariableLayoutReflection *SlangVar;
+typedef collections::List<SlangVar> SlangVarList;
 void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
 {
     u32 paramCount = layout->getParameterCount();
+    if (paramCount == 0)
+    {
+        Binary_WriteData<u32>(fs, 0);
+        return;
+    }
+    ArenaAllocator arena = ArenaAllocator(GetCAllocator());
+    IAllocator tempAlloc = arena.AsAllocator();
 
-    Binary_WriteData<u32>(fs, paramCount);
+    Scope(ArenaAllocator, arena);
+
+    collections::DenseSet<SlangVarList> setsToVars = collections::DenseSet<SlangVarList>(tempAlloc);
+    u32 maxSetIndex = 0;
     for (u32 i = 0; i < paramCount; i++)
     {
-        slang::VariableLayoutReflection *var = layout->getParameterByIndex(i);
-
-        Binary_WriteText(fs, var->getName());
-        Binary_WriteData<u32>(fs, var->getBindingSpace());
-        Binary_WriteData<u32>(fs, var->getBindingIndex());
-
-        slang::TypeLayoutReflection *typeLayout = var->getTypeLayout();
-        slang::TypeReflection::Kind kind = typeLayout->getKind();
-
-        if (kind == slang::TypeReflection::Kind::Array)
+        SlangVar var = layout->getParameterByIndex(i);
+        u32 setIndex = var->getBindingSpace();
+        if (setIndex > maxSetIndex)
         {
-            slang::TypeLayoutReflection *elemType = typeLayout->getElementTypeLayout();
-
-            Binary_WriteData<u32>(fs, (u32)typeLayout->getTotalArrayElementCount());
-            ShaderCompilerWriteBinaryFuncType(fs, elemType);
+            maxSetIndex = setIndex;
         }
-        else
+        SlangVarList *list = setsToVars.Get(setIndex);
+        if (list == NULL)
         {
-            Binary_WriteData<u32>(fs, 0);
-            ShaderCompilerWriteBinaryFuncType(fs, typeLayout);
+            list = setsToVars.Insert(setIndex, SlangVarList(tempAlloc));
+        }
+        list->Add(var);
+    }
+
+    maxSetIndex += 1;
+
+    Binary_WriteData<u32>(fs, maxSetIndex);
+    for (u32 i = 0; i < maxSetIndex; i++)
+    {
+        SlangVarList &list = setsToVars[i];
+
+        Binary_WriteData<u32>(fs, list.count);
+
+        for (u32 j = 0; j < list.count; j++)
+        {
+            SlangVar var = list[j];
+            Binary_WriteText(fs, var->getName());
+            Binary_WriteData<u32>(fs, var->getBindingSpace());
+            Binary_WriteData<u32>(fs, var->getBindingIndex());
+
+            slang::TypeLayoutReflection *typeLayout = var->getTypeLayout();
+            slang::TypeReflection::Kind kind = typeLayout->getKind();
+
+            if (kind == slang::TypeReflection::Kind::Array)
+            {
+                slang::TypeLayoutReflection *elemType = typeLayout->getElementTypeLayout();
+
+                Binary_WriteData<u32>(fs, (u32)typeLayout->getTotalArrayElementCount());
+                ShaderCompilerWriteBinaryFuncType(fs, elemType);
+            }
+            else
+            {
+                Binary_WriteData<u32>(fs, 0);
+                ShaderCompilerWriteBinaryFuncType(fs, typeLayout);
+            }
         }
     }
 }

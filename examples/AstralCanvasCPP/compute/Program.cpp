@@ -54,7 +54,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     computeShaderState.SetComputeBuffer("ParticlesIn", inputBuffer);
     computeShaderState.SetComputeBuffer("ParticlesOut", outputBuffer);
     computeShaderState.SetUniform("Context", &contextData, sizeof(ContextData));
-    computeShaderState.SyncUniformsWithGPU(mainCmds);
+    computeShaderState.SyncUniformsWithGPU(mainCmds, &computeShader);
 
     //first run compute
     LGFXUseShaderPipeline(mainCmds, computeShaderPipeline);
@@ -167,8 +167,8 @@ void Init()
         assert(false);
     }
 
-    computeShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), &computeShader);
-    renderShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), &renderShader);
+    computeShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), device, &computeShader, 0);
+    renderShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), device, &renderShader, 0);
 
     //shader state
     LGFXShaderPipelineCreateInfo pipelineCreateInfo = {0};
