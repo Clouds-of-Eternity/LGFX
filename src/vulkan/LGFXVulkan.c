@@ -2250,9 +2250,8 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 	ArenaAllocator arena = ArenaAllocator_Create(GetCAllocator());
 	IAllocator tempAlloc = ArenaAllocator_AsAllocator(&arena);
 
-	LGFXRenderProgramImpl program;
+	LGFXRenderProgramImpl program = {};
 	program.device = device;
-	program.currentPass = 0;
 	program.handle = NULL;
 	program.outputToBackbuffer = info->outputToBackbuffer;
 	program.attachmentsCount = info->attachmentsCount;
@@ -2746,12 +2745,6 @@ LGFXFunction VkLGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInf
 		}
 	}
 
-	//LGFXFunctionVariableBatchTemplateCreateInfo templateCreateInfo = {0};
-	//templateCreateInfo.forCompute = info->type == LGFXFunctionType_Compute;
-	//templateCreateInfo.uniforms = info->uniforms;
-	//templateCreateInfo.uniformsCount = info->uniformsCount;
-	//VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout)VkLGFXCreateFunctionVariableBatchTemplate(device, &templateCreateInfo);
-
 	VkPipelineLayout pipelineLayout;
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {0};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -2998,6 +2991,7 @@ void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVar
 
 LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info)
 {
+	ArenaAllocator arena = ArenaAllocator_Create(GetCAllocator());
 	VkPipeline result;
 	if (info->function->type == LGFXFunctionType_Compute)
 	{
@@ -3019,23 +3013,20 @@ LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipel
 	}
 	else
 	{
+		IAllocator tempAlloc = ArenaAllocator_AsAllocator(&arena);
 		//dynamic state
 		VkPipelineDynamicStateCreateInfo dynamicStateInfo = {0};
 		dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		VkDynamicState dynamicStates[3];
-		uint32_t dynamicStatesCount = 0;
+		uint32_t dynamicStatesCount = 2;
+		dynamicStates[0] = VK_DYNAMIC_STATE_SCISSOR;
+		dynamicStates[1] = VK_DYNAMIC_STATE_VIEWPORT;
 		if (info->dynamicLineWidth)
 		{
 			dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_LINE_WIDTH;
 			dynamicStatesCount += 1;
 		}
-		if (info->dynamicViewportScissor)
-		{
-			dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_SCISSOR;
-			dynamicStatesCount += 1;
-			dynamicStates[dynamicStatesCount] = VK_DYNAMIC_STATE_VIEWPORT;
-			dynamicStatesCount += 1;
-		}
+
 		dynamicStateInfo.pDynamicStates = dynamicStates;
 		dynamicStateInfo.dynamicStateCount = dynamicStatesCount;
 
@@ -3050,7 +3041,7 @@ LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipel
 		{
 			uint32_t attribCount = 0;
 
-			VkVertexInputBindingDescription *bindingDescriptions = Allocate(VkVertexInputBindingDescription, info->vertexDeclarationCount);
+			VkVertexInputBindingDescription *bindingDescriptions = (VkVertexInputBindingDescription *)IAllocator_Allocate(tempAlloc, sizeof(VkVertexInputBindingDescription) * info->vertexDeclarationCount);
 			for (uint32_t i = 0; i < info->vertexDeclarationCount; i++)
 			{
 				bindingDescriptions[i].inputRate = info->vertexDeclarations[i].isPerInstance ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX; //(VkVertexInputRate)pipeline->vertexDeclarations.data[i]->inputRate;
@@ -3060,7 +3051,7 @@ LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipel
 				attribCount += info->vertexDeclarations[i].elementsCount; // pipeline->vertexDeclarations.data[i]->elements.count;
 			}
 
-			VkVertexInputAttributeDescription *attribDescriptions = Allocate(VkVertexInputAttributeDescription, attribCount);
+			VkVertexInputAttributeDescription *attribDescriptions = (VkVertexInputAttributeDescription *)IAllocator_Allocate(tempAlloc, sizeof(VkVertexInputAttributeDescription) * attribCount);
 			uint32_t attribIndex = 0;
 			for (uint32_t i = 0; i < info->vertexDeclarationCount; i++)
 			{
@@ -3223,6 +3214,7 @@ LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipel
 	shader->handle = result;
 	shader->function = info->function;
 
+	ArenaAllocator_Deinit(&arena);
 	return shader;
 }
 void VkLGFXUseShaderPipeline(LGFXCommandBuffer buffer, LGFXShaderPipeline shaderPipeline)

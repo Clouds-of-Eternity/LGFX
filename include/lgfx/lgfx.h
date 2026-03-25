@@ -478,6 +478,22 @@ typedef struct LGFXTextureImpl
     LGFXDevice device;
 } LGFXTextureImpl;
 
+typedef struct LGFXRenderProgramImpl
+{
+    void *handle;
+    LGFXDevice device;
+
+    LGFXRenderTarget *targets;
+    uint32_t targetsCount;
+
+    LGFXRenderTarget currentTarget;
+
+    LGFXRenderAttachmentInfo *attachments;
+    uint32_t attachmentsCount;
+
+    bool outputToBackbuffer;
+} LGFXRenderProgramImpl;
+
 typedef struct
 {
     size_t size;
@@ -653,7 +669,6 @@ typedef struct
 typedef struct LGFXShaderPipelineCreateInfo
 {
     LGFXFunction function;
-    bool dynamicViewportScissor;
     bool dynamicLineWidth;
     bool depthTest;
     bool depthWrite;

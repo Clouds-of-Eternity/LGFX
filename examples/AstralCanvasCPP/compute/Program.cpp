@@ -167,8 +167,8 @@ void Init()
         assert(false);
     }
 
-    computeShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), device, &computeShader, 0);
-    renderShaderState = AstralCanvas::ShaderFunctionState(GetCAllocator(), device, &renderShader, 0);
+    computeShaderState = AstralCanvas::ShaderFunctionState::FromShader(GetCAllocator(), device, &computeShader, 0);
+    renderShaderState = AstralCanvas::ShaderFunctionState::FromShader(GetCAllocator(), device, &renderShader, 0);
 
     //shader state
     LGFXShaderPipelineCreateInfo pipelineCreateInfo = {0};

@@ -103,23 +103,6 @@ typedef struct LGFXCommandBufferImpl
     bool begun;
 } LGFXCommandBufferImpl;
 
-typedef struct LGFXRenderProgramImpl
-{
-    void *handle;
-    uint32_t currentPass;
-    LGFXDevice device;
-
-    LGFXRenderTarget *targets;
-    uint32_t targetsCount;
-
-    LGFXRenderTarget currentTarget;
-
-    LGFXRenderAttachmentInfo *attachments;
-    uint32_t attachmentsCount;
-
-    bool outputToBackbuffer;
-} LGFXRenderProgramImpl;
-
 typedef struct LGFXFunctionImpl
 {
     void *module1;
