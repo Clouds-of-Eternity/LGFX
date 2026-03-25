@@ -117,6 +117,7 @@ namespace AstralCanvas
 	}
 	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc)
 	{
+		AstralCanvas::globalTemplateStore = AstralCanvas::BatchTemplateStore(GetCAllocator(), AstralCanvas::applicationInstance.device);
 		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
 		if (initFunc != NULL)
 		{
@@ -248,6 +249,7 @@ namespace AstralCanvas
 		{
 			deinitFunc();
 		}
+		AstralCanvas::globalTemplateStore.deinit();
 
 		//deinitialize backend
 		if (device != NULL)

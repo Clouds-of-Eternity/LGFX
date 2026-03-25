@@ -2,6 +2,8 @@
 
 namespace AstralCanvas
 {
+    BatchTemplateStore globalTemplateStore;
+    
     BatchTemplateStore::BatchTemplateStore()
     {
         device = NULL;
@@ -15,6 +17,15 @@ namespace AstralCanvas
         allTemplates = collections::HashMap<BatchTemplateSignature, LGFXFunctionVariableBatchTemplate>(allocator, &BatchTemplateSignatureHash, &BatchTemplateSignatureEqls);
     }
 
+    void BatchTemplateStore::deinit()
+    {
+        auto iterator = allTemplates.GetIterator();
+        foreach (kvp, iterator)
+        {
+            kvp->key.deinit();
+            LGFXDestroyFunctionVariableBatchTemplate(device, kvp->value);
+        }
+    }
     LGFXFunctionVariableBatchTemplate BatchTemplateStore::GetOrCreate(LGFXFunctionVariableMetadata *variablesRequired, uint32_t numVariablesRequired)
     {
         BatchTemplateSignature signature = {};
@@ -34,7 +45,6 @@ namespace AstralCanvas
         if (result == NULL)
         {
             LGFXFunctionVariableBatchTemplateCreateInfo createInfo = {};
-            createInfo.forCompute = false;
             createInfo.variablesCount = numVariablesRequired;
 
             if (needsPtr)

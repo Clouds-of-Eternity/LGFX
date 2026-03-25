@@ -38,10 +38,14 @@ namespace AstralCanvas
         collections::List<LGFXFunctionVariableBatch> variableSlotGroups;
         LGFXDevice device;
         u32 currentGroup;
+        bool ownsBatchTemplate;
 
         ShaderFunctionState();
         ShaderFunctionState(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex);
-        ShaderFunctionState(IAllocator allocator, LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *createInfo);
+        ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, const ShaderFunction *function, u32 setIndex);
+
+        ShaderFunctionState(IAllocator allocator, LGFXDevice device, const AstralCanvas::ShaderResource *variables, u32 variablesCount);
+        ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, AstralCanvas::ShaderResource *variables, u32 variablesCount);
         void deinit();
 
         void CheckDescriptorSetAvailability(bool forceAddNewDescriptor = false);

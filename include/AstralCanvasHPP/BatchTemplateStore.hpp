@@ -75,6 +75,19 @@ namespace AstralCanvas
             } hashAsPtr;
             LGFXFunctionVariableMetadata hashAsArray[SIGNATURE_STACK_ARRAY_MAX];
         };
+
+        inline BatchTemplateSignature()
+        {
+            numVariables = 0;
+            memset(hashAsArray, 0, sizeof(hashAsArray));
+        }
+        inline void deinit()
+        {
+            if (numVariables >= SIGNATURE_STACK_ARRAY_MAX && hashAsPtr.ptr != NULL)
+            {
+                hashAsPtr.allocator.Free(hashAsPtr.ptr);
+            }
+        }
     };
 
     inline uint32_t BatchTemplateSignatureHash(BatchTemplateSignature self)
@@ -123,6 +136,7 @@ namespace AstralCanvas
         BatchTemplateStore();
         BatchTemplateStore(IAllocator allocator, LGFXDevice device);
 
+        void deinit();
         LGFXFunctionVariableBatchTemplate GetOrCreate(LGFXFunctionVariableMetadata *variablesRequired, uint32_t numVariablesRequired);
         LGFXFunctionVariableBatchTemplate GetOrCreate(ShaderResource *variablesRequired, uint32_t numVariablesRequired);
     };

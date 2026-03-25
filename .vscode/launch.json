@@ -99,7 +99,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/ShaderCompiler/bin/Debug/ShaderCompiler.exe",
-            "args": ["${workspaceFolder}/examples/AstralCanvasCPP/compute"],
+            "args": ["${workspaceFolder}/examples/Shaders"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/ShaderCompiler/bin/Debug",
             "environment": [],

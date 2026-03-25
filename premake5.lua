@@ -21,7 +21,7 @@ workspace "LGFX"
     
     filter "options:clang"
         toolset "clang"
-        buildoptions { "-g", "-gcodeview", "-Wno-deprecated-declarations", "-Wno-nullability-completeness", "-Werror=incompatible-pointer-types" }
+        buildoptions { "-g", "-gcodeview", "-Wno-deprecated-declarations", "-Wno-nullability-completeness", "-Wno-nonportable-include-path", "-Werror=incompatible-pointer-types" }
         linkoptions { "-fuse-ld=lld", "-g" }
 
     filter "system:windows"

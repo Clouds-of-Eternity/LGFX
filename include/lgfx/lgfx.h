@@ -649,7 +649,6 @@ typedef struct
 {
     LGFXFunctionVariableMetadata *variables;
     uint32_t variablesCount;
-    bool forCompute;
 } LGFXFunctionVariableBatchTemplateCreateInfo;
 
 typedef struct LGFXShaderPipelineCreateInfo

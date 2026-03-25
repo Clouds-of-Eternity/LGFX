@@ -69,7 +69,7 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
     Maths::Matrix4x4 viewProjection = Maths::Matrix4x4::CreateOrthographic(80.0f, 45.0f, -1000.0f, 1000.0f);
 
     renderShaderState.SetUniform("ViewProjection", &viewProjection, sizeof(Maths::Matrix4x4));
-    renderShaderState.SyncUniformsWithGPU(mainCmds);
+    renderShaderState.SyncUniformsWithGPU(mainCmds, &renderShader);
 
     LGFXSetViewport(mainCmds, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
     LGFXSetClipArea(mainCmds, {0, 0, (uint32_t)window->frameBufferSize.X, (uint32_t)window->frameBufferSize.Y});

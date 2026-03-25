@@ -2658,13 +2658,9 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 			{
 				layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			}
-			else if (info->forCompute)
-			{
-				layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-			}
 			else
 			{
-				layoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+				layoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT;
 			}
 			//layoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
 

@@ -16,7 +16,7 @@ typedef struct LGFXInstanceImpl
 typedef struct LGFXFunctionVariableBatchTemplateImpl
 {
     void *handle;
-    LGFXFunctionVariableCreateInfo *variables;
+    LGFXFunctionVariableMetadata *variables;
     uint32_t variablesCount;
 } LGFXFunctionVariableBatchTemplateImpl;
 

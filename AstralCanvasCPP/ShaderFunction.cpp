@@ -160,58 +160,83 @@ namespace AstralCanvas
     ShaderFunctionState::ShaderFunctionState()
     {
         currentGroup = 0;
+        this->ownsBatchTemplate = false;
         stagingVariables = NULL;
         resourceStates = collections::Array<ShaderResourceState>();
         variableSlotGroups = collections::List<LGFXFunctionVariableBatch>();
     }
+
     ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex)
     {
-        LGFXFunctionVariableBatchTemplateCreateInfo createInfo = {};
-        createInfo.forCompute = function->functionType == LGFXFunctionType_Compute;
-        createInfo.variablesCount = function->resourceSets.data[setIndex].resourcesCount;
-
-        LGFXFunctionVariableMetadata varInfos[16];
-        
-        if (createInfo.variablesCount <= 16)
-        {
-            createInfo.variables = varInfos;
-        }
-        else createInfo.variables = (LGFXFunctionVariableMetadata *)malloc(sizeof(LGFXFunctionVariableMetadata) * createInfo.variablesCount);
-        
-        for (u32 i = 0; i < createInfo.variablesCount; i++)
-        {
-            createInfo.variables[i] = function->resourceSets.data[setIndex].resources[i].resource;
-        }
-        *this = ShaderFunctionState(allocator, device, &createInfo);
-
-        if (createInfo.variablesCount > 16)
-            free(createInfo.variables);
+        *this = ShaderFunctionState(allocator, device, function->resourceSets.data[setIndex].resources, function->resourceSets.data[setIndex].resourcesCount);
     }
-    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *createInfo)
+    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, const ShaderFunction *function, u32 setIndex)
+    {
+        *this = ShaderFunctionState(allocator, device, templateStoreSource, function->resourceSets.data[setIndex].resources, function->resourceSets.data[setIndex].resourcesCount);
+    }
+    
+    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, AstralCanvas::ShaderResource *variables, u32 variablesCount)
     {
         this->device = device;
-        this->batchTemplate = LGFXCreateFunctionVariableBatchTemplate(device, createInfo);
+        this->ownsBatchTemplate = false;
+        this->batchTemplate = templateStoreSource->GetOrCreate(variables, variablesCount);
         currentGroup = 0;
 
-        resourceStates = collections::Array<ShaderResourceState>(allocator, createInfo->variablesCount);
-        for (u32 i = 0; i < createInfo->variablesCount; i++)
+        resourceStates = collections::Array<ShaderResourceState>(allocator, variablesCount);
+        for (u32 i = 0; i < variablesCount; i++)
         {
-            resourceStates[i].data.resource = createInfo->variables[i];
+            resourceStates[i].data = variables[i].Clone(allocator);
             resourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
         }
-        stagingVariables = (LGFXFunctionVariable *)allocator.Allocate(sizeof(LGFXFunctionVariable) * createInfo->variablesCount);
+
+        stagingVariables = (LGFXFunctionVariable *)allocator.Allocate(sizeof(LGFXFunctionVariable) * variablesCount);
 
         variableSlotGroups = collections::List<LGFXFunctionVariableBatch>(allocator);
     }
+    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, const AstralCanvas::ShaderResource *variables, u32 variablesCount)
+    {
+        this->device = device;
+        this->ownsBatchTemplate = true;
+
+        resourceStates = collections::Array<ShaderResourceState>(allocator, variablesCount);
+
+        LGFXFunctionVariableMetadata varArray[16];
+        LGFXFunctionVariableMetadata *varMetas = varArray;
+        if (variablesCount > 16)
+        {
+            varMetas = (LGFXFunctionVariableMetadata *)malloc(sizeof(LGFXFunctionVariableMetadata) * variablesCount);
+        }
+        for (u32 i = 0; i < variablesCount; i++)
+        {
+            varMetas[i] = variables[i].resource;
+            resourceStates[i].data = variables[i].Clone(allocator);
+            resourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
+        }
+
+        LGFXFunctionVariableBatchTemplateCreateInfo createInfo = {};
+        createInfo.variablesCount = variablesCount;
+        createInfo.variables = varMetas;
+
+        this->batchTemplate = LGFXCreateFunctionVariableBatchTemplate(device, &createInfo);
+        currentGroup = 0;
+
+        stagingVariables = (LGFXFunctionVariable *)allocator.Allocate(sizeof(LGFXFunctionVariable) * variablesCount);
+        variableSlotGroups = collections::List<LGFXFunctionVariableBatch>(allocator);
+
+        if (variablesCount > 16)
+        {
+            free(varMetas);
+        }
+    }
     void ShaderFunctionState::deinit()
     {
+        if (ownsBatchTemplate && batchTemplate != NULL)
+        {
+            LGFXDestroyFunctionVariableBatchTemplate(device, batchTemplate);
+        }
         for (u32 i = 0; i < resourceStates.length; i++)
         {
-            for (u32 j = 0; j < resourceStates[i].variableSlots.count; j++)
-            {
-                LGFXDestroyFunctionVariable(resourceStates[i].variableSlots[j]);
-            }
-            resourceStates[i].variableSlots.deinit();
+            resourceStates[i].deinit();
         }
         resourceStates.deinit();
 
@@ -915,8 +940,6 @@ namespace AstralCanvas
             info.type = funcType;
             info.variableBatchTemplates = templates;
             info.variableBatchTemplatesCount = result->resourceSets.length;
-
-            info.module1Data = NULL;
 
             result->gpuFunction = LGFXCreateFunction(device, &info);
             result->functionType = funcType;
