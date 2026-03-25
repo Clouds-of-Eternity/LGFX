@@ -166,67 +166,60 @@ namespace AstralCanvas
         variableSlotGroups = collections::List<LGFXFunctionVariableBatch>();
     }
 
-    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex)
+    ShaderFunctionState ShaderFunctionState::FromShader(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex)
     {
-        *this = ShaderFunctionState(allocator, device, function->resourceSets.data[setIndex].resources, function->resourceSets.data[setIndex].resourcesCount);
+        return FromVariablesAndBatchTemplateSource(allocator, device, NULL, function->resourceSets.data[setIndex].resources, function->resourceSets.data[setIndex].resourcesCount);
     }
-    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, const ShaderFunction *function, u32 setIndex)
+    ShaderFunctionState ShaderFunctionState::FromShaderAndBatchTemplateSource(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, const ShaderFunction *function, u32 setIndex)
     {
-        *this = ShaderFunctionState(allocator, device, templateStoreSource, function->resourceSets.data[setIndex].resources, function->resourceSets.data[setIndex].resourcesCount);
+        return FromVariablesAndBatchTemplateSource(allocator, device, templateStoreSource, function->resourceSets.data[setIndex].resources, function->resourceSets.data[setIndex].resourcesCount);
     }
     
-    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, AstralCanvas::ShaderResource *variables, u32 variablesCount)
+    ShaderFunctionState ShaderFunctionState::FromVariablesAndBatchTemplateSource(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, AstralCanvas::ShaderResource *variables, u32 variablesCount)
     {
-        this->device = device;
-        this->ownsBatchTemplate = false;
-        this->batchTemplate = templateStoreSource->GetOrCreate(variables, variablesCount);
-        currentGroup = 0;
+        ShaderFunctionState result;
+        result.device = device;
 
-        resourceStates = collections::Array<ShaderResourceState>(allocator, variablesCount);
-        for (u32 i = 0; i < variablesCount; i++)
+        if (templateStoreSource == NULL)
         {
-            resourceStates[i].data = variables[i].Clone(allocator);
-            resourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
-        }
+            result.ownsBatchTemplate = true;
 
-        stagingVariables = (LGFXFunctionVariable *)allocator.Allocate(sizeof(LGFXFunctionVariable) * variablesCount);
+            LGFXFunctionVariableMetadata *varMetas = (LGFXFunctionVariableMetadata *)malloc(sizeof(LGFXFunctionVariableMetadata) * variablesCount);
+            
+            result.resourceStates = collections::Array<ShaderResourceState>(allocator, variablesCount);
+            for (u32 i = 0; i < variablesCount; i++)
+            {
+                varMetas[i] = variables[i].resource;
+                result.resourceStates[i].data = variables[i].Clone(allocator);
+                result.resourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
+            }
 
-        variableSlotGroups = collections::List<LGFXFunctionVariableBatch>(allocator);
-    }
-    ShaderFunctionState::ShaderFunctionState(IAllocator allocator, LGFXDevice device, const AstralCanvas::ShaderResource *variables, u32 variablesCount)
-    {
-        this->device = device;
-        this->ownsBatchTemplate = true;
+            LGFXFunctionVariableBatchTemplateCreateInfo createInfo = {};
+            createInfo.variablesCount = variablesCount;
+            createInfo.variables = varMetas;
 
-        resourceStates = collections::Array<ShaderResourceState>(allocator, variablesCount);
-
-        LGFXFunctionVariableMetadata varArray[16];
-        LGFXFunctionVariableMetadata *varMetas = varArray;
-        if (variablesCount > 16)
-        {
-            varMetas = (LGFXFunctionVariableMetadata *)malloc(sizeof(LGFXFunctionVariableMetadata) * variablesCount);
-        }
-        for (u32 i = 0; i < variablesCount; i++)
-        {
-            varMetas[i] = variables[i].resource;
-            resourceStates[i].data = variables[i].Clone(allocator);
-            resourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
-        }
-
-        LGFXFunctionVariableBatchTemplateCreateInfo createInfo = {};
-        createInfo.variablesCount = variablesCount;
-        createInfo.variables = varMetas;
-
-        this->batchTemplate = LGFXCreateFunctionVariableBatchTemplate(device, &createInfo);
-        currentGroup = 0;
-
-        stagingVariables = (LGFXFunctionVariable *)allocator.Allocate(sizeof(LGFXFunctionVariable) * variablesCount);
-        variableSlotGroups = collections::List<LGFXFunctionVariableBatch>(allocator);
-
-        if (variablesCount > 16)
-        {
+            result.batchTemplate = LGFXCreateFunctionVariableBatchTemplate(device, &createInfo);
+            
             free(varMetas);
         }
+        else
+        {
+            result.ownsBatchTemplate = false;
+
+            result.resourceStates = collections::Array<ShaderResourceState>(allocator, variablesCount);
+            for (u32 i = 0; i < variablesCount; i++)
+            {
+                result.resourceStates[i].data = variables[i].Clone(allocator);
+                result.resourceStates[i].variableSlots = collections::List<LGFXFunctionVariable>(allocator);
+            }
+            result.batchTemplate = templateStoreSource->GetOrCreate(variables, variablesCount);
+        }
+        
+        result.currentGroup = 0;
+        result.stagingVariables = (LGFXFunctionVariable *)allocator.Allocate(sizeof(LGFXFunctionVariable) * variablesCount);
+        result.variableSlotGroups = collections::List<LGFXFunctionVariableBatch>(allocator);
+
+        return result;
     }
     void ShaderFunctionState::deinit()
     {

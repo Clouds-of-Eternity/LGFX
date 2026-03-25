@@ -41,11 +41,11 @@ namespace AstralCanvas
         bool ownsBatchTemplate;
 
         ShaderFunctionState();
-        ShaderFunctionState(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex);
-        ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, const ShaderFunction *function, u32 setIndex);
 
-        ShaderFunctionState(IAllocator allocator, LGFXDevice device, const AstralCanvas::ShaderResource *variables, u32 variablesCount);
-        ShaderFunctionState(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, AstralCanvas::ShaderResource *variables, u32 variablesCount);
+        static ShaderFunctionState FromShader(IAllocator allocator, LGFXDevice device, const ShaderFunction *function, u32 setIndex);
+        static ShaderFunctionState FromShaderAndBatchTemplateSource(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, const ShaderFunction *function, u32 setIndex);
+        static ShaderFunctionState FromVariablesAndBatchTemplateSource(IAllocator allocator, LGFXDevice device, BatchTemplateStore *templateStoreSource, AstralCanvas::ShaderResource *variables, u32 variablesCount);
+        
         void deinit();
 
         void CheckDescriptorSetAvailability(bool forceAddNewDescriptor = false);

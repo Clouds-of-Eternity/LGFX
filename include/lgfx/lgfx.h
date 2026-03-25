@@ -1,5 +1,4 @@
-#ifndef LGFX_INSTANCE_H
-#define LGFX_INSTANCE_H
+#pragma once
 
 #ifndef __cplusplus
 #include <stdbool.h>
@@ -647,7 +646,7 @@ typedef struct
 
 typedef struct
 {
-    LGFXFunctionVariableMetadata *variables;
+    const LGFXFunctionVariableMetadata *variables;
     uint32_t variablesCount;
 } LGFXFunctionVariableBatchTemplateCreateInfo;
 
@@ -775,6 +774,4 @@ void LGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

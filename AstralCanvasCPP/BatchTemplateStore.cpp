@@ -63,10 +63,6 @@ namespace AstralCanvas
             result = LGFXCreateFunctionVariableBatchTemplate(device, &createInfo);
 
             allTemplates.Add(signature, result);
-            if (needsPtr)
-            {
-                free(createInfo.variables);
-            }
         }
 
         return result;
