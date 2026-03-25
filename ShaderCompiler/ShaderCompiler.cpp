@@ -162,7 +162,7 @@ void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
             maxSetIndex = setIndex;
         }
         SlangVarList *list = setsToVars.Get(setIndex);
-        if (list == NULL)
+        if (list == NULL || list->ptr == NULL)
         {
             list = setsToVars.Insert(setIndex, SlangVarList(tempAlloc));
         }
@@ -182,7 +182,6 @@ void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
         {
             SlangVar var = list[j];
             Binary_WriteText(fs, var->getName());
-            Binary_WriteData<u32>(fs, var->getBindingSpace());
             Binary_WriteData<u32>(fs, var->getBindingIndex());
 
             slang::TypeLayoutReflection *typeLayout = var->getTypeLayout();
@@ -206,7 +205,6 @@ void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
 void ShaderCompilerWriteBinaryFuncSpv(FILE *fs, ShaderCompilerShaderStage forStage, slang::IBlob *code)
 {
     usize size = code->getBufferSize();
-    printf("Wrote size %llu\n", size);
     Binary_WriteData<u32>(fs, (u32)forStage);
     Binary_WriteData<u32>(fs, (u32)size);
 

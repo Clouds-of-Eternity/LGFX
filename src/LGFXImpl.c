@@ -673,7 +673,7 @@ void LGFXDestroyFunction(LGFXFunction func)
     LGFX_ERROR("LGFXDestroyFunction: Unknown backend\n");
 }
 
-LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableCreateInfo *info)
+LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableMetadata *info)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {

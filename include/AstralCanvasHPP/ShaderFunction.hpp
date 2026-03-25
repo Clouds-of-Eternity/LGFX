@@ -4,6 +4,7 @@
 #include "DenseSet.hpp"
 #include "List.hpp"
 #include "ByteStreamOps.hpp"
+#include "AstralCanvasHPP/BatchTemplateStore.hpp"
 
 #ifdef ASTRALCANVAS_JSON_SHADER
 #include "Json.hpp"
@@ -11,42 +12,6 @@
 
 namespace AstralCanvas
 {
-    enum ShaderFunctionResourceType
-    {
-        ShaderFunctionResourceType_Uniform,
-        ShaderFunctionResourceType_Sampler,
-        ShaderFunctionResourceType_Texture,
-        ShaderFunctionResourceType_StructuredBuffer,
-        ShaderFunctionResourceType_InputAttachment,
-        ShaderFunctionResourceType_StorageTexture,
-        ShaderFunctionResourceType_Unknown = 0xFFFFFFFF
-    };
-    enum ShaderFunctionStage
-    {
-        ShaderFunctionStage_Vertex,
-        ShaderFunctionStage_Fragment,
-        ShaderFunctionStage_Compute
-    };
-    struct ShaderResource
-    {
-        string name;
-        LGFXFunctionVariableCreateInfo resource;
-
-        void deinit();
-    };
-    struct ShaderResourceSet
-    {
-        ShaderResource *resources;
-        u32 resourcesCount;
-        u32 setIndex;
-    };
-    struct ShaderResourceState
-    {
-        string name;
-        LGFXFunctionVariableMetadata data;
-
-        collections::List<LGFXFunctionVariable> variableSlots;
-    };
 
     struct ShaderFunction
     {

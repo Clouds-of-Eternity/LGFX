@@ -619,18 +619,12 @@ typedef struct LGFXFunctionVariableMetadata
     uint32_t size;
 } LGFXFunctionVariableMetadata;
 
-typedef struct LGFXFunctionVariableCreateInfo
-{
-    const char *name;
-    LGFXFunctionVariableMetadata data;
-} LGFXFunctionVariableCreateInfo;
-
 typedef struct
 {
     void **currentValues;
     uint32_t valuesCount;
     void *infos;
-    LGFXFunctionVariableCreateInfo variableMetadata;
+    LGFXFunctionVariableMetadata variableMetadata;
 
     LGFXDevice device;
     bool valueIsOwnedBuffer;
@@ -653,7 +647,7 @@ typedef struct
 
 typedef struct
 {
-    LGFXFunctionVariableCreateInfo *variables;
+    LGFXFunctionVariableMetadata *variables;
     uint32_t variablesCount;
     bool forCompute;
 } LGFXFunctionVariableBatchTemplateCreateInfo;
@@ -757,7 +751,7 @@ LGFXFunction LGFXCreateFunction(LGFXDevice device, const LGFXFunctionCreateInfo 
 void LGFXDestroyFunction(LGFXFunction func);
 
 LGFXFunctionVariable LGFXCreateFunctionVariableSlot(LGFXDevice device, LGFXFunctionVariableBatchTemplate batchTemplate, uint32_t forVariableOfIndex);
-LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableCreateInfo *info);
+LGFXFunctionVariable LGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctionVariableMetadata *info);
 void LGFXFunctionSendVariablesToGPU(LGFXDevice device, LGFXFunctionVariableBatch batch, LGFXFunctionVariable *functionVariables, uint32_t variablesCount);
 void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVariableBatch batch, LGFXFunction forFunction, uint32_t setIndex);
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable);
