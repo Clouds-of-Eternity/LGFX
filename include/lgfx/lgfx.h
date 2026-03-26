@@ -40,6 +40,7 @@ typedef struct
     float height;
 } LGFXBox;
 
+typedef struct LGFXRenderAttachmentInfo LGFXRenderAttachmentInfo;
 typedef struct LGFXInstanceImpl *LGFXInstance;
 typedef struct LGFXDeviceImpl *LGFXDevice;
 typedef struct LGFXSwapchainImpl *LGFXSwapchain;
@@ -526,7 +527,7 @@ typedef struct LGFXRenderTargetImpl
 } LGFXRenderTargetImpl;
 
 /// @brief An attachment refers to the state of the textures passing in and out of each renderpass
-typedef struct
+typedef struct LGFXRenderAttachmentInfo
 {
     LGFXTextureFormat format;
     LGFXRenderAttachmentOutput outputType;
@@ -534,7 +535,7 @@ typedef struct
     bool clear;
 } LGFXRenderAttachmentInfo;
 /// @brief A pass is a stage of the render program. Currently, all passes in a program execute sequentially, and depend on the completion of the previous pass to execute.
-typedef struct
+typedef struct LGFXRenderPassInfo
 {
     int32_t *colorAttachmentIDs;
     uint32_t colorAttachmentsCount;
@@ -545,7 +546,7 @@ typedef struct
     int32_t *readAttachmentIDs;
     uint32_t readAttachmentsCount;
 } LGFXRenderPassInfo;
-typedef struct
+typedef struct LGFXRenderProgramCreateInfo
 {
     LGFXRenderAttachmentInfo *attachments;
     uint32_t attachmentsCount;
@@ -557,12 +558,12 @@ typedef struct
     uint32_t maxBackbufferTexturesCount;
 } LGFXRenderProgramCreateInfo;
 
-typedef struct
+typedef struct LGFXVertexAttribute
 {
     LGFXVertexElementFormat format;
     uint32_t offset;
 } LGFXVertexAttribute;
-typedef struct
+typedef struct LGFXVertexDeclaration
 {
     LGFXVertexAttribute *elements;
     uint32_t elementsCount;
