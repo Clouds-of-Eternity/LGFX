@@ -360,7 +360,7 @@ typedef enum
     LGFXTextureFormat_Depth32FloatStencil8,
 } LGFXTextureFormat;
 
-typedef struct
+typedef struct LGFXInstanceCreateInfo
 {
     const char *appName;
     const char *engineName;
@@ -373,7 +373,7 @@ typedef struct
 } LGFXInstanceCreateInfo;
 
 typedef int32_t (*LGFXCreateWindowSurfaceFunc)(LGFXDevice, void *, void *, void **);
-typedef struct
+typedef struct LGFXSwapchainCreateInfo
 {
     void *windowHandle;
     //void *nativeWindowHandle;
@@ -385,7 +385,7 @@ typedef struct
     LGFXSwapchain oldSwapchain;
 } LGFXSwapchainCreateInfo;
 
-typedef struct
+typedef struct LGFXDeviceFeatures
 {
     /// @brief If true, multi draw indirect functions will be supported
     bool multiDrawIndirect;
@@ -425,13 +425,13 @@ typedef struct
     bool sparseBinding;
 } LGFXDeviceFeatures;
 
-typedef struct
+typedef struct LGFXDeviceCreateInfo
 {
     LGFXDeviceFeatures requiredFeatures;
     uint32_t maxDescriptorSets;
 } LGFXDeviceCreateInfo;
 
-typedef struct
+typedef struct LGFXTextureCreateInfo
 {
     LGFXTextureFormat format;
     LGFXTextureUsage usage;
@@ -445,7 +445,7 @@ typedef struct
     const char *memoryIdentifierName;
 } LGFXTextureCreateInfo;
 
-typedef struct
+typedef struct LGFXSamplerStateCreateInfo
 {
     LGFXSamplerRepeatMode repeatModeU;
     LGFXSamplerRepeatMode repeatModeV;
@@ -494,7 +494,7 @@ typedef struct LGFXRenderProgramImpl
     bool outputToBackbuffer;
 } LGFXRenderProgramImpl;
 
-typedef struct
+typedef struct LGFXBufferCreateInfo
 {
     size_t size;
     LGFXBufferUsage bufferUsage;
@@ -511,7 +511,7 @@ typedef struct LGFXBufferImpl
     size_t size;
 } LGFXBufferImpl;
 
-typedef struct
+typedef struct LGFXRenderTargetCreateInfo
 {
     LGFXTexture *textures;
     uint32_t texturesCount;
@@ -526,7 +526,7 @@ typedef struct LGFXRenderTargetImpl
 } LGFXRenderTargetImpl;
 
 /// @brief An attachment refers to the state of the textures passing in and out of each renderpass
-typedef struct
+typedef struct LGFXRenderAttachmentInfo
 {
     LGFXTextureFormat format;
     LGFXRenderAttachmentOutput outputType;
@@ -534,7 +534,7 @@ typedef struct
     bool clear;
 } LGFXRenderAttachmentInfo;
 /// @brief A pass is a stage of the render program. Currently, all passes in a program execute sequentially, and depend on the completion of the previous pass to execute.
-typedef struct
+typedef struct LGFXRenderPassInfo
 {
     int32_t *colorAttachmentIDs;
     uint32_t colorAttachmentsCount;
@@ -545,7 +545,7 @@ typedef struct
     int32_t *readAttachmentIDs;
     uint32_t readAttachmentsCount;
 } LGFXRenderPassInfo;
-typedef struct
+typedef struct LGFXRenderProgramCreateInfo
 {
     LGFXRenderAttachmentInfo *attachments;
     uint32_t attachmentsCount;
@@ -557,12 +557,12 @@ typedef struct
     uint32_t maxBackbufferTexturesCount;
 } LGFXRenderProgramCreateInfo;
 
-typedef struct
+typedef struct LGFXVertexAttribute
 {
     LGFXVertexElementFormat format;
     uint32_t offset;
 } LGFXVertexAttribute;
-typedef struct
+typedef struct LGFXVertexDeclaration
 {
     LGFXVertexAttribute *elements;
     uint32_t elementsCount;
@@ -634,7 +634,7 @@ typedef struct LGFXFunctionVariableMetadata
     uint32_t size;
 } LGFXFunctionVariableMetadata;
 
-typedef struct
+typedef struct LGFXFunctionVariable
 {
     void **currentValues;
     uint32_t valuesCount;
@@ -645,7 +645,7 @@ typedef struct
     bool valueIsOwnedBuffer;
 } LGFXFunctionVariable;
 
-typedef struct
+typedef struct LGFXFunctionCreateInfo
 {
     LGFXFunctionType type;
 
@@ -660,7 +660,7 @@ typedef struct
 
 } LGFXFunctionCreateInfo;
 
-typedef struct
+typedef struct LGFXFunctionVariableBatchTemplateCreateInfo
 {
     const LGFXFunctionVariableMetadata *variables;
     uint32_t variablesCount;
