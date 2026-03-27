@@ -130,7 +130,6 @@ void Init()
     pipelineCreateInfo.depthTest = false;
     pipelineCreateInfo.depthWrite = false;
     pipelineCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
-    pipelineCreateInfo.dynamicViewportScissor = true;
     pipelineCreateInfo.function = shader.gpuFunction;
     pipelineCreateInfo.vertexDeclarationCount = 1;
     pipelineCreateInfo.vertexDeclarations = &vertexDecl;

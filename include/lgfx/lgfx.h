@@ -40,6 +40,7 @@ typedef struct
     float height;
 } LGFXBox;
 
+typedef struct LGFXRenderAttachmentInfo LGFXRenderAttachmentInfo;
 typedef struct LGFXInstanceImpl *LGFXInstance;
 typedef struct LGFXDeviceImpl *LGFXDevice;
 typedef struct LGFXSwapchainImpl *LGFXSwapchain;

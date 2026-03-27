@@ -178,7 +178,6 @@ void Init()
     pipelineCreateInfo.function = renderShader.gpuFunction;
     pipelineCreateInfo.cullMode = LGFXCullMode_None;
     pipelineCreateInfo.dynamicLineWidth = false;
-    pipelineCreateInfo.dynamicViewportScissor = true;
     pipelineCreateInfo.primitiveType = LGFXPrimitiveType_TriangleList;
     pipelineCreateInfo.blendState = {};
     pipelineCreateInfo.depthTest = false;
