@@ -31,7 +31,6 @@ namespace AstralCanvas
 		engineVersion = 0;
 		startTime = 0.0f;
 		endTime = 0.0f;
-		updateTimer = 0.0f;
 		fixedUpdateTimer = 0.0f;
 		shouldResetDeltaTimer = 0.0f;
 
@@ -137,10 +136,9 @@ namespace AstralCanvas
 			float deltaTime = endTime - startTime;
 
 			glfwPollEvents();
-			updateTimer += deltaTime;
 			fixedUpdateTimer += deltaTime;
 
-			bool runUpdate = framesPerSecond < 1.0f || updateTimer >= 1.0f / framesPerSecond;
+			bool runUpdate = true;
 			bool minimized = windows.count > 0;
 			for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 			{
@@ -195,7 +193,7 @@ namespace AstralCanvas
 				currentWindow = windows.ptr[i];
 				if (runUpdate || alwaysUpdate)
 				{
-					updateFunc(updateTimer * this->timeScale);
+					updateFunc(deltaTime);
 				}
 				
             	window->windowInputState.ResetPerFrameInputStates();
@@ -223,8 +221,6 @@ namespace AstralCanvas
 			{
 				break;
 			}
-			updateTimer = 0.0f;
-			
 
 			startTime = endTime;
 			endTime = (float)glfwGetTime();

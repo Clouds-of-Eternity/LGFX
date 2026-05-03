@@ -29,7 +29,6 @@ namespace AstralCanvas
 		u32 engineVersion;
 		float startTime;
 		float endTime;
-		float updateTimer;
 		float fixedUpdateTimer;
 		bool shouldResetDeltaTimer;
 
