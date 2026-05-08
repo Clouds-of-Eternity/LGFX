@@ -393,7 +393,7 @@ i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, LoadedModule &lo
     ArenaAllocator arena = ArenaAllocator(GetCAllocator());
     Scope(ArenaAllocator, arena);
     //fwrite(code->getBufferPointer(), 1, code->getBufferSize(), fs);
-    Json::JsonWriter writer = Json::JsonWriter(arena.AsAllocator(), fs, true);
+    Json::JsonWriter writer = Json::JsonWriter(arena.AsAllocator(), fs, 4);
 
     writer.WriteStartObject();
 
