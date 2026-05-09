@@ -318,6 +318,10 @@ namespace AstralCanvas
 	{
 		glfwSetWindowShouldClose((GLFWwindow *)this->handle, GLFW_TRUE);
 	}
+	bool Window::GetShouldClose()
+	{
+		return glfwWindowShouldClose((GLFWwindow *)this->handle);
+	}
 
     void Window::InterceptClose()
     {

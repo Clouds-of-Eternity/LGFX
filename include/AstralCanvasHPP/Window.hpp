@@ -64,6 +64,7 @@ namespace AstralCanvas
 		void SetCanDragResize(bool canDragResize);
 		void SetMouseIcon(void *iconData, u32 iconWidth, u32 iconHeight, i32 originX, i32 originY);
 		void CloseWindow();
+		bool GetShouldClose();
         void InterceptClose();
 		void *GetOSWindowHandle();
 		i32 GetCurrentMonitorFramerate();

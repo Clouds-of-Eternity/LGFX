@@ -196,6 +196,10 @@ namespace AstralCanvas
 					updateFunc(deltaTime);
 				}
 				
+				if (window->GetShouldClose())
+				{
+					continue;
+				}
             	window->windowInputState.ResetPerFrameInputStates();
 
 				//begin draw
