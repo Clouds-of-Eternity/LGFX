@@ -363,14 +363,33 @@ typedef enum
 
 typedef struct LGFXInstanceCreateInfo
 {
+    /// @brief The reference name of the application. This is used by certain GPU providers
+    /// to identify the currently running application and provide their specific optimisations.
     const char *appName;
+    /// @brief The reference name of the application's engine. This is used by certain GPU
+    /// providers to identify the currently utilised engine and provide their specific optimisations.
     const char *engineName;
-    uint32_t appVersion;
-    uint32_t engineVersion;
-    bool runtimeErrorChecking;
+    /// @brief A list of names of all enabled extensions. Names are determined as per the backend;
+    /// for a list of all possible extensions, one should check with the utilised backend's docs itself.
     const char **enabledExtensions;
+    /// @brief How many items in enabledExtensions. If enabledExtensions is NULL, this value must be 0.
     uint32_t enabledExtensionsCount;
+    /// @brief A value representing the internal app version, used by certain GPU providers alongside
+    /// the appName to select which of their version-specific optimisations to apply.
+    uint32_t appVersion;
+    /// @brief A value representing the internal engine version, used by certain GPU providers alongside
+    /// the engineVersion to select which of their version-specific optimisations to apply.
+    uint32_t engineVersion;
+    /// @brief The preferred graphics API backend to use.
     LGFXBackendType backend;
+    /// @brief Whether runtime GPU error checking should be enabled. For certain backends like Vulkan,
+    /// this relies on the user having the associated SDK installed. Thus it is not recommended for
+    /// release builds.
+    bool runtimeErrorChecking;
+    /// @brief If true, the application will not attempt to disable environment variables that
+    /// have been identified as causing crashes in many applications. Thus, it is recommended that this
+    /// value stay as false.
+    bool allowProblematicEnvironmentVariables;
 } LGFXInstanceCreateInfo;
 
 typedef int32_t (*LGFXCreateWindowSurfaceFunc)(LGFXDevice, void *, void *, void **);

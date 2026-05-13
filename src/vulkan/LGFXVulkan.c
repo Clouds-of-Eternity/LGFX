@@ -13,6 +13,19 @@
 
 #define ONE_OVER_255 0.00392156862f
 
+#ifdef WINDOWS
+int setenv(const char *name, const char *value, int overwrite)
+{
+    int errcode = 0;
+    if(!overwrite) {
+        size_t envsize = 0;
+        errcode = getenv_s(&envsize, NULL, 0, name);
+        if(errcode || envsize) return errcode;
+    }
+    return _putenv_s(name, value);
+}
+#endif
+
 // VULKAN-SPECIFIC HELPER STRUCTS
 typedef struct LGFXMemoryBlockImpl
 {
@@ -463,6 +476,40 @@ typedef struct VkLGFXSwapchainSupport
 	VkPresentModeKHR * presentModes;
 } VkLGFXSwapchainSupport;
 
+void VkLGFXDisableUnsupportedEnvironmentVariables()
+{
+	const char* layers[] = {
+		"VK_LAYER_Twitch_Overlay",
+		"VK_LAYER_OW_OVERLAY",
+		"VK_LAYER_OW_OBS_HOOK",
+		"VK_LAYER_OBS_HOOK",
+		"VK_LAYER_bandicam_helper",
+		"VK_LAYER_fpsmon",
+		"VK_LAYER_playclaw",
+		"VK_LAYER_reshade",
+		"MangoHud",
+		"VK_LAYER_RTSS"
+	};
+	const char *layerFlags[] = {
+		"DISABLE_TWITCH_VULKAN_OVERLAY",
+		"DISABLE_VULKAN_OW_OVERLAY_LAYER",
+		"DISABLE_VULKAN_OW_OBS_CAPTURE",
+		"DISABLE_VULKAN_OBS_CAPTURE",
+		"VK_LAYER_bandicam_helper_DEBUG_1",
+		"DISABLE_FPSMON_LAYER",
+		"DISABLE_PLAYCLAW_LAYER",
+		"DISABLE_VK_LAYER_reshade_1",
+		"DISABLE_MANGOHUD",
+		"DISABLE_RTSS_LAYER"
+	};
+
+	const uint32_t layersCount = sizeof(layers) / sizeof(const char *);
+	for (uint32_t i = 0; i < layersCount; i++)
+	{
+		setenv(layers[i], layerFlags[i], 1);
+	}
+}
+
 VkSurfaceFormatKHR VkLGFXFindSurface(VkColorSpaceKHR colorSpace, VkFormat format, VkLGFXSwapchainSupport *supported)
 {
     for (uint32_t i = 0; i < supported->supportedSurfaceFormatsCount; i++)
@@ -895,6 +942,10 @@ VkBool32 VkLGFXErrorFunc(
 
 LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 {
+	if (!info->allowProblematicEnvironmentVariables)
+	{
+		VkLGFXDisableUnsupportedEnvironmentVariables();
+	}
 	LGFXInstanceImpl *result = Allocate(LGFXInstanceImpl, 1);
 	VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {0};
 
