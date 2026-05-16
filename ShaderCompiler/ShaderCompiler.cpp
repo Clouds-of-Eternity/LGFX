@@ -3,6 +3,8 @@
 #include "DenseSet.hpp"
 #include "BinaryIO.hpp"
 #include "Scope.hpp"
+#include "limits.h"
+#include "Path.hpp"
 
 slang::IGlobalSession *globalSession;
 bool AssetcShaderCompilerInitialize()
@@ -23,11 +25,30 @@ void AssetcShaderCompilerUnload()
         slang::shutdown();
     }
 }
-ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirectoriesCount, ShaderCompilerOptimizationLevel optimizationLevel)
+ShaderCompiler *ShaderCompiler_Create(const ShaderCompilerCreateInfo *createInfo)
 {
     assert(globalSession != NULL);
-    ShaderCompiler *result = (ShaderCompiler *)malloc(sizeof(ShaderCompiler));
-    *result = ShaderCompiler(GetCAllocator());
+    ShaderCompiler *result = (ShaderCompiler *)DEFAULT_ALLOC(sizeof(ShaderCompiler));
+    *result = ShaderCompiler(GetCAllocator(), createInfo->numDirectories, createInfo->objectDirectories != NULL);
+
+    for (u32 i = 0; i < createInfo->numDirectories; i++)
+    {
+        result->sourceDirectories[i] = string(result->allocator, createInfo->sourceDirectories[i]);
+        if (createInfo->outputDirectories != NULL)
+        {
+            result->outputDirectories[i] = string(result->allocator, createInfo->outputDirectories[i]);
+        }
+        else
+        {
+            result->outputDirectories[i] = result->sourceDirectories[i].Clone(result->allocator);
+        }
+
+        if (createInfo->objectDirectories != NULL)
+        {
+            result->objectDirectories[i] = string(result->allocator, createInfo->objectDirectories[i]);
+        }
+        result->searchPaths[i] = result->sourceDirectories[i].buffer;
+    }
 
     slang::CompilerOptionEntry compilerOptions[3];
 
@@ -44,16 +65,16 @@ ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirector
     compilerOptions[2] = {};
     compilerOptions[2].name = slang::CompilerOptionName::Optimization;
     compilerOptions[2].value.kind = slang::CompilerOptionValueKind::Int;
-    compilerOptions[2].value.intValue0 = (SlangOptimizationLevel)optimizationLevel;
+    compilerOptions[2].value.intValue0 = (SlangOptimizationLevel)createInfo->optimizationLevel;
 
     slang::SessionDesc desc = slang::SessionDesc();
     desc.compilerOptionEntryCount = 3;
     desc.compilerOptionEntries = compilerOptions;
 
-    desc.searchPathCount = includeDirectoriesCount;
-    if (includeDirectoriesCount > 0)
+    desc.searchPathCount = createInfo->numDirectories;
+    if (createInfo->numDirectories > 0)
     {
-        desc.searchPaths = includeDirectories;
+        desc.searchPaths = result->searchPaths;
     }
 
     slang::TargetDesc targetDesc = slang::TargetDesc();
@@ -74,7 +95,7 @@ ShaderCompiler *ShaderCompiler_New(text *includeDirectories, u32 includeDirector
 void ShaderCompiler_Deinit(ShaderCompiler *self)
 {
     self->deinit();
-    free(self);
+    DEFAULT_FREE(self);
 }
 
 // enum ShaderVariableType
@@ -468,8 +489,37 @@ i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, LoadedModule &lo
     return 0;
 }
 
-i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text outputPath)
+i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, i32 useSourceDirectoryOfIndex)
 {
+    i32 sourceDirectoryIndex = useSourceDirectoryOfIndex;
+
+    if (sourceDirectoryIndex < 0 || sourceDirectoryIndex >= self->numDirectories)
+    {
+        char *maxPath = (char *)DEFAULT_ALLOC(MAX_PATH);
+        memset(maxPath, 0, MAX_PATH);
+        for (u32 i = 0; i < self->numDirectories; i++)
+        {
+            //i32 length = 
+            snprintf(maxPath, MAX_PATH, "%s/%s", self->sourceDirectories[i].buffer, filePathRelative);
+            if (io::FileExists(maxPath))
+            {
+                sourceDirectoryIndex = i;
+                break;
+            }
+        }
+    }
+    if (sourceDirectoryIndex < 0 || sourceDirectoryIndex >= self->numDirectories)
+    {
+        self->errors.Appendf("Could not find a file with the path %s relative to any of the provided sourceDirectories.\n", filePathRelative);
+        if (io::FileExists(filePathRelative))
+        {
+            self->errors.AppendLine(" - It appears that a file of that path does exist, but the path is not relative to any of the provided sourceDirectories, or was not able to be accessed for some reason.");
+        }
+        return 1;
+    }
+
+    CharSlice filePathRelativeSlice = CharSlice(filePathRelative);
+
     slang::ISession *session = self->session;
     bool errored = false;
     slang::IBlob *diagnostics = NULL;
@@ -491,6 +541,19 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text out
         }
         return 1;
     }
+    
+    if (self->objectDirectories != NULL && filePathRelativeSlice.EndsWith(".inc.slang"))
+    {
+        const string objDir = self->objectDirectories[sourceDirectoryIndex];
+
+        //module file
+        string objPath = string::Format(GetCAllocator(), "%s/%s", objDir, filePathRelative);
+        io::RecursiveCreateDirectories(path::GetDirectory(objPath));
+        path::SwapExtensionDeinit(objPath, ".slang-module");
+        module->writeToFile(objPath.buffer);
+        return 0;
+    }
+
     LoadedModule loaded = {};
     loaded.module = module;
 
@@ -499,14 +562,11 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text out
         if (module->findEntryPointByName("FragmentFunction", &loaded.entryPoint2) != SLANG_OK)
         {
             self->errors.Append("Detected file %s to be a vertex-fragment shader, but could not find a valid function 'FragmentFunction' as the entry point\n");
-            //fprintf(stderr, "Detected file %s to be a vertex-fragment shader, but could not find a valid function 'FragmentFunction' as the entry point\n", filePathRelative);
             errored = true;
         }
     }
     else if (module->findEntryPointByName("main", &loaded.entryPoint1) != SLANG_OK)
     {
-        //fprintf(stderr, "Could not discern what type of shader %s is\n", filePathRelative);
-
         self->errors.Appendf("Could not discern what type of shader %s is\n", filePathRelative);
         errored = true;
     }
@@ -551,10 +611,27 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text out
             return 1;
         }
 
-        CharSlice outputPathSlice = CharSlice(outputPath);
-        bool isSFN = outputPathSlice.EndsWith(".sfn");
+        bool isSFN = true;
+        text finalOutputPath = NULL;
+        string finalOutputStr = string();
 
-        FILE *fs = fopen(outputPath, isSFN ? "wb" : "w");
+        if (overrideOutputPath != NULL)
+        {
+            CharSlice outputPathSlice = CharSlice(overrideOutputPath);
+            isSFN = outputPathSlice.EndsWith(".sfn");
+            finalOutputPath = overrideOutputPath;
+        }
+        else
+        {
+            string nameSwap = path::SwapExtension(GetCAllocator(), filePathRelative, ".sfn");
+            finalOutputStr = string::Format(GetCAllocator(), "%s/%s", self->outputDirectories[sourceDirectoryIndex], nameSwap.buffer);
+            finalOutputPath = finalOutputStr.buffer;
+            nameSwap.deinit();
+        }
+
+        FILE *fs = fopen(finalOutputPath, isSFN ? "wb" : "w");
+
+        finalOutputStr.deinit();
         if (fs != NULL)
         {
 
@@ -569,6 +646,7 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text out
             }
             
             fclose(fs);
+
             return errorCode;
         }
         return 0;

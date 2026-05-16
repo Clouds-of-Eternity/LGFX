@@ -2,6 +2,7 @@
 #include "io.hpp"
 #include <stdio.h>
 #include "Scope.hpp"
+#include "Path.hpp"
 
 i32 main(i32 argc, char **argv)
 {
@@ -18,6 +19,7 @@ i32 main(i32 argc, char **argv)
     u32 optArgsCount = argc - 2;
     collections::List<char *> includeDirectories = collections::List<char *>(GetCAllocator());
     Scope(collections::List<char *>, includeDirectories);
+    includeDirectories.Add(argv[1]);
     for (u32 i = 0; i < optArgsCount; i++)
     {
         u32 index = i + 2;
@@ -55,7 +57,13 @@ i32 main(i32 argc, char **argv)
     }
 
     AssetcShaderCompilerInitialize();
-    ShaderCompiler *result = ShaderCompiler_New((text*)includeDirectories.ptr, includeDirectories.count, optLevel);
+    ShaderCompilerCreateInfo createInfo = {};
+    createInfo.numDirectories = includeDirectories.count;
+    createInfo.sourceDirectories = (text*)includeDirectories.ptr;
+    createInfo.outputDirectories = (text*)includeDirectories.ptr;
+    createInfo.optimizationLevel = optLevel;
+
+    ShaderCompiler *result = ShaderCompiler_Create(&createInfo);
 
     ArenaAllocator arena = ArenaAllocator(GetCAllocator());
     Scope(ArenaAllocator, arena);
@@ -69,7 +77,7 @@ i32 main(i32 argc, char **argv)
             string relative = allFilePaths[i].CloneTrimStart(arena.AsAllocator(), strlen(argv[1]) + 1);
             string outputPath = path::SwapExtension(arena.AsAllocator(), allFilePaths[i], ".sfn");
             printf("Compiling %s\n", relative.buffer);
-            returnCode = ShaderCompiler_Compile(result, allFilePaths[i].buffer, outputPath.buffer);
+            returnCode = ShaderCompiler_Compile(result, relative.buffer, outputPath.buffer, -1);
             if (returnCode != 0)
             {
                 text error = ShaderCompiler_GetErrorMessages(result);
