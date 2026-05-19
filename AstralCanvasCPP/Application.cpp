@@ -49,6 +49,7 @@ namespace AstralCanvas
 		this->engineVersion = engineVersion;
 		this->timeScale = 1.0f;
 		this->fixedTimeStep = 0.02f;
+		this->fixedUpdateTimer = 0.0f;
 		this->shouldShutdown = false;
 
 		if (!noWindow)
@@ -116,6 +117,7 @@ namespace AstralCanvas
 	}
 	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc)
 	{
+		fixedUpdateTimer = 0.0f;
 		AstralCanvas::globalTemplateStore = AstralCanvas::BatchTemplateStore(GetCAllocator(), AstralCanvas::applicationInstance.device);
 		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
 		if (initFunc != NULL)
