@@ -777,8 +777,8 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                     loaded.entryPoint1,
                     fileMeta.function1Permutations,
                     components,
+                    false,
                     1,
-                    3,
                     programs,
                     loaded.specializedEntryPoints))
                 {
@@ -795,8 +795,8 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                     loaded.entryPoint2,
                     fileMeta.function2Permutations,
                     components,
+                    false,
                     2,
-                    3,
                     programs,
                     loaded.specializedEntryPoints))
                 {
@@ -868,8 +868,8 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                     loaded.entryPoint1,
                     fileMeta.function1Permutations,
                     components,
+                    true,
                     1,
-                    2,
                     programs,
                     loaded.specializedEntryPoints))
                 {
