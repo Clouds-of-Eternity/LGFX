@@ -98,10 +98,59 @@ void ShaderCompiler_Deinit(ShaderCompiler *self)
     DEFAULT_FREE(self);
 }
 
-// enum ShaderVariableType
-// {
+inline static void ShaderCompilationMeta_ParsePermutationArray(IAllocator allocator, const Json::JsonElement *elem, collections::Array<ShaderFunctionPermutation> &output)
+{
+    output = collections::Array<ShaderFunctionPermutation>(allocator, elem->arrayElements.length);
+    for (u32 i = 0; i < elem->arrayElements.length; i++)
+    {
+        ShaderFunctionPermutation permutation = {};
+        permutation.suffix = elem->arrayElements.data[i].key.Clone(allocator);
+        const Json::JsonElement &member = elem->arrayElements.data[i].value;
+        if (member.arrayElements.length > 0)
+        {
+            permutation.typeArguments = collections::Array<string>(allocator, member.arrayElements.length);
+            for (u32 j = 0; j < member.arrayElements.length; j++)
+            {
+                permutation.typeArguments[j] = member.arrayElements.data[j].value.GetStringRaw(allocator);
+            }
+        }
+        output[i] = permutation;
+    }
+}
+ShaderCompilationMeta ShaderCompilationMeta_Parse(IAllocator allocator, Json::JsonElement *root)
+{
+    ShaderCompilationMeta result = {};
 
-// };
+    Json::JsonElement *elem = root->GetProperty("vertexPermutations");
+    if (elem == NULL)
+    {
+        elem = root->GetProperty("computePermutations");
+    }
+    if (elem != NULL)
+    {
+        ShaderCompilationMeta_ParsePermutationArray(allocator, elem, result.function1Permutations);
+    }
+
+    elem = root->GetProperty("fragmentPermutations");
+    if (elem != NULL)
+    {
+        ShaderCompilationMeta_ParsePermutationArray(allocator, elem, result.function2Permutations);
+    }
+    return result;
+}
+ShaderCompilationMeta ShaderCompilationMeta_ParseFile(IAllocator allocator, text metaFilePath)
+{
+    ArenaAllocator arena = ArenaAllocator(GetCAllocator());
+    Scope(ArenaAllocator, arena);
+    string metaFileContents = io::ReadFile(arena.AsAllocator(), metaFilePath, false);
+    Json::JsonElement rootElem = {};
+    if (Json::ParseJsonDocument(arena.AsAllocator(), metaFileContents, &rootElem) > 0)
+    {
+        return {};
+    }
+
+    return ShaderCompilationMeta_Parse(allocator, &rootElem);
+}
 
 bool ShaderCompilerWriteBinaryFuncType(FILE *fs, slang::TypeLayoutReflection *typeLayout)
 {
@@ -232,23 +281,24 @@ void ShaderCompilerWriteBinaryFuncSpv(FILE *fs, ShaderCompilerShaderStage forSta
     const void *ptr = code->getBufferPointer();
     fwrite(ptr, 1, size, fs);
 }
-i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, LoadedModule &loaded, slang::IBlob *diagnostics)
+i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputProgram &program, slang::IBlob *diagnostics)
 {
     //version
     Binary_WriteData<u32>(fs, FUNC_BINARY_FILE_VERSION);
     //shader type
     //0: Vertex-Fragment
     //1: Compute
-    Binary_WriteData<u32>(fs, loaded.entryPoint2 != NULL ? 0 : 1);
+    bool isCompute = program.type == ShaderCompilerShaderStage_Compute;
+    Binary_WriteData<u32>(fs, isCompute ? 1 : 0);
 
     //uniforms
-    slang::ProgramLayout *layout = loaded.linkedProgram->getLayout();
+    slang::ProgramLayout *layout = program.linkedProgram->getLayout();
     ShaderCompilerWriteBinaryFuncParams(fs, layout);
 
-    if (loaded.entryPoint2 == NULL)
+    if (isCompute)
     {
         slang::IBlob *code = NULL;
-        SlangResult getEntryPointResult = loaded.linkedProgram->getTargetCode(0, &code, &diagnostics);
+        SlangResult getEntryPointResult = program.linkedProgram->getTargetCode(0, &code, &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -267,7 +317,7 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, LoadedModule &
     else
     {
         slang::IBlob *code = NULL;
-        SlangResult getEntryPointResult = loaded.linkedProgram->getEntryPointCode(0, 0, &code, &diagnostics);
+        SlangResult getEntryPointResult = program.linkedProgram->getEntryPointCode(0, 0, &code, &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -283,7 +333,7 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, LoadedModule &
         }
         code->Release();
 
-        getEntryPointResult = loaded.linkedProgram->getEntryPointCode(1, 0, &code, &diagnostics);
+        getEntryPointResult = program.linkedProgram->getEntryPointCode(1, 0, &code, &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -409,30 +459,32 @@ void ShaderCompilerWriteJSONFuncSpv(Json::JsonWriter &writer, const char *proper
     }
     writer.WriteEndArray();
 }
-i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, LoadedModule &loaded, slang::IBlob *diagnostics)
+i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, const OutputProgram &program, slang::IBlob *diagnostics)
 {
     ArenaAllocator arena = ArenaAllocator(GetCAllocator());
     Scope(ArenaAllocator, arena);
     //fwrite(code->getBufferPointer(), 1, code->getBufferSize(), fs);
     Json::JsonWriter writer = Json::JsonWriter(arena.AsAllocator(), fs, 4);
 
+    bool isCompute = program.type == ShaderCompilerShaderStage_Compute;
+
     writer.WriteStartObject();
 
     writer.WritePropertyName("type");
-    writer.WriteString(loaded.entryPoint2 != NULL ? "Vertex-Fragment" : "Compute");
+    writer.WriteString(isCompute ? "Compute" : "Vertex-Fragment");
     writer.WritePropertyName("uniforms");
     writer.WriteStartArray();
 
-    slang::ProgramLayout *layout = loaded.linkedProgram->getLayout();
+    slang::ProgramLayout *layout = program.linkedProgram->getLayout();
 
     ShaderCompilerWriteJSONFuncParams(writer, layout);
 
     writer.WriteEndArray();
 
-    if (loaded.entryPoint2 == NULL)
+    if (isCompute)
     {
         slang::IBlob *code = NULL;
-        SlangResult getEntryPointResult = loaded.linkedProgram->getTargetCode(0, &code, &diagnostics);
+        SlangResult getEntryPointResult = program.linkedProgram->getTargetCode(0, &code, &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -451,7 +503,7 @@ i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, LoadedModule &lo
     else
     {
         slang::IBlob *code = NULL;
-        SlangResult getEntryPointResult = loaded.linkedProgram->getEntryPointCode(0, 0, &code, &diagnostics);
+        SlangResult getEntryPointResult = program.linkedProgram->getEntryPointCode(0, 0, &code, &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -467,7 +519,7 @@ i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, LoadedModule &lo
         }
         code->Release();
 
-        getEntryPointResult = loaded.linkedProgram->getEntryPointCode(1, 0, &code, &diagnostics);
+        getEntryPointResult = program.linkedProgram->getEntryPointCode(1, 0, &code, &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -487,6 +539,93 @@ i32 ShaderCompilerWriteJSONFunc(ShaderCompiler *self, FILE *fs, LoadedModule &lo
     writer.WriteEndObject();
 
     return 0;
+}
+
+slang::IComponentType *ShaderCompiler_Compile_SpecializeEntryPoint(const ShaderFunctionPermutation &permutation, slang::IEntryPoint *entryPoint, StringBuilder &errors)
+{
+    bool allocated = false;
+    slang::IComponentType *result = NULL;
+    u32 permutationArrayLength = permutation.typeArguments.length;
+
+    slang::SpecializationArg argsArray[8];
+    slang::SpecializationArg *args;
+    
+    if (permutationArrayLength > 8)
+    {
+        args = (slang::SpecializationArg *)DEFAULT_ALLOC(sizeof(slang::SpecializationArg) * permutationArrayLength);
+        allocated = true;
+    }
+    else
+    {
+        args = argsArray;
+    }
+
+    for (u32 j = 0; j < permutationArrayLength; j++)
+    {
+        args[j] = slang::SpecializationArg::fromExpr(permutation.typeArguments.data[j].buffer);
+    }
+
+    ISlangBlob *diagnostics = NULL;
+    auto slResult = entryPoint->specialize(args, permutationArrayLength, &result, &diagnostics);
+    
+    if (permutationArrayLength > 8)
+    {
+        DEFAULT_FREE(args);
+    }
+    if (slResult != SLANG_OK)
+    {
+        errors.AppendLine((text)diagnostics->getBufferPointer());
+        diagnostics->Release();
+
+        return NULL;
+    }
+
+    return result;
+}
+bool ShaderCompiler_Compile_SpecializeInto(
+    slang::ISession *session, 
+    StringBuilder &errors, 
+    slang::IEntryPoint *entryPoint, 
+    const collections::Array<ShaderFunctionPermutation> &permutations,
+    slang::IComponentType **components, 
+    bool isCompute,
+    u32 outputComponentsIndex, 
+    collections::List<OutputProgram> &outputPrograms,
+    collections::List<slang::IComponentType *> &outputSpecializedEntryPoints)
+{
+    const u32 componentsCount = isCompute ? 2 : 3;
+    const u32 totalPermutations = permutations.length;
+    const u32 permutationArrayLength = permutations.data[0].typeArguments.length;
+    bool errored = false;
+    
+    for (u32 i = 0; i < totalPermutations; i++)
+    {
+        components[outputComponentsIndex] = ShaderCompiler_Compile_SpecializeEntryPoint(permutations.data[i], entryPoint, errors);
+        if (components[outputComponentsIndex] == NULL)
+        {
+            errored = true;
+            continue;
+        }
+
+        outputSpecializedEntryPoints.Add(components[outputComponentsIndex]);
+        
+        OutputProgram outputProgram = {};
+        outputProgram.type = isCompute ? ShaderCompilerShaderStage_Compute : ShaderCompilerShaderStage_Vertex;
+        slang::IBlob *diagnostics = NULL;
+        auto slResult = session->createCompositeComponentType(components, componentsCount, &outputProgram.program, &diagnostics);
+        if (slResult != SLANG_OK)
+        {
+            errors.AppendLine((text)diagnostics->getBufferPointer());
+            diagnostics->Release();
+            errored = true;
+
+            continue;
+        }
+        outputProgram.suffix = permutations.data[i].suffix.Clone(outputPrograms.allocator);
+        outputPrograms.Add(outputProgram);
+    }
+
+    return !errored;
 }
 
 i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, i32 useSourceDirectoryOfIndex)
@@ -517,6 +656,15 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
         }
         return 1;
     }
+
+    ShaderCompilationMeta fileMeta = {};
+    Scope(ShaderCompilationMeta, fileMeta);
+    string metaFilePath = string::Format(GetCAllocator(), "%s/%s.vars", self->sourceDirectories[sourceDirectoryIndex].buffer, filePathRelative);
+    if (io::FileExists(metaFilePath.buffer))
+    {
+        fileMeta = ShaderCompilationMeta_ParseFile(GetCAllocator(), metaFilePath.buffer);
+    }
+    metaFilePath.deinit();
 
     CharSlice filePathRelativeSlice = CharSlice(filePathRelative);
 
@@ -555,6 +703,7 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
     }
 
     LoadedModule loaded = {};
+    loaded.specializedEntryPoints = collections::List<slang::IComponentType *>(GetCAllocator());
     loaded.module = module;
 
     if (module->findEntryPointByName("VertexFunction", &loaded.entryPoint1) == SLANG_OK)
@@ -571,24 +720,162 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
         errored = true;
     }
 
+    collections::List<OutputProgram> programs = collections::List<OutputProgram>(GetCAllocator());
+
     if (!errored)
     {
+        const u32 vertexSpecializations = loaded.entryPoint1->getSpecializationParamCount();
         if (loaded.entryPoint2 != NULL)
         {
-            slang::IComponentType *components[] = {loaded.module, loaded.entryPoint1, loaded.entryPoint2};
-            auto slResult = session->createCompositeComponentType(components, 3, &loaded.program, &diagnostics);
-            if (slResult != SLANG_OK)
+            const u32 fragmentSpecializations = loaded.entryPoint2->getSpecializationParamCount();
+            if (vertexSpecializations > 0)
             {
-                errored = true;
+                if (fileMeta.function1Permutations.length == 0)
+                {
+                    self->errors.AppendLine("Vertex shader function expected at least one permutation, but none were provided.");
+                    return 1;
+                }
+                if (fileMeta.function1Permutations[0].typeArguments.length != vertexSpecializations)
+                {
+                    self->errors.Appendf("Vertex shader function expected a permutation consisting of %u types, but a permutation consisting of %u types was provided instead.\n", vertexSpecializations, (u32)fileMeta.function1Permutations[0].typeArguments.length);
+                    return 1;
+                }
+            }
+            if (fragmentSpecializations > 0)
+            {
+                if (fileMeta.function2Permutations.length == 0)
+                {
+                    self->errors.AppendLine("Fragment shader function expected at least one permutation, but none were provided.");
+                    return 1;
+                }
+                if (fileMeta.function2Permutations[0].typeArguments.length != fragmentSpecializations)
+                {
+                    self->errors.Appendf("Fragment shader function expected a permutation consisting of %u types, but a permutation consisting of %u types was provided instead.\n", fragmentSpecializations, (u32)fileMeta.function2Permutations[0].typeArguments.length);
+                    return 1;
+                }
+            }
+            
+            if (vertexSpecializations == 0 && fragmentSpecializations == 0)
+            {
+                OutputProgram outputProgram = {};
+                outputProgram.type = ShaderCompilerShaderStage_Vertex;
+                slang::IComponentType *components[] = {loaded.module, loaded.entryPoint1, loaded.entryPoint2};
+                auto slResult = session->createCompositeComponentType(components, 3, &outputProgram.program, &diagnostics);
+                if (slResult != SLANG_OK)
+                {
+                    errored = true;
+                }
+                else programs.Add(outputProgram);
+            }
+            else if (vertexSpecializations > 0 && fragmentSpecializations == 0)
+            {
+                slang::IComponentType *components[] = {loaded.module, NULL, loaded.entryPoint2};
+            
+                if (!ShaderCompiler_Compile_SpecializeInto(
+                    session, 
+                    self->errors,
+                    loaded.entryPoint1,
+                    fileMeta.function1Permutations,
+                    components,
+                    1,
+                    3,
+                    programs,
+                    loaded.specializedEntryPoints))
+                {
+                    errored = true;
+                }
+            }
+            else if (fragmentSpecializations > 0 && vertexSpecializations == 0)
+            {
+                slang::IComponentType *components[] = {loaded.module, loaded.entryPoint1, NULL};
+            
+                if (!ShaderCompiler_Compile_SpecializeInto(
+                    session, 
+                    self->errors,
+                    loaded.entryPoint2,
+                    fileMeta.function2Permutations,
+                    components,
+                    2,
+                    3,
+                    programs,
+                    loaded.specializedEntryPoints))
+                {
+                    errored = true;
+                }
+            }
+            else
+            {
+                //each member of vertexSpecializations must specialize with each member
+                //of fragmentSpecializations.
+                //This effectively results in vertex * fragment amount of specializations.
+
+                for (u32 i = 0; i < fileMeta.function1Permutations.length; i++)
+                {
+                    for (u32 j = 0; j < fileMeta.function2Permutations.length; j++)
+                    {
+                        slang::IComponentType *components[] = {loaded.module, NULL, NULL};
+
+                        components[1] = ShaderCompiler_Compile_SpecializeEntryPoint(fileMeta.function1Permutations[i], loaded.entryPoint1, self->errors);
+                        components[2] = ShaderCompiler_Compile_SpecializeEntryPoint(fileMeta.function2Permutations[j], loaded.entryPoint2, self->errors);
+                    
+                        if (components[1] == NULL || components[2] == NULL)
+                        {
+                            errored = true;
+                            continue;
+                        }
+
+                        OutputProgram outputProgram = {};
+                        auto slResult = session->createCompositeComponentType(components, 3, &outputProgram.program, &diagnostics);
+                        if (slResult != SLANG_OK)
+                        {
+                            self->errors.AppendLine((text)diagnostics->getBufferPointer());
+                            diagnostics->Release();
+                            //set to null to avoid reporting twice
+                            diagnostics = NULL;
+                            errored = true;
+                        }
+                        else 
+                        {
+                            outputProgram.suffix = string::Format(programs.allocator, "%s%s", fileMeta.function1Permutations[i].suffix.buffer, fileMeta.function2Permutations[j].suffix.buffer);
+                            programs.Add(outputProgram);
+                        }
+                    }
+                }
             }
         }
         else
         {
-            slang::IComponentType *components[] = {loaded.module, loaded.entryPoint1};
-            auto slResult = session->createCompositeComponentType(components, 2, &loaded.program, &diagnostics);
-            if (slResult != SLANG_OK)
+            const u32 computeSpecializations = vertexSpecializations;
+            if (computeSpecializations == 0)
             {
-                errored = true;
+                OutputProgram outputProgram = {};
+                outputProgram.type = ShaderCompilerShaderStage_Compute;
+                slang::IComponentType *components[] = {loaded.module, loaded.entryPoint1 };
+                auto slResult = session->createCompositeComponentType(components, 2, &outputProgram.program, &diagnostics);
+                if (slResult != SLANG_OK)
+                {
+                    errored = true;
+                }
+                else programs.Add(outputProgram);
+            }
+            else
+            {
+                slang::IComponentType *components[] = {loaded.module, NULL};
+            
+                if (!ShaderCompiler_Compile_SpecializeInto(
+                    session, 
+                    self->errors,
+                    loaded.entryPoint1,
+                    fileMeta.function1Permutations,
+                    components,
+                    1,
+                    2,
+                    programs,
+                    loaded.specializedEntryPoints))
+                {
+                    diagnostics = NULL;
+                    errored = true;
+                }
             }
         }
         if (diagnostics && errored)
@@ -598,58 +885,89 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
         }
     }
 
-    if (!errored)
+    //get the final output path without the .sfn
+    string outputPath = string();
+    Scope(string, outputPath);
+
+    if (overrideOutputPath != NULL)
     {
-        SlangResult linkResult = loaded.program->link(&loaded.linkedProgram, &diagnostics);
-        if (linkResult != SLANG_OK)
+        CharSlice outputPathSlice = CharSlice(overrideOutputPath);
+        
+        if (path::GetExtension(outputPathSlice).length > 0)
         {
-            if (diagnostics)
-            {
-                self->errors.AppendLine((text)diagnostics->getBufferPointer());
-                diagnostics->Release();
-            }
-            return 1;
-        }
-
-        bool isSFN = true;
-        text finalOutputPath = NULL;
-        string finalOutputStr = string();
-
-        if (overrideOutputPath != NULL)
-        {
-            CharSlice outputPathSlice = CharSlice(overrideOutputPath);
-            isSFN = outputPathSlice.EndsWith(".sfn");
-            finalOutputPath = overrideOutputPath;
+            outputPath = path::SwapExtension(GetCAllocator(), overrideOutputPath, CharSlice());
         }
         else
         {
-            string nameSwap = path::SwapExtension(GetCAllocator(), filePathRelative, ".sfn");
-            finalOutputStr = string::Format(GetCAllocator(), "%s/%s", self->outputDirectories[sourceDirectoryIndex], nameSwap.buffer);
-            finalOutputPath = finalOutputStr.buffer;
-            nameSwap.deinit();
+            outputPath = string(GetCAllocator(), overrideOutputPath);
         }
+    }
+    else
+    {
+        string nameSwap = path::SwapExtension(GetCAllocator(), filePathRelative, CharSlice());
+        outputPath = string::Format(GetCAllocator(), "%s/%s", self->outputDirectories[sourceDirectoryIndex].buffer, nameSwap.buffer);
+        nameSwap.deinit();
+    }
 
-        FILE *fs = fopen(finalOutputPath, isSFN ? "wb" : "w");
-
-        finalOutputStr.deinit();
-        if (fs != NULL)
+    if (!errored)
+    {
+        i32 finalErrorCode = 0;
+        for (u32 i = 0; i < programs.count; i++)
         {
-
-            i32 errorCode;
-            if (isSFN)
+            SlangResult linkResult = programs[i].program->link(&programs[i].linkedProgram, &diagnostics);
+            if (linkResult != SLANG_OK)
             {
-                errorCode = ShaderCompilerWriteBinaryFunc(self, fs, loaded, diagnostics);
+                if (diagnostics)
+                {
+                    finalErrorCode = 1;
+                    self->errors.AppendLine((text)diagnostics->getBufferPointer());
+                    diagnostics->Release();
+                }
+                continue;
+            }
+            assert(programs[i].linkedProgram != NULL);
+            
+            const bool isSFN = true;
+
+            string fullOutputPath;
+            if (programs[i].suffix.length > 1)
+            {
+                fullOutputPath = string::Format(GetCAllocator(), "%s%s.sfn", outputPath.buffer, programs[i].suffix.buffer);
             }
             else
             {
-                errorCode = ShaderCompilerWriteJSONFunc(self, fs, loaded, diagnostics);
+                fullOutputPath = string::Format(GetCAllocator(), "%s.sfn", outputPath.buffer);
             }
-            
-            fclose(fs);
 
-            return errorCode;
+            FILE *fs = fopen(fullOutputPath.buffer, isSFN ? "wb" : "w");
+
+            if (fs != NULL)
+            {
+                i32 errorCode;
+                if (isSFN)
+                {
+                    errorCode = ShaderCompilerWriteBinaryFunc(self, fs, programs[i], diagnostics);
+                }
+                else
+                {
+                    errorCode = ShaderCompilerWriteJSONFunc(self, fs, programs[i], diagnostics);
+                }
+                
+                if (errorCode != 0)
+                {
+                    finalErrorCode = errorCode;
+                }
+                fclose(fs);
+            }
+            else
+            {
+                self->errors.Appendf("Could not save file %s\n", fullOutputPath.buffer);
+                finalErrorCode = 1;
+            }
+            fullOutputPath.deinit();
         }
-        return 0;
+
+        return finalErrorCode;
     }
     else
     {

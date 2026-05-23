@@ -32,21 +32,38 @@ enum ShaderCompilerShaderStage
     ShaderCompilerShaderStage_Compute
 };
 
+struct OutputProgram
+{
+    string suffix;
+    slang::IComponentType *program;
+    slang::IComponentType *linkedProgram;
+    ShaderCompilerShaderStage type;
+
+    inline void deinit()
+    {
+        program->Release();
+        linkedProgram->Release();
+    }
+};
 struct LoadedModule
 {
     slang::IModule *module;
     slang::IEntryPoint *entryPoint1;
     slang::IEntryPoint *entryPoint2;
-    slang::IComponentType *program;
-    slang::IComponentType *linkedProgram;
+
+    collections::List<slang::IComponentType *> specializedEntryPoints;
 
     inline void deinit()
     {
         module->Release();
         entryPoint1->Release();
         entryPoint2->Release();
-        program->Release();
-        linkedProgram->Release();
+
+        for (u32 i = 0; i < specializedEntryPoints.count; i++)
+        {
+            specializedEntryPoints[i]->Release();
+        }
+        specializedEntryPoints.deinit();
     }
 };
 struct ShaderCompiler
@@ -128,6 +145,45 @@ struct ShaderCompilerCreateInfo
 
     ShaderCompilerOptimizationLevel optimizationLevel;
     uint32_t numDirectories;
+};
+
+struct ShaderFunctionPermutation
+{
+    string suffix;
+    collections::Array<string> typeArguments;
+
+    inline void deinit()
+    {
+        suffix.deinit();
+        for (u32 i = 0; i < typeArguments.length; i++)
+        {
+            typeArguments[i].deinit();
+        }
+        typeArguments.deinit();
+    }
+};
+struct ShaderCompilationMeta
+{
+    collections::Array<ShaderFunctionPermutation> function1Permutations;
+    collections::Array<ShaderFunctionPermutation> function2Permutations;
+
+    inline void deinit()
+    {
+        for (u32 i = 0; i < function1Permutations.length; i++)
+        {
+            function1Permutations[i].deinit();
+        }
+        function1Permutations.deinit();
+
+        if (function2Permutations.length > 0)
+        {
+            for (u32 i = 0; i < function2Permutations.length; i++)
+            {
+                function2Permutations[i].deinit();
+            }
+            function2Permutations.deinit();
+        }
+    }
 };
 
 bool AssetcShaderCompilerInitialize();
