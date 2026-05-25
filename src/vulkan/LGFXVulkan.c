@@ -31,6 +31,7 @@ typedef struct LGFXMemoryBlockImpl
 {
 	VmaAllocation vkAllocation;
 	VmaAllocationInfo vkAllocationInfo;
+	LGFXMemoryUsage usageType;
 } LGFXMemoryBlockImpl;
 
 LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName);
@@ -1832,8 +1833,8 @@ LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture textu
 		//allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 	}
 
-    LGFXMemoryBlockImpl memoryAllocated;
-
+    LGFXMemoryBlockImpl memoryAllocated = {0};
+	memoryAllocated.usageType = memoryUsage;
     if (vmaAllocateMemoryForImage(vma, (VkImage)texture->imageHandle, &allocationCreateInfo, &memoryAllocated.vkAllocation, &memoryAllocated.vkAllocationInfo) != VK_SUCCESS)
     {
         LGFX_ERROR("Failed to create memory for image");
@@ -2180,6 +2181,8 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
 }
 void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to)
 {
+	assert(commandBuffer != NULL);
+
 	VkBufferCopy regions;
 	regions.size = from->size;
 	regions.srcOffset = 0;
@@ -2251,6 +2254,54 @@ void *VkLGFXGetBufferData(LGFXBuffer buffer)
 {
 	return buffer->bufferMemory->vkAllocationInfo.pMappedData;
 }
+bool VkLGFXBufferResize(LGFXBuffer buffer, size_t newSize)
+{
+	if (newSize == 0 || (buffer->usage & LGFXBufferUsage_TransferSource) == 0 || (buffer->usage & LGFXBufferUsage_TransferDest) == 0)
+	{
+		return false;
+	}
+	// vkDestroyBuffer((VkDevice)buffer->device->logicalDevice, (VkBuffer)buffer->handle, NULL);
+
+	// vmaFreeMemory((VmaAllocator)buffer->device->memoryAllocator, buffer->bufferMemory->vkAllocation);
+
+	// free(buffer->bufferMemory);
+	// free(buffer);
+
+    VkBufferCreateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.size = newSize;
+    createInfo.usage = buffer->usage;
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	VkBuffer newHandle = NULL;
+    if (vkCreateBuffer((VkDevice)buffer->device->logicalDevice, &createInfo, NULL, (VkBuffer *)&newHandle) != VK_SUCCESS)
+    {
+		LGFX_ERROR("Failed to create buffer\n");
+		return false;
+	}
+	LGFXMemoryBlock newMemory = VkLGFXAllocMemoryForBuffer(buffer->device, newHandle, buffer->bufferMemory->usageType, buffer->bufferMemory->vkAllocationInfo.pName);
+
+	//copy old to new buffer
+	LGFXCommandBuffer commandBuffer = VkLGFXCreateTemporaryCommandBuffer(buffer->device, buffer->device->transferQueue, true);
+	
+	VkBufferCopy bufferCopyInfo = {0};
+	bufferCopyInfo.srcOffset = 0;
+	bufferCopyInfo.dstOffset = 0;
+	bufferCopyInfo.size = buffer->size;
+	vkCmdCopyBuffer((VkCommandBuffer)commandBuffer->cmdBuffer, buffer->handle, newHandle, 1, &bufferCopyInfo);
+
+	VkLGFXEndTemporaryCommandBuffer(buffer->device, commandBuffer);
+
+	vkDestroyBuffer((VkDevice)buffer->device->logicalDevice, (VkBuffer)buffer->handle, NULL);
+	vmaFreeMemory((VmaAllocator)buffer->device->memoryAllocator, buffer->bufferMemory->vkAllocation);
+	free(buffer->bufferMemory);
+	
+	buffer->handle = newHandle;
+	buffer->bufferMemory = newMemory;
+	buffer->size = newSize;
+
+	return true;
+}
 LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName)
 {
     VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
@@ -2277,8 +2328,8 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
 		//allocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 	}
 
-    LGFXMemoryBlockImpl memoryAllocated;
-
+    LGFXMemoryBlockImpl memoryAllocated = {0};
+	memoryAllocated.usageType = memoryUsage;
     if (vmaAllocateMemoryForBuffer(vma, (VkBuffer)buffer->handle, &allocationCreateInfo, &memoryAllocated.vkAllocation, &memoryAllocated.vkAllocationInfo) != VK_SUCCESS)
     {
         LGFX_ERROR("Failed to create memory for buffer\n");

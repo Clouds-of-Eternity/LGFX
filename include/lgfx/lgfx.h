@@ -767,6 +767,7 @@ void LGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t dataLength);
 void LGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t value);
 void LGFXDestroyBuffer(LGFXBuffer buffer);
 void *LGFXGetBufferData(LGFXBuffer buffer, size_t *bytesLength);
+bool LGFXBufferResize(LGFXBuffer buffer, size_t newSize);
 void *LGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_t));
 
 LGFXRenderProgram LGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);

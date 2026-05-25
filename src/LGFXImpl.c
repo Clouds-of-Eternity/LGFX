@@ -561,6 +561,15 @@ void *LGFXGetBufferData(LGFXBuffer buffer, size_t *bytesLength)
     LGFX_ERROR("LGFXGetBufferData: Unknown backend\n");
     return NULL;
 }
+bool LGFXBufferResize(LGFXBuffer buffer, size_t newSize)
+{
+    if (buffer->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXBufferResize(buffer, newSize);
+    }
+    LGFX_ERROR("LGFXBufferResize: Unknown backend\n");
+    return false;
+}
 void *LGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_t))
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)

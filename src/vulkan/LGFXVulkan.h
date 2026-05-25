@@ -66,6 +66,7 @@ void VkLGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t v
 void VkLGFXDestroyBuffer(LGFXBuffer buffer);
 void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_t));
 void *VkLGFXGetBufferData(LGFXBuffer buffer);
+bool VkLGFXBufferResize(LGFXBuffer buffer, size_t newSize);
 
 LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgramCreateInfo *info);
 void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuffer commandBuffer, LGFXSwapchain outputSwapchain, LGFXColor clearColor, bool autoTransitionTargetTextures);
