@@ -35,7 +35,7 @@ typedef struct LGFXMemoryBlockImpl
 } LGFXMemoryBlockImpl;
 
 LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture texture, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName);
-LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName);
+LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, VkBuffer buffer, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName);
 // END
 
 // HELPER FUNCTIONS
@@ -2171,7 +2171,7 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
 	}
 
 	result.usage = info->bufferUsage;
-	result.bufferMemory = VkLGFXAllocMemoryForBuffer(device, &result, info->memoryUsage, info->memoryIdentifierName);
+	result.bufferMemory = VkLGFXAllocMemoryForBuffer(device, result.handle, info->memoryUsage, info->memoryIdentifierName);
 	result.device = device;
 	result.size = info->size;
 
@@ -2302,7 +2302,7 @@ bool VkLGFXBufferResize(LGFXBuffer buffer, size_t newSize)
 
 	return true;
 }
-LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName)
+LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, VkBuffer buffer, LGFXMemoryUsage memoryUsage, const char * memoryIdentifierName)
 {
     VmaAllocator vma = (VmaAllocator)device->memoryAllocator;
     
@@ -2330,7 +2330,7 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
 
     LGFXMemoryBlockImpl memoryAllocated = {0};
 	memoryAllocated.usageType = memoryUsage;
-    if (vmaAllocateMemoryForBuffer(vma, (VkBuffer)buffer->handle, &allocationCreateInfo, &memoryAllocated.vkAllocation, &memoryAllocated.vkAllocationInfo) != VK_SUCCESS)
+    if (vmaAllocateMemoryForBuffer(vma, buffer, &allocationCreateInfo, &memoryAllocated.vkAllocation, &memoryAllocated.vkAllocationInfo) != VK_SUCCESS)
     {
         LGFX_ERROR("Failed to create memory for buffer\n");
     }
@@ -2339,7 +2339,7 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, LGFXBuffer buffer,
 		vmaSetAllocationName(vma, memoryAllocated.vkAllocation, memoryIdentifierName);
 	}
 
-    vmaBindBufferMemory((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, (VkBuffer)buffer->handle);
+    vmaBindBufferMemory((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, buffer);
 	vmaSetAllocationName((VmaAllocator)device->memoryAllocator, memoryAllocated.vkAllocation, "buffer");
 
 	LGFXMemoryBlock result = Allocate(LGFXMemoryBlockImpl, 1);
