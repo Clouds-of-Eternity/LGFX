@@ -60,6 +60,16 @@ typedef struct LGFXCommandQueueImpl
     LGFXFence fence;
 } LGFXCommandQueueImpl;
 
+typedef struct LGFXSwapchainFrame
+{
+    LGFXTexture backbufferTexture;
+    LGFXTexture backDepthbuffer;
+
+    LGFXFence fence;
+    LGFXSemaphore awaitAcquireNextImage;
+    LGFXSemaphore awaitRenderComplete;
+} LGFXSwapchainFrame;
+
 typedef struct LGFXSwapchainImpl
 {
     bool invalidated;
@@ -71,17 +81,15 @@ typedef struct LGFXSwapchainImpl
     LGFXCreateWindowSurfaceFunc createSurfaceFunc;
     void *windowHandle;
     LGFXDevice device;
+    //Frame and image index may not always equate when running in vsync mode
+    uint32_t currentFrameIndex;
     uint32_t currentImageIndex;
     LGFXSwapchainPresentationMode presentMode;
     uint32_t width;
     uint32_t height;
-    LGFXTexture *backbufferTextures;
-    LGFXTexture *backDepthbuffers;
+    
+    LGFXSwapchainFrame *frameDatas;
     uint32_t backbufferTexturesCount;
-
-    LGFXFence fence;
-    LGFXSemaphore awaitPresentComplete;
-    LGFXSemaphore awaitRenderComplete;
 } LGFXSwapchainImpl;
 
 typedef struct LGFXFenceImpl

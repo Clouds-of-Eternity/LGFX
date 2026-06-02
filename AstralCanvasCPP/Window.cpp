@@ -193,7 +193,8 @@ namespace AstralCanvas
 		customCursorHandle = NULL;
 		handle = NULL;
 		swapchain = NULL;
-		mainCommandBuffer = NULL;
+		frameCommandBuffers = NULL;
+		currentCommandBuffer = NULL;
 
 		resolution = Maths::Point2();
 		frameBufferSize = Maths::Point2();
@@ -217,7 +218,8 @@ namespace AstralCanvas
 		customCursorHandle = NULL;
 		handle = NULL;
 		swapchain = NULL;
-		mainCommandBuffer = NULL;
+		frameCommandBuffers = NULL;
+		currentCommandBuffer = NULL;
 
 		resolution = Maths::Point2();
 		frameBufferSize = Maths::Point2();
@@ -295,7 +297,12 @@ namespace AstralCanvas
 			//swapchainCreateInfo.displayHandle = LGFXGetNativeWindowDisplay(handle);
 
 			this->swapchain = LGFXCreateSwapchain(applicationInstance.device, &swapchainCreateInfo);
-			this->mainCommandBuffer = LGFXCreateCommandBuffer(applicationInstance.device, false);
+			u32 totalTextures = LGFXSwapchainGetBackbufferTexturesCount(this->swapchain);
+			this->frameCommandBuffers = (LGFXCommandBuffer *)malloc(sizeof(LGFXCommandBuffer *) * totalTextures);
+			for (u32 i = 0; i < totalTextures; i++)
+			{
+				this->frameCommandBuffers[i] = LGFXCreateCommandBuffer(applicationInstance.device, false);
+			}
 		}
 	}
 

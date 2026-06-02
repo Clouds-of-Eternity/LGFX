@@ -28,7 +28,8 @@ namespace AstralCanvas
 		void *customCursorHandle;
 		WindowImpl *handle;
 		LGFXSwapchain swapchain;
-		LGFXCommandBuffer mainCommandBuffer;
+		LGFXCommandBuffer *frameCommandBuffers;
+		LGFXCommandBuffer currentCommandBuffer;
 
 		Maths::Point2 resolution;
 		Maths::Point2 frameBufferSize;

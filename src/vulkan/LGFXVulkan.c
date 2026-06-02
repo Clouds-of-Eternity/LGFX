@@ -1078,7 +1078,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 
 	VkPhysicalDevice *physDevices = Allocate(VkPhysicalDevice, deviceCount);
 
-	size_t extensionsCount = 1;
+	size_t extensionsCount = 2;
 	size_t extensionIndex = 0;
 
 	#ifdef MACOS
@@ -1088,6 +1088,7 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	const char **extensionNames = Allocate(const char*, extensionsCount);
 
 	extensionNames[extensionIndex++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+	extensionNames[extensionIndex++] = VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME;
 
 	#ifdef MACOS
 	extensionNames[extensionIndex++] = "VK_KHR_portability_subset";
@@ -1140,9 +1141,20 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	float priority = 0.0f;
 	VkLGFXGetQueueCreateInfos(&inputQueueProps, bestPhysicalDevice, queueCreateInfos, &finalQueueCreateInfoCount, &priority);
 
+	VkPhysicalDeviceVulkan12Features device12EnabledFeatures = {0};
+	device12EnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	device12EnabledFeatures.descriptorIndexing = true;
+	device12EnabledFeatures.descriptorBindingUpdateUnusedWhilePending = true;
+	device12EnabledFeatures.descriptorBindingPartiallyBound = true;
+	device12EnabledFeatures.descriptorBindingVariableDescriptorCount = true;
+	device12EnabledFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
+	device12EnabledFeatures.descriptorBindingStorageImageUpdateAfterBind = true;
+	device12EnabledFeatures.descriptorBindingStorageBufferUpdateAfterBind = true;
+	device12EnabledFeatures.descriptorBindingUniformBufferUpdateAfterBind = true;
+
 	VkPhysicalDeviceSynchronization2Features sync2 = {0};
 	sync2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
-	sync2.pNext = NULL;
+	sync2.pNext = &device12EnabledFeatures;
 	sync2.synchronization2 = VK_TRUE;
 
 	VkPhysicalDeviceVulkan11Features device11EnabledFeatures = {0};
@@ -1273,6 +1285,8 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	poolCreateInfo.pPoolSizes = poolSizes;
 	poolCreateInfo.poolSizeCount = 6;
 	poolCreateInfo.maxSets = maxUniformDescriptorSets;
+	//Descriptor indexing
+	poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
 	VkDescriptorPool mainPool;
 	if (vkCreateDescriptorPool(logicalDevice, &poolCreateInfo, NULL, &mainPool) != VK_SUCCESS)
@@ -1342,6 +1356,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	result->presentMode = info->presentationMode;
 	result->swapchain = NULL;
 	result->currentImageIndex = 0;
+	result->currentFrameIndex = 0;
 	result->width = info->width;
 	result->height = info->height;
 	//result->nativeWindowHandle = info->nativeWindowHandle;
@@ -1389,8 +1404,9 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		LGFX_ERROR("Error creating swapchain, error code %u\n", createResult);
 		return NULL;
     }
-	result->backbufferTextures = Allocate(LGFXTexture, result->backbufferTexturesCount);
-	result->backDepthbuffers = Allocate(LGFXTexture, result->backbufferTexturesCount);
+	//result->backbufferTextures = Allocate(LGFXTexture, result->backbufferTexturesCount);
+	//result->backDepthbuffers = Allocate(LGFXTexture, result->backbufferTexturesCount);
+	result->frameDatas = Allocate(LGFXSwapchainFrame, result->backbufferTexturesCount);
 	VkImage *backbufferImageHandles = Allocate(VkImage, result->backbufferTexturesCount);
 	vkGetSwapchainImagesKHR((VkDevice)device->logicalDevice, (VkSwapchainKHR)result->swapchain, &result->backbufferTexturesCount, backbufferImageHandles);
 
@@ -1406,7 +1422,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		textureCreateInfo.mipLevels = 1;
 		textureCreateInfo.sampleCount = 1;
 		textureCreateInfo.usage = LGFXTextureUsage_ColorAttachment;
-		result->backbufferTextures[i] = LGFXCreateTexture(device, &textureCreateInfo);
+		result->frameDatas[i].backbufferTexture = LGFXCreateTexture(device, &textureCreateInfo);
 		//result->backbufferTextures[i]->layout = LGFXTextureLayout_PresentSource;
 
 		textureCreateInfo.depth = 1;
@@ -1417,26 +1433,11 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		textureCreateInfo.mipLevels = 1;
 		textureCreateInfo.sampleCount = 1;
 		textureCreateInfo.usage = (LGFXTextureUsage)(LGFXTextureUsage_DepthAttachment | LGFXTextureUsage_Sampled);
-		result->backDepthbuffers[i] = LGFXCreateTexture(device, &textureCreateInfo);
-		assert(result->backDepthbuffers[i]->imageView != NULL);
-	}
+		result->frameDatas[i].backDepthbuffer = LGFXCreateTexture(device, &textureCreateInfo);
 
-	// if (info->oldSwapchain != NULL)
-	// {
-	// 	//take ownership of old swapchain synchronization primitives
-	// 	result->fence = info->oldSwapchain->fence;
-	// 	result->awaitPresentComplete = info->oldSwapchain->awaitPresentComplete;
-	// 	result->awaitRenderComplete = info->oldSwapchain->awaitRenderComplete;
-
-	// 	info->oldSwapchain->fence = NULL;
-	// 	info->oldSwapchain->awaitPresentComplete = NULL;
-	// 	info->oldSwapchain->awaitRenderComplete = NULL;
-	// }
-	// else
-	{
-		result->fence = LGFXCreateFence(device, true);
-		result->awaitPresentComplete = LGFXCreateSemaphore(device);
-		result->awaitRenderComplete = LGFXCreateSemaphore(device);
+		result->frameDatas[i].awaitAcquireNextImage = LGFXCreateSemaphore(device);
+		result->frameDatas[i].awaitRenderComplete = LGFXCreateSemaphore(device);
+		result->frameDatas[i].fence = LGFXCreateFence(device, true);
 	}
 
 	free(backbufferImageHandles);
@@ -1447,22 +1448,32 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, uint32_t currentBackbu
 {
 	LGFXSwapchain currentSwapchain = *swapchain;
 	VkResult result = VK_ERROR_OUT_OF_DATE_KHR;
+	LGFXFence frameFence = currentSwapchain->frameDatas[currentSwapchain->currentFrameIndex].fence;
 	if (currentSwapchain != NULL)
 	{
 		if (!currentSwapchain->invalidated)
 		{
-			LGFXAwaitFence(currentSwapchain->fence);
-			result = vkAcquireNextImageKHR((VkDevice)currentSwapchain->device->logicalDevice, (VkSwapchainKHR)currentSwapchain->swapchain, ULONG_MAX, (VkSemaphore)currentSwapchain->awaitPresentComplete->semaphore, NULL, &currentSwapchain->currentImageIndex);
+			LGFXAwaitFence(frameFence);
+			//When acquiring the next image, 
+			result = vkAcquireNextImageKHR(
+				(VkDevice)currentSwapchain->device->logicalDevice, 
+				(VkSwapchainKHR)currentSwapchain->swapchain, 
+				ULONG_MAX,
+				//Signal awaitAcquireNextImage when this action is complete
+				(VkSemaphore)currentSwapchain->frameDatas[currentSwapchain->currentFrameIndex].awaitAcquireNextImage->semaphore, 
+				NULL, 
+				&currentSwapchain->currentImageIndex);
 		}
 		else
 		{
-			if (currentSwapchain->fence != NULL)
+			if (frameFence != NULL)
 			{
-				LGFXAwaitFence(currentSwapchain->fence);
+				LGFXAwaitFence(frameFence);
 			}
 		}
 	}
-	LGFXResetFence(currentSwapchain->fence);
+	LGFXResetFence(frameFence);
+
     if (result != VK_SUCCESS)
     {
         if (result == VK_ERROR_OUT_OF_DATE_KHR)// && !currentSwapchain->recreatedAtFrameEnd)
@@ -1497,14 +1508,15 @@ bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, uint32_t frameW
 	if (VkLGFXSwapchainSwapBuffers(swapchain, frameWidth, frameHeight))
 	{
 		//ask the drawing loop to yield until next frame
-		return false;
+		return NULL;
 	}
 
 	return true;
 }
 void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 {
-	VkSemaphore awaitRender = (VkSemaphore)swapchain->awaitRenderComplete->semaphore;
+	//Await the completion of the rendering commands' execution on the frame's command buffer
+	VkSemaphore awaitRender = (VkSemaphore)swapchain->frameDatas[swapchain->currentImageIndex].awaitRenderComplete->semaphore;
 
 	VkPresentInfoKHR presentInfo = {0};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1533,6 +1545,12 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 	{
 		swapchain->justCreated = false;
 	}
+
+	// swapchain->currentFrameIndex++;
+	// if (swapchain->currentFrameIndex >= 2)
+	// {
+	// 	swapchain->currentFrameIndex = 0;
+	// }
 }
 
 LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
@@ -2383,9 +2401,8 @@ LGFXRenderProgram VkLGFXCreateRenderProgram(LGFXDevice device, LGFXRenderProgram
 			{
 				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
-			else
+			else if (info->attachments[i].outputType == LGFXRenderAttachmentOutput_ToScreen)
 			{
-				//not read = present lol
 				attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 			}
 
@@ -2598,7 +2615,7 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 			{
 				if (program->attachments[i].outputType != LGFXRenderAttachmentOutput_ToRenderTarget)
 				{
-					createInfo.textures[i] = outputSwapchain->backbufferTextures[index];
+					createInfo.textures[i] = outputSwapchain->frameDatas[index].backbufferTexture;
 				}
 				else
 				{
@@ -2607,7 +2624,7 @@ void VkLGFXBeginRenderProgramSwapchain(LGFXRenderProgram program, LGFXCommandBuf
 			}
 			else
 			{
-				createInfo.textures[i] = outputSwapchain->backDepthbuffers[index]; // LGFXCreateTexture(program->device, &textureInfo);
+				createInfo.textures[i] = outputSwapchain->frameDatas[index].backDepthbuffer; // LGFXCreateTexture(program->device, &textureInfo);
 			}
 		}
 		program->targets[index] = LGFXCreateRenderTarget(program->device, &createInfo);
@@ -2732,11 +2749,14 @@ void VkLGFXEndRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer command
 
 LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFXDevice device, const LGFXFunctionVariableBatchTemplateCreateInfo *info)
 {
-	VkDescriptorSetLayoutBinding bindingsArray[32];
+	VkDescriptorSetLayoutBinding bindingsArray[16];
+	VkDescriptorBindingFlagsEXT bindingsFlagsArray[16];
 	VkDescriptorSetLayoutBinding *bindings = bindingsArray;
-	if (info->variablesCount > 32)
+	VkDescriptorBindingFlagsEXT *bindingsFlags = bindingsFlagsArray;
+	if (info->variablesCount > 16)
 	{
 		bindings = Allocate(VkDescriptorSetLayoutBinding, info->variablesCount);
+		bindingsFlags = Allocate(VkDescriptorBindingFlagsEXT, info->variablesCount);
 	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
@@ -2747,6 +2767,11 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 	{
 		for (uint32_t i = 0; i < info->variablesCount; i++)
 		{
+			bindingsFlags[i] = 
+				VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+				VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
+				VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
+			
 			VkDescriptorSetLayoutBinding layoutBinding = {0};
 			layoutBinding.binding = info->variables[i].binding;
 			layoutBinding.descriptorCount = info->variables[i].arrayLength;//max(info->uniforms[i].arrayLength, 1);
@@ -2772,14 +2797,24 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 		}
 	}
 	layoutInfo.pBindings = bindings;
+	//ENABLING DESCRIPTOR INDEXING
+	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT bindingFlagsCreateInfo = {0};
+	bindingFlagsCreateInfo.sType          = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+	bindingFlagsCreateInfo.bindingCount   = info->variablesCount;
+	bindingFlagsCreateInfo.pBindingFlags  = bindingsFlags;
+	
+	layoutInfo.pNext = &bindingFlagsCreateInfo;
 
 	VkDescriptorSetLayout descriptorLayout;
 	VkResult errorCode = vkCreateDescriptorSetLayout((VkDevice)device->logicalDevice, &layoutInfo, NULL, &descriptorLayout);
 	if (errorCode != VK_SUCCESS)
 	{
-		if (info->variablesCount > 32)
+		if (info->variablesCount > 16)
 		{
 			free(bindings);
+			free(bindingsFlags);
 		}
 		LGFX_ERROR("Failed to create function variable batch template, error code %i\n", errorCode);
 		return NULL;
@@ -2794,9 +2829,10 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 		result->variables[i] = info->variables[i];
 	}
 
-	if (info->variablesCount > 32)
+	if (info->variablesCount > 16)
 	{
 		free(bindings);
+		free(bindingsFlags);
 	}
 	return result;
 }
@@ -3395,11 +3431,16 @@ void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swa
 
 	EnterLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 
-	vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
+	//vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
 
 	ExitLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 
-	VkLGFXCommandBufferExecute(buffer, swapchain->fence, swapchain->awaitPresentComplete, swapchain->awaitRenderComplete);
+	VkLGFXCommandBufferExecute(buffer, 
+		swapchain->frameDatas[swapchain->currentFrameIndex].fence,
+		//Wait for the image acquisition to be complete
+		swapchain->frameDatas[swapchain->currentFrameIndex].awaitAcquireNextImage, 
+		//Signal the rendering as complete upon completion
+		swapchain->frameDatas[swapchain->currentImageIndex].awaitRenderComplete);
 }
 
 void VkLGFXCommandBufferEnd(LGFXCommandBuffer buffer)
@@ -3439,7 +3480,7 @@ void VkLGFXCommandBufferExecute(LGFXCommandBuffer buffer, LGFXFence fence, LGFXS
 	{
 		signalSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
 		signalSemaphoreInfo.semaphore = (VkSemaphore)signalSemaphore->semaphore;
-		signalSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+		signalSemaphoreInfo.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
 		submitInfo.signalSemaphoreInfoCount = 1;
 		submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
@@ -3650,20 +3691,23 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 	{
 		for (uint32_t i = 0; i < swapchain->backbufferTexturesCount; i++)
 		{
-			LGFXDestroyTexture(swapchain->backbufferTextures[i]);
-			LGFXDestroyTexture(swapchain->backDepthbuffers[i]);
+			LGFXDestroyTexture(swapchain->frameDatas[i].backbufferTexture);
+			LGFXDestroyTexture(swapchain->frameDatas[i].backDepthbuffer);
 		}
-		free(swapchain->backbufferTextures);
-		free(swapchain->backDepthbuffers);
 
 		vkDestroySwapchainKHR((VkDevice)swapchain->device->logicalDevice, (VkSwapchainKHR)swapchain->swapchain, NULL);
 	}
-	if (swapchain->awaitPresentComplete != NULL)
+
+	for (uint32_t i = 0; i < swapchain->backbufferTexturesCount; i++)
 	{
-		LGFXDestroySemaphore(swapchain->awaitPresentComplete);
-		LGFXDestroySemaphore(swapchain->awaitRenderComplete);
-		LGFXDestroyFence(swapchain->fence);
+		if (swapchain->frameDatas[i].awaitRenderComplete != NULL)
+		{
+			LGFXDestroySemaphore(swapchain->frameDatas[i].awaitRenderComplete);
+			LGFXDestroySemaphore(swapchain->frameDatas[i].awaitAcquireNextImage);
+			LGFXDestroyFence(swapchain->frameDatas[i].fence);
+		}
 	}
+	free(swapchain->frameDatas);
 	if (swapchain->windowSurface != NULL && windowIsDestroyed)
 	{
 		vkDestroySurfaceKHR((VkInstance)swapchain->device->instance->instance, (VkSurfaceKHR)swapchain->windowSurface, NULL);
@@ -3672,11 +3716,19 @@ void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed)
 }
 LGFXSemaphore VkLGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain)
 {
-	return swapchain->awaitRenderComplete;
+	return swapchain->frameDatas[swapchain->currentFrameIndex].awaitRenderComplete;
 }
 LGFXSemaphore VkLGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
 {
-	return swapchain->awaitPresentComplete;
+	return swapchain->frameDatas[swapchain->currentFrameIndex].awaitAcquireNextImage;
+}
+uint32_t VkLGFXSwapchainGetCurrentFrameIndex(LGFXSwapchain swapchain)
+{
+	return swapchain->currentFrameIndex;
+}
+uint32_t VkLGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain)
+{
+	return swapchain->currentImageIndex;
 }
 
 void VkLGFXDestroyCommandQueue(LGFXDevice device, LGFXCommandQueue queue)

@@ -288,7 +288,7 @@ LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain)
         return VkLGFXSwapchainGetAwaitRenderedSemaphore(swapchain);
     }
     LGFX_ERROR("LGFXSwapchainGetAwaitRenderedSemaphore: Unknown backend\n");
-    return NULL; // return something temporary
+    return NULL;
 }
 LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
 {
@@ -297,7 +297,25 @@ LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain)
         return VkLGFXSwapchainGetAwaitPresentedSemaphore(swapchain);
     }
     LGFX_ERROR("LGFXSwapchainGetAwaitPresentedSemaphore: Unknown backend\n");
-    return NULL; // return something temporary
+    return NULL;
+}
+uint32_t LGFXSwapchainGetCurrentFrameIndex(LGFXSwapchain swapchain)
+{
+    if (swapchain->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXSwapchainGetCurrentFrameIndex(swapchain);
+    }
+    LGFX_ERROR("LGFXSwapchainGetCurrentFrameIndex: Unknown backend\n");
+    return 0xFFFFFFFF;
+}
+uint32_t LGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain)
+{
+    if (swapchain->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXSwapchainGetCurrentImageIndex(swapchain);
+    }
+    LGFX_ERROR("LGFXSwapchainGetCurrentImageIndex: Unknown backend\n");
+    return 0xFFFFFFFF;
 }
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
@@ -358,7 +376,7 @@ LGFXSwapchain LGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *in
 }
 void LGFXAwaitSwapchainIdle(LGFXSwapchain swapchain)
 {
-    LGFXAwaitFence(swapchain->fence);
+    LGFXAwaitFence(swapchain->frameDatas[swapchain->currentFrameIndex].fence);
 }
 uint32_t LGFXSwapchainGetBackbufferTexturesCount(LGFXSwapchain swapchain)
 {

@@ -207,14 +207,18 @@ namespace AstralCanvas
 				//begin draw
 				if (LGFXNewFrame(device, &window->swapchain, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y))
 				{
-					LGFXCommandBufferReset(window->mainCommandBuffer);
-					LGFXCommandBufferBegin(window->mainCommandBuffer, true);
+					const u32 frameIndex = LGFXSwapchainGetCurrentFrameIndex(window->swapchain);
+					LGFXCommandBuffer commandBuffer = window->frameCommandBuffers[frameIndex];
+					window->currentCommandBuffer = commandBuffer;
+					LGFXCommandBufferReset(commandBuffer);
+					LGFXCommandBufferBegin(commandBuffer, true);
 
 					drawFunc(deltaTime, window);
 
 					//end draw
-					LGFXCommandBufferEndSwapchain(window->mainCommandBuffer, window->swapchain);
+					LGFXCommandBufferEndSwapchain(commandBuffer, window->swapchain);
 					LGFXSubmitFrame(device, window->swapchain);
+					window->currentCommandBuffer = NULL;
 
 					if (postEndDrawFunc != NULL)
 					{

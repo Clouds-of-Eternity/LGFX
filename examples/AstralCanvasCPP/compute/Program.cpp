@@ -48,7 +48,7 @@ void Update(float deltaTime)
 }
 void Draw(float deltaTime, AstralCanvas::Window *window)
 {
-    LGFXCommandBuffer mainCmds = window->mainCommandBuffer;
+    LGFXCommandBuffer mainCmds = window->currentCommandBuffer;
     ContextData contextData = { PARTICLES_COUNT, deltaTime };
 
     computeShaderState.SetComputeBuffer("ParticlesIn", inputBuffer);

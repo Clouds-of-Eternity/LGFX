@@ -20,18 +20,18 @@ void Draw(float deltaTime, AstralCanvas::Window *window)
 {
     if (initializedSuccessfully)
     {
-        LGFXSetViewport(window->mainCommandBuffer, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
-        LGFXSetClipArea(window->mainCommandBuffer, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
+        LGFXSetViewport(window->currentCommandBuffer, {0, 0, (float)window->frameBufferSize.X, (float)window->frameBufferSize.Y});
+        LGFXSetClipArea(window->currentCommandBuffer, {0, 0, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y});
 
-        LGFXBeginRenderProgramSwapchain(rp, window->mainCommandBuffer, window->swapchain, {128, 128, 128, 255}, true);
+        LGFXBeginRenderProgramSwapchain(rp, window->currentCommandBuffer, window->swapchain, {128, 128, 128, 255}, true);
 
-        LGFXUseVertexBuffer(window->mainCommandBuffer, &vertexBuffer, 1);
-        LGFXUseIndexBuffer(window->mainCommandBuffer, indexBuffer, 0);
-        LGFXUseShaderPipeline(window->mainCommandBuffer, shaderPipeline);
+        LGFXUseVertexBuffer(window->currentCommandBuffer, &vertexBuffer, 1);
+        LGFXUseIndexBuffer(window->currentCommandBuffer, indexBuffer, 0);
+        LGFXUseShaderPipeline(window->currentCommandBuffer, shaderPipeline);
 
-        LGFXDrawIndexed(window->mainCommandBuffer, 3, 1, 0, 0, 0);
+        LGFXDrawIndexed(window->currentCommandBuffer, 3, 1, 0, 0, 0);
 
-        LGFXEndRenderProgram(rp, window->mainCommandBuffer);
+        LGFXEndRenderProgram(rp, window->currentCommandBuffer);
     }
 }
 void PostEndDraw(float deltaTime)

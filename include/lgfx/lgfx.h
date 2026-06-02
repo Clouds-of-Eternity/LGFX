@@ -722,6 +722,8 @@ LGFXSemaphore LGFXCreateSemaphore(LGFXDevice device);
 void LGFXDestroySemaphore(LGFXSemaphore semaphore);
 LGFXSemaphore LGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain);
 LGFXSemaphore LGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain);
+uint32_t LGFXSwapchainGetCurrentFrameIndex(LGFXSwapchain swapchain);
+uint32_t LGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain);
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType);
 void LGFXAwaitDraw(LGFXCommandBuffer commandBuffer);

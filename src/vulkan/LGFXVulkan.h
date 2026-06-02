@@ -38,6 +38,8 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 void VkLGFXDestroySwapchain(LGFXSwapchain swapchain, bool windowIsDestroyed);
 LGFXSemaphore VkLGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain);
 LGFXSemaphore VkLGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain);
+uint32_t VkLGFXSwapchainGetCurrentFrameIndex(LGFXSwapchain swapchain);
+uint32_t VkLGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain);
 
 bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, uint32_t frameWidth, uint32_t frameHeight);
 void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);
