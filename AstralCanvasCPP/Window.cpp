@@ -187,6 +187,7 @@ namespace AstralCanvas
 		if (glfwWindowShouldClose(window))
 		{
 			astralWindow->handle = NULL;
+			astralWindow->deinit();
 		}
     }
 	
@@ -312,12 +313,15 @@ namespace AstralCanvas
 	{
 		if (!isDisposed)
 		{
-			LGFXAwaitSwapchainIdle(swapchain);
-			if (handle != NULL)
+			if (swapchain != NULL)
 			{
-				glfwDestroyWindow((GLFWwindow*)handle);
+				LGFXAwaitSwapchainIdle(swapchain);
+				if (handle != NULL)
+				{
+					glfwDestroyWindow((GLFWwindow*)handle);
+				}
+				LGFXDestroySwapchain(swapchain, true);
 			}
-			LGFXDestroySwapchain(swapchain, true);
 
 			handle = NULL;
 			isDisposed = true;
