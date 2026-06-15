@@ -182,6 +182,7 @@ namespace AstralCanvas
 				fixedUpdateTimer -= fixedTimeStep;
 			}
 
+			u32 windowsActive = 0;
 			for (i32 i = (i32)windows.count - 1; i >= 0; i--)
 			{
 				Window *window = windows[i];
@@ -190,6 +191,7 @@ namespace AstralCanvas
 				
 				if (resolution.X == 0 || resolution.Y == 0 || frameSize.X == 0 || frameSize.Y == 0)
 				{
+					windowsActive++;
 					continue;
 				}
 				currentWindow = windows.ptr[i];
@@ -225,9 +227,10 @@ namespace AstralCanvas
 						postEndDrawFunc(deltaTime);
 					}
 				}
+				windowsActive++;
 			}
 
-			if (windows.count == 0 && !noWindows)
+			if (windowsActive == 0 && !noWindows)
 			{
 				break;
 			}
@@ -244,7 +247,10 @@ namespace AstralCanvas
 				shouldStop = true;
 				for (usize i = 0; i < windows.count; i++)
 				{
-					glfwSetWindowShouldClose((GLFWwindow *)windows[i]->handle, 1);
+					if (windows[i]->handle != NULL)
+					{
+						glfwSetWindowShouldClose((GLFWwindow *)windows[i]->handle, 1);
+					}
 				}
 			}
 		}
@@ -255,6 +261,12 @@ namespace AstralCanvas
 		{
 			deinitFunc();
 		}
+		for (u32 i = 0; i < windows.count; i++)
+		{
+			windows[i]->deinit();
+			DEFAULT_FREE(windows[i]);
+		}
+		windows.deinit();
 		AstralCanvas::globalTemplateStore.deinit();
 
 		//deinitialize backend

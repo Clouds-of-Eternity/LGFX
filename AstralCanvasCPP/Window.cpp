@@ -184,8 +184,10 @@ namespace AstralCanvas
         {
             astralWindow->onCloseFunc(astralWindow);
         }
-    	astralWindow->handle = NULL;
-    	astralWindow->deinit();
+		if (glfwWindowShouldClose(window))
+		{
+			astralWindow->handle = NULL;
+		}
     }
 	
 	Window::Window()
@@ -327,6 +329,10 @@ namespace AstralCanvas
 	}
 	bool Window::GetShouldClose()
 	{
+		if (this->handle == NULL)
+		{
+			return true;
+		}
 		return glfwWindowShouldClose((GLFWwindow *)this->handle);
 	}
 
