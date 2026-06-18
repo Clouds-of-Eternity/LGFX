@@ -7,7 +7,8 @@ project "Tests"
     includedirs {
         "../include",
         "../Astral.Core/Astral.Core",
-        "../dependencies/glfw/include"
+        "../dependencies/glfw/include",
+        "%{VULKAN_SDK}/include"
     }
     links {"LGFX", "AstralCanvasCPP", "GLFW"}
 

@@ -93,6 +93,17 @@
             "environment": [],
             "console": "externalTerminal"
         },
+        {
+            "name": "Run Tests (Windows VS Debugger)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/bin/Debug/Tests.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/tests/bin/Debug/",
+            "environment": [],
+            "console": "externalTerminal"
+        },
 
         {
             "name": "Compile Example Shaders",

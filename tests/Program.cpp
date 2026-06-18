@@ -47,6 +47,35 @@ i32 main()
 
     LGFXVertexDeclaration decl = LGFXCreateVertexDeclaration(formats, 3, false, false);
     assert(decl.packedSize == sizeof(VertexPositionColorTexture));
+    
+    
+    formats[0] = LGFXVertexElementFormat_Vector4;
+    formats[1] = LGFXVertexElementFormat_Vector4;
+    formats[2] = LGFXVertexElementFormat_Vector4;
+    formats[3] = LGFXVertexElementFormat_Vector2;
+
+    decl = LGFXCreateVertexDeclaration(formats, 4, false, false);
+    assert(decl.packedSize == sizeof(VertexLinePosition));
+
+
+    formats[0] = LGFXVertexElementFormat_Vector3;
+    formats[1] = LGFXVertexElementFormat_Vector3;
+    formats[2] = LGFXVertexElementFormat_Vector2;
+
+    decl = LGFXCreateVertexDeclaration(formats, 3, false, false);
+    assert(decl.packedSize == sizeof(VertexPositionNormalTexture));
+
+
+    formats[0] = LGFXVertexElementFormat_Vector3;
+    formats[1] = LGFXVertexElementFormat_Vector3;
+    formats[2] = LGFXVertexElementFormat_Vector2;
+    formats[3] = LGFXVertexElementFormat_Int4;
+    formats[4] = LGFXVertexElementFormat_Vector4;
+
+    decl = LGFXCreateVertexDeclaration(formats, 5, false, false);
+    assert(decl.elements[1].offset == offsetof(VertexPositionNormalTextureBones, normal));
+    assert(decl.elements[2].offset == offsetof(VertexPositionNormalTextureBones, UV));
+    assert(decl.packedSize == sizeof(VertexPositionNormalTextureBones));
 
     return 0;
 }
