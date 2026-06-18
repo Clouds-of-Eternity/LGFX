@@ -106,10 +106,25 @@ VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
             return VK_FORMAT_R32G32B32A32_SFLOAT;
 		case LGFXVertexElementFormat_Color:
 			return VK_FORMAT_R8G8B8A8_UNORM;
+
 		case LGFXVertexElementFormat_Int:
             return VK_FORMAT_R32_SINT;
-        case LGFXVertexElementFormat_Uint:
+		case LGFXVertexElementFormat_Int2:
+            return VK_FORMAT_R32G32_SINT;
+		case LGFXVertexElementFormat_Int3:
+            return VK_FORMAT_R32G32B32_SINT;
+		case LGFXVertexElementFormat_Int4:
+            return VK_FORMAT_R32G32B32A32_SINT;
+
+        case LGFXVertexElementFormat_UInt:
             return VK_FORMAT_R32_UINT;
+        case LGFXVertexElementFormat_UInt2:
+            return VK_FORMAT_R32G32_UINT;
+        case LGFXVertexElementFormat_UInt3:
+            return VK_FORMAT_R32G32B32_UINT;
+        case LGFXVertexElementFormat_UInt4:
+            return VK_FORMAT_R32G32B32A32_UINT;
+			
 		default:
 			return VK_FORMAT_UNDEFINED;
 	}

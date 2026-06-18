@@ -143,7 +143,13 @@ typedef enum
     LGFXVertexElementFormat_Vector4,
     LGFXVertexElementFormat_Color,
     LGFXVertexElementFormat_Int,
-    LGFXVertexElementFormat_Uint
+    LGFXVertexElementFormat_Int2,
+    LGFXVertexElementFormat_Int3,
+    LGFXVertexElementFormat_Int4,
+    LGFXVertexElementFormat_UInt,
+    LGFXVertexElementFormat_UInt2,
+    LGFXVertexElementFormat_UInt3,
+    LGFXVertexElementFormat_UInt4
 } LGFXVertexElementFormat;
 
 typedef enum

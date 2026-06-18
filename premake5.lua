@@ -55,3 +55,4 @@ workspace "LGFX"
     include("examples/AstralCanvasCPP/compute")
     include("examples/AstralCanvas/triangle")
     include("examples/AstralCanvas/compute")
+    include("tests")

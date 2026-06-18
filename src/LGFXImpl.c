@@ -78,11 +78,68 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
     result.elements = Allocate(LGFXVertexAttribute, elementsCount);
     result.elementsCount = elementsCount;
 
-    uint32_t total = 0;
+    uint32_t currOffset = 0;
+    uint32_t prevFieldTypeSize = 0;
     for (uint32_t i = 0; i < elementsCount; i++)
     {
         result.elements[i].format = elementFormats[i];
-        switch(elementFormats[i])
+        uint32_t fieldTypeSize = 0;
+
+        switch (elementFormats[i])
+        {
+            default:
+                LGFX_WARN("Created vertex attribute at index %u is of an invalid format", i);
+                fieldTypeSize = 0;
+                break;
+            case LGFXVertexElementFormat_Float:
+                fieldTypeSize = 4;
+                break;
+            case LGFXVertexElementFormat_Vector2:
+                fieldTypeSize = 8;
+                break;
+            case LGFXVertexElementFormat_Vector3:
+                fieldTypeSize = 12;
+                break;
+            case LGFXVertexElementFormat_Vector4:
+                fieldTypeSize = 16;
+                break;
+            case LGFXVertexElementFormat_Color:
+                fieldTypeSize = 4;
+                break;
+            case LGFXVertexElementFormat_Int:
+                fieldTypeSize = 4;
+                break;
+            case LGFXVertexElementFormat_Int2:
+                fieldTypeSize = 8;
+                break;
+            case LGFXVertexElementFormat_Int3:
+                fieldTypeSize = 12;
+                break;
+            case LGFXVertexElementFormat_Int4:
+                fieldTypeSize = 16;
+                break;
+            case LGFXVertexElementFormat_UInt:
+                fieldTypeSize = 4;
+                break;
+            case LGFXVertexElementFormat_UInt2:
+                fieldTypeSize = 8;
+                break;
+            case LGFXVertexElementFormat_UInt3:
+                fieldTypeSize = 12;
+                break;
+            case LGFXVertexElementFormat_UInt4:
+                fieldTypeSize = 16;
+                break;
+        }
+
+        if (currOffset % fieldTypeSize != 0)
+        {
+            currOffset = ((currOffset / fieldTypeSize) + 1) * fieldTypeSize;
+        }
+        result.elements[i].offset = currOffset;
+        currOffset += fieldTypeSize;
+        prevFieldTypeSize = fieldTypeSize;
+        /*switch(elementFormats[i])
         {
             case LGFXVertexElementFormat_Float:
             {
@@ -91,7 +148,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 break;
             }
             case LGFXVertexElementFormat_Color:
-            case LGFXVertexElementFormat_Uint:
+            case LGFXVertexElementFormat_UInt:
             case LGFXVertexElementFormat_Int:
             {
                 LGFXVertexElementFormat prevFormat = LGFXVertexElementFormat_Invalid;
@@ -113,6 +170,8 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 total += 4;
                 break;
             }
+            case LGFXVertexElementFormat_Int2:
+            case LGFXVertexElementFormat_UInt2:
             case LGFXVertexElementFormat_Vector2:
             {
                 if (!tightlyPacked)
@@ -126,6 +185,8 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 total += 8;
                 break;
             }
+            case LGFXVertexElementFormat_Int3:
+            case LGFXVertexElementFormat_UInt3:
             case LGFXVertexElementFormat_Vector3:
             {
                 //utterly cursed attribute format
@@ -142,6 +203,8 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 total += 12;
                 break;
             }
+            case LGFXVertexElementFormat_Int4:
+            case LGFXVertexElementFormat_UInt4:
             case LGFXVertexElementFormat_Vector4:
             {
                 if (!tightlyPacked)
@@ -157,14 +220,14 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
             }
             default:
                 break;
-        }
+        }*/
     }
-    if (!tightlyPacked)
-    {
-        total = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
-    }
+    // if (!tightlyPacked)
+    // {
+    //     total = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
+    // }
 
-    result.packedSize = total;
+    result.packedSize = currOffset;
     result.isPerInstance = isPerInstance;
     result.isTightlyPacked = tightlyPacked;
 
