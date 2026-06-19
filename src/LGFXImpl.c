@@ -80,7 +80,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
 
     uint32_t currOffset = 0;
     uint32_t prevFieldTypeSize = 0;
-    uint32_t largestFieldTypeSize = 0;
+    uint32_t minFieldTypeSize = UINT32_MAX;
     for (uint32_t i = 0; i < elementsCount; i++)
     {
         result.elements[i].format = elementFormats[i];
@@ -132,9 +132,9 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 fieldTypeSize = 16;
                 break;
         }
-        if (fieldTypeSize != 12 && fieldTypeSize > largestFieldTypeSize)
+        if (fieldTypeSize < minFieldTypeSize)
         {
-            largestFieldTypeSize = fieldTypeSize;
+            minFieldTypeSize = fieldTypeSize;
         }
 
         if (currOffset % fieldTypeSize != 0)
@@ -229,7 +229,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
     }
     if (!tightlyPacked)
     {
-        currOffset = (uint32_t)ceilf((float)currOffset / (float)largestFieldTypeSize - 0.01f) * largestFieldTypeSize;
+        currOffset = (uint32_t)ceilf((float)currOffset / (float)minFieldTypeSize - 0.01f) * minFieldTypeSize;
     }
 
     result.packedSize = currOffset;
