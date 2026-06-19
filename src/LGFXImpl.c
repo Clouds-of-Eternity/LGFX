@@ -80,11 +80,13 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
 
     uint32_t currOffset = 0;
     uint32_t prevFieldTypeSize = 0;
-    uint32_t minFieldTypeSize = UINT32_MAX;
+    uint32_t maxFieldTypeSize = 0;
+    bool lastElementIsVector = false;
     for (uint32_t i = 0; i < elementsCount; i++)
     {
         result.elements[i].format = elementFormats[i];
         uint32_t fieldTypeSize = 0;
+        lastElementIsVector = false;
 
         switch (elementFormats[i])
         {
@@ -97,12 +99,15 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 break;
             case LGFXVertexElementFormat_Vector2:
                 fieldTypeSize = 8;
+                lastElementIsVector = true;
                 break;
             case LGFXVertexElementFormat_Vector3:
                 fieldTypeSize = 12;
+                lastElementIsVector = true;
                 break;
             case LGFXVertexElementFormat_Vector4:
                 fieldTypeSize = 16;
+                lastElementIsVector = true;
                 break;
             case LGFXVertexElementFormat_Color:
                 fieldTypeSize = 4;
@@ -132,9 +137,9 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
                 fieldTypeSize = 16;
                 break;
         }
-        if (fieldTypeSize < minFieldTypeSize)
+        if (fieldTypeSize > maxFieldTypeSize)
         {
-            minFieldTypeSize = fieldTypeSize;
+            maxFieldTypeSize = fieldTypeSize;
         }
 
         if (currOffset % fieldTypeSize != 0)
@@ -144,94 +149,12 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
         result.elements[i].offset = currOffset;
         currOffset += fieldTypeSize;
         prevFieldTypeSize = fieldTypeSize;
-        /*switch(elementFormats[i])
-        {
-            case LGFXVertexElementFormat_Float:
-            {
-                result.elements[i].offset = total;
-                total += 4;
-                break;
-            }
-            case LGFXVertexElementFormat_Color:
-            case LGFXVertexElementFormat_UInt:
-            case LGFXVertexElementFormat_Int:
-            {
-                LGFXVertexElementFormat prevFormat = LGFXVertexElementFormat_Invalid;
-                if (i >= 1)
-                {
-                    prevFormat = result.elements[i - 1].format;
-                }
-                if (!tightlyPacked && prevFormat != LGFXVertexElementFormat_Invalid)
-                {
-                    if (prevFormat != LGFXVertexElementFormat_Float && prevFormat != LGFXVertexElementFormat_Uint && prevFormat != LGFXVertexElementFormat_Int)
-                    {
-                        if (total % 8 != 0)
-                        {
-                            total = (uint32_t)ceilf((float)total / 8.0f - 0.01f) * 8;
-                        }
-                    }
-                }
-                result.elements[i].offset = total;
-                total += 4;
-                break;
-            }
-            case LGFXVertexElementFormat_Int2:
-            case LGFXVertexElementFormat_UInt2:
-            case LGFXVertexElementFormat_Vector2:
-            {
-                if (!tightlyPacked)
-                {
-                    if (total % 8 != 0)
-                    {
-                        total = (uint32_t)ceilf((float)total / 8.0f - 0.01f) * 8;
-                    }
-                }
-                result.elements[i].offset = total;
-                total += 8;
-                break;
-            }
-            case LGFXVertexElementFormat_Int3:
-            case LGFXVertexElementFormat_UInt3:
-            case LGFXVertexElementFormat_Vector3:
-            {
-                //utterly cursed attribute format
-                if (!tightlyPacked)
-                {
-                    if (total % 12 != 0 && total % 16 != 0)
-                    {
-                        uint32_t a = (uint32_t)ceilf((float)total / 12.0f - 0.01f) * 12;
-                        uint32_t b = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
-                        total = a < b ? a : b;
-                    }
-                }
-                result.elements[i].offset = total;
-                total += 12;
-                break;
-            }
-            case LGFXVertexElementFormat_Int4:
-            case LGFXVertexElementFormat_UInt4:
-            case LGFXVertexElementFormat_Vector4:
-            {
-                if (!tightlyPacked)
-                {
-                    if (total % 16 != 0)
-                    {
-                        total = (uint32_t)ceilf((float)total / 16.0f - 0.01f) * 16;
-                    }
-                }
-                result.elements[i].offset = total;
-                total += 16;
-                break;
-            }
-            default:
-                break;
-        }*/
-    }
-    if (!tightlyPacked)
-    {
-        currOffset = (uint32_t)ceilf((float)currOffset / (float)minFieldTypeSize - 0.01f) * minFieldTypeSize;
     }
 
+    if (lastElementIsVector && currOffset % 16 != 0)
+    {
+        currOffset = (uint32_t)ceilf((float)currOffset / (float)maxFieldTypeSize - 0.01f) * maxFieldTypeSize;
+    }
     result.packedSize = currOffset;
     result.isPerInstance = isPerInstance;
     result.isTightlyPacked = tightlyPacked;

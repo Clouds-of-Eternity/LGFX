@@ -33,9 +33,17 @@ struct VertexPositionNormalTextureBones
     i32 boneIDs[4];
     Maths::Vec4 weights;
 };
+struct TerrainBrush2DVertex
+{
+    Maths::Vec2 position;
+    i32 outwardNormals_instanceIndex;
+    u32 uv;
+    u32 color;
+};
 
 i32 main()
 {
+    //must be a multiple of the largest field size, or a multiple of 
     printf("Testing LGFXCreateVertexDeclaration sizes");
 
     LGFXVertexElementFormat formats[16];
@@ -63,6 +71,9 @@ i32 main()
     formats[2] = LGFXVertexElementFormat_Vector2;
 
     decl = LGFXCreateVertexDeclaration(formats, 3, false, false);
+    assert(decl.elements[0].offset == offsetof(VertexPositionNormalTexture, position));
+    assert(decl.elements[1].offset == offsetof(VertexPositionNormalTexture, normal));
+    assert(decl.elements[2].offset == offsetof(VertexPositionNormalTexture, UV));
     assert(decl.packedSize == sizeof(VertexPositionNormalTexture));
 
 
@@ -76,6 +87,17 @@ i32 main()
     assert(decl.elements[1].offset == offsetof(VertexPositionNormalTextureBones, normal));
     assert(decl.elements[2].offset == offsetof(VertexPositionNormalTextureBones, UV));
     assert(decl.packedSize == sizeof(VertexPositionNormalTextureBones));
+
+    formats[0] = LGFXVertexElementFormat_Vector2;
+    formats[1] = LGFXVertexElementFormat_Int;
+    formats[2] = LGFXVertexElementFormat_UInt;
+    formats[3] = LGFXVertexElementFormat_UInt;
+    decl = LGFXCreateVertexDeclaration(formats, 4, false, false);
+    assert(decl.elements[0].offset == offsetof(TerrainBrush2DVertex, position));
+    assert(decl.elements[1].offset == offsetof(TerrainBrush2DVertex, outwardNormals_instanceIndex));
+    assert(decl.elements[2].offset == offsetof(TerrainBrush2DVertex, uv));
+    assert(decl.elements[3].offset == offsetof(TerrainBrush2DVertex, color));
+    assert(decl.packedSize == sizeof(TerrainBrush2DVertex));
 
     return 0;
 }
