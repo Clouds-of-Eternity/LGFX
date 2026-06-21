@@ -151,7 +151,7 @@ LGFXVertexDeclaration LGFXCreateVertexDeclaration(LGFXVertexElementFormat *eleme
         prevFieldTypeSize = fieldTypeSize;
     }
 
-    if (lastElementIsVector && currOffset % 16 != 0)
+    if (!tightlyPacked && lastElementIsVector && currOffset % 16 != 0)
     {
         currOffset = (uint32_t)ceilf((float)currOffset / (float)maxFieldTypeSize - 0.01f) * maxFieldTypeSize;
     }
