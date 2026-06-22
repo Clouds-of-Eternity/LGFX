@@ -151,7 +151,12 @@ namespace AstralCanvas
 	void WindowOnCursorMoved(GLFWwindow *window, double xPos, double yPos)
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
-		canvas->windowInputState.mousePosition = Maths::Vec2((float)xPos, (float)yPos);
+		Maths::Vec2 cursorPos = Maths::Vec2((float)xPos, (float)yPos);
+		cursorPos.X /= canvas->resolution.X;
+		cursorPos.Y /= canvas->resolution.Y;
+		cursorPos.X *= canvas->frameBufferSize.X;
+		cursorPos.Y *= canvas->frameBufferSize.Y;
+		canvas->windowInputState.mousePosition = cursorPos;
 	}
     void WindowSizeChanged(GLFWwindow *window, i32 width, i32 height)
     {
@@ -393,6 +398,12 @@ return NULL;
 	}
 	void Window::SetMousePosition(float posX, float posY)
 	{
+		posX /= frameBufferSize.X;
+		posY /= frameBufferSize.Y;
+
+		posX *= resolution.X;
+		posY *= resolution.Y;
+		
 		if (handle != NULL) glfwSetCursorPos((GLFWwindow*)handle, (double)posX, (double)posY);
 	}
 	void Window::SetMouseState(WindowMouseState state)
