@@ -17,7 +17,8 @@
                 "MIMode": "lldb"
             },
             "osx": {
-                "MIMode": "lldb"
+                "MIMode": "lldb",
+                "targetArchitecture": "arm64"
             },
             "linux": {
                 "MIMode": "gdb",
@@ -40,7 +41,8 @@
                 "MIMode": "lldb"
             },
             "osx": {
-                "MIMode": "lldb"
+                "MIMode": "lldb",
+                "targetArchitecture": "arm64"
             },
             "linux": {
                 "MIMode": "gdb",

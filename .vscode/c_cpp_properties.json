@@ -76,6 +76,7 @@
                 "${workspaceFolder}/dependencies/glfw/include",
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",
+                "${workspaceFolder}/Astral.Core/Astral.Base",
                 "${env:HOME}/VulkanSDK/1.4.328.1/MacOS/include"
             ],
             "defines": [

@@ -8,6 +8,9 @@ extern "C"
 #endif
 
 #include <stdint.h>
+#ifdef MACOS
+#include <sys/types.h>
+#endif
 
 typedef struct
 {
@@ -620,27 +623,27 @@ static inline bool LGFXBlendStateEquals(const LGFXBlendState left, LGFXBlendStat
 #define NON_PREMULTIPLIED_BLEND {LGFXBlend_SourceAlpha, LGFXBlend_SourceAlpha, LGFXBlend_InverseSourceAlpha, LGFXBlend_One}
 #define OPAQUE_BLEND {LGFXBlend_One, LGFXBlend_One, LGFXBlend_Zero, LGFXBlend_Zero}
 
-inline LGFXBlendState LGFXBlendStateDisabled()
+static inline LGFXBlendState LGFXBlendStateDisabled()
 {
     LGFXBlendState result = DISABLE_BLEND;
     return result;
 }
-inline LGFXBlendState LGFXBlendStateAdditive()
+static inline LGFXBlendState LGFXBlendStateAdditive()
 {
     LGFXBlendState result = ADDITIVE_BLEND;
     return result;
 }
-inline LGFXBlendState LGFXBlendStateAlphaBlend()
+static inline LGFXBlendState LGFXBlendStateAlphaBlend()
 {
     LGFXBlendState result = ALPHA_BLEND;
     return result;
 }
-inline LGFXBlendState LGFXBlendStateNonPremultiplied()
+static inline LGFXBlendState LGFXBlendStateNonPremultiplied()
 {
     LGFXBlendState result = NON_PREMULTIPLIED_BLEND;
     return result;
 }
-inline LGFXBlendState LGFXBlendStateOpaque()
+static inline LGFXBlendState LGFXBlendStateOpaque()
 {
     LGFXBlendState result = OPAQUE_BLEND;
     return result;

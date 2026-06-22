@@ -6,6 +6,10 @@
 #include "limits.h"
 #include "Path.hpp"
 
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+
 slang::IGlobalSession *globalSession;
 bool AssetcShaderCompilerInitialize()
 {

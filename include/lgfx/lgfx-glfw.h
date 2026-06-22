@@ -1,6 +1,4 @@
-#ifndef LGFX_GLFW_H
-#define LGFX_GLFW_H
-
+#pragma once
 
 #ifdef WINDOWS
 #ifndef GLFW_EXPOSE_NATIVE_WIN32
@@ -30,7 +28,7 @@ static inline void *LGFXGetNativeWindowDisplay(GLFWwindow *window)
 #endif
 
 #ifdef MACOS
-inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
+static inline void *LGFXGetNativeWindowHandle(GLFWwindow *window)
 {
     return glfwGetCocoaWindow(window);
 }
@@ -62,6 +60,4 @@ static inline void *LGFXGetNativeWindowDisplay(GLFWwindow *window)
     wl_display *display = glfwGetWaylandDisplay();
     return (void *)display;
 }
-#endif
-
 #endif

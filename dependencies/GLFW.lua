@@ -53,7 +53,7 @@ project "GLFW"
             "glfw/src/cocoa_monitor.m",
             "glfw/src/cocoa_window.m",
             "glfw/src/cocoa_joystick.m",
-            "glfw/src/cocoa_time.c",
+            "glfw/src/macos_time.c",
             "glfw/src/nsgl_context.m",
             "glfw/src/posix_thread.c",
             "glfw/src/posix_poll.c",
