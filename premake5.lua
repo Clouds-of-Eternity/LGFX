@@ -24,6 +24,9 @@ workspace "LGFX"
         buildoptions { "-g", "-gcodeview", "-Wno-deprecated-declarations", "-Wno-nullability-completeness", "-Wno-nonportable-include-path", "-Werror=incompatible-pointer-types" }
         linkoptions { "-fuse-ld=lld", "-g" }
 
+    filter {"toolset:clang", "system:windows"}
+        makesettings {"AR = llvm-ar", "RESCOMP = llvm-windres"}
+
     filter "system:windows"
         defines { "WINDOWS" }
         system "windows"
