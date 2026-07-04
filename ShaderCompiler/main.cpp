@@ -96,6 +96,8 @@ i32 main(i32 argc, char **argv)
     collections::Array<string> allFilePaths = io::GetFilesInDirectoryRecursive(arena.AsAllocator(), argv[1]);
 
     i32 returnCode;
+
+    collections::List<string> allVariants = collections::List<string>(GetCAllocator());
     for (u32 i = 0; i < allFilePaths.length; i++)
     {
         if (allFilePaths[i].EndsWith(".slang") && !allFilePaths[i].EndsWith(".inc.slang"))
@@ -103,12 +105,39 @@ i32 main(i32 argc, char **argv)
             string relative = allFilePaths[i].CloneTrimStart(arena.AsAllocator(), strlen(argv[1]) + 1);
             string outputPath = path::SwapExtension(arena.AsAllocator(), allFilePaths[i], ".sfn");
             printf("ShaderCompiler: Compiling %s\n", relative.buffer);
-            returnCode = ShaderCompiler_Compile(result, relative.buffer, outputPath.buffer, -1);
+            returnCode = ShaderCompiler_Compile(result, relative.buffer, outputPath.buffer, NULL, -1);
             if (returnCode != 0)
             {
                 text error = ShaderCompiler_GetErrorMessages(result);
                 fprintf(stderr, "ShaderCompiler: %s\n", error);
                 break;
+            }
+        }
+        else if (allFilePaths[i].EndsWith(".slang.vars"))
+        {
+            allVariants.Add(allFilePaths[i]);
+        }
+    }
+    if (returnCode == 0)
+    {
+        for (u32 i = 0; i < allVariants.count; i++)
+        {
+            if (!result->allParsedShadersVariants.Contains(allVariants[i]))
+            {
+                string relative = allVariants[i].CloneTrimStart(arena.AsAllocator(), strlen(argv[1]) + 1);
+                string withoutExtensions = string(arena.AsAllocator(), allVariants[i].buffer, allVariants[i].length - 1 - strlen(".slang.vars"));
+                string outputPath = string::Format(arena.AsAllocator(), "%s.%s", withoutExtensions.buffer, "sfn");
+
+                printf("ShaderCompiler: Compiling variant %s\n", relative.buffer);
+                printf(" - %s\n", outputPath.buffer);
+
+                returnCode = ShaderCompiler_CompileVariant(result, allVariants[i].buffer, outputPath.buffer);
+                if (returnCode != 0)
+                {
+                    text error = ShaderCompiler_GetErrorMessages(result);
+                    fprintf(stderr, "ShaderCompiler: %s\n", error);
+                    break;
+                }
             }
         }
     }

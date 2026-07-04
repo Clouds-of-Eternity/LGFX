@@ -6,6 +6,7 @@
 #include "ArenaAllocator.hpp"
 #include "io.hpp"
 #include "DataStream.hpp"
+#include "HashSet.hpp"
 
 #define FUNC_BINARY_FILE_VERSION 1
 
@@ -81,6 +82,8 @@ struct ShaderCompiler
     string *outputDirectories;
     string *objectDirectories;
 
+    collections::HashSet<string> allParsedShadersVariants;
+
     inline ShaderCompiler()
     {
         allocator = {};
@@ -93,6 +96,8 @@ struct ShaderCompiler
         outputDirectories = NULL;
         objectDirectories = NULL; 
         searchPaths = NULL;
+
+        allParsedShadersVariants = collections::HashSet<string>();
     }
     inline ShaderCompiler(IAllocator allocator, u32 numDirectories, bool storeObjects)
     {
@@ -110,6 +115,8 @@ struct ShaderCompiler
         }
         else objectDirectories = NULL;
         searchPaths = allocator.AllocateInstancesOf<text>(numDirectories);
+
+        allParsedShadersVariants = collections::HashSet<string>(allocator, &stringHash, &stringEql);
     }
     inline void deinit()
     {
@@ -135,6 +142,13 @@ struct ShaderCompiler
             if (objectDirectories != NULL)
                 allocator.Free(objectDirectories);
         }
+
+        auto iterator = allParsedShadersVariants.GetIterator();
+        foreach (val, iterator)
+        {
+            val->deinit();
+        }
+        allParsedShadersVariants.deinit();
     }
 };
 
@@ -165,11 +179,16 @@ struct ShaderFunctionPermutation
 };
 struct ShaderCompilationMeta
 {
+    string sourceFilePath;
     collections::Array<ShaderFunctionPermutation> function1Permutations;
     collections::Array<ShaderFunctionPermutation> function2Permutations;
 
     inline void deinit()
     {
+        if (sourceFilePath.buffer != NULL)
+        {
+            sourceFilePath.deinit();
+        }
         for (u32 i = 0; i < function1Permutations.length; i++)
         {
             function1Permutations[i].deinit();
@@ -195,5 +214,6 @@ usize ShaderCompiler_ExtractSpirvFromSFNFilePath(text name, text outputPathNoFil
 usize ShaderCompiler_ExtractSpirvFromSFN(IDataStream input, text outputPathNoFileExtension);
 ShaderCompiler *ShaderCompiler_Create(const ShaderCompilerCreateInfo *createInfo);
 void ShaderCompiler_Deinit(ShaderCompiler *self);
-i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, i32 useSourceDirectoryOfIndex);
+i32 ShaderCompiler_CompileVariant(ShaderCompiler *self, text metaFilePath, text overrideOutputPath);
+i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, const ShaderCompilationMeta *overrideCompilationMeta, i32 useSourceDirectoryOfIndex);
 text ShaderCompiler_GetErrorMessages(ShaderCompiler *self);

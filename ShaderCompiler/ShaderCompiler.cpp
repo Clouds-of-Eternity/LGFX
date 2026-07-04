@@ -290,6 +290,12 @@ ShaderCompilationMeta ShaderCompilationMeta_Parse(IAllocator allocator, Json::Js
     {
         ShaderCompilationMeta_ParsePermutationArray(allocator, elem, result.function2Permutations);
     }
+
+    elem = root->GetProperty("sourceFile");
+    if (elem != NULL)
+    {
+        result.sourceFilePath = elem->GetString(allocator);
+    }
     return result;
 }
 ShaderCompilationMeta ShaderCompilationMeta_ParseFile(IAllocator allocator, text metaFilePath)
@@ -298,8 +304,10 @@ ShaderCompilationMeta ShaderCompilationMeta_ParseFile(IAllocator allocator, text
     Scope(ArenaAllocator, arena);
     string metaFileContents = io::ReadFile(arena.AsAllocator(), metaFilePath, false);
     Json::JsonElement rootElem = {};
-    if (Json::ParseJsonDocument(arena.AsAllocator(), metaFileContents, &rootElem) > 0)
+    usize errorLine = Json::ParseJsonDocument(arena.AsAllocator(), metaFileContents, &rootElem);
+    if (errorLine > 0)
     {
+        fprintf(stderr, "ShaderCompiler: Failed to parse json file %s on line %llu\n", metaFilePath, errorLine);
         return {};
     }
 
@@ -785,7 +793,23 @@ bool ShaderCompiler_Compile_SpecializeInto(
     return !errored;
 }
 
-i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, i32 useSourceDirectoryOfIndex)
+i32 ShaderCompiler_CompileVariant(ShaderCompiler *self, text metaFilePath, text overrideOutputPath)
+{
+    ShaderCompilationMeta fileMeta = {};
+    fileMeta = ShaderCompilationMeta_ParseFile(GetCAllocator(), metaFilePath);
+
+    if (fileMeta.sourceFilePath.buffer == NULL)
+    {
+        fileMeta.deinit();
+        fprintf(stderr, "ShaderCompiler: Failed to compile variant %s as either it is lacking a 'filePath' property\n");
+        return 1;
+    }
+
+    i32 result = ShaderCompiler_Compile(self, fileMeta.sourceFilePath.buffer, overrideOutputPath, &fileMeta, -1);
+    fileMeta.deinit();
+    return result;
+}
+i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, const ShaderCompilationMeta *overrideCompilationMeta, i32 useSourceDirectoryOfIndex)
 {
     i32 sourceDirectoryIndex = useSourceDirectoryOfIndex;
 
@@ -815,13 +839,24 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
     }
 
     ShaderCompilationMeta fileMeta = {};
-    Scope(ShaderCompilationMeta, fileMeta);
-    string metaFilePath = string::Format(GetCAllocator(), "%s/%s.vars", self->sourceDirectories[sourceDirectoryIndex].buffer, filePathRelative);
-    if (io::FileExists(metaFilePath.buffer))
+    ScopeVar(ShaderCompilationMeta, fileMeta, fileMetaScope);
+
+    if (overrideCompilationMeta == NULL)
     {
-        fileMeta = ShaderCompilationMeta_ParseFile(GetCAllocator(), metaFilePath.buffer);
+        string metaFilePath = string::Format(GetCAllocator(), "%s/%s.vars", self->sourceDirectories[sourceDirectoryIndex].buffer, filePathRelative);
+        if (io::FileExists(metaFilePath.buffer))
+        {
+            fileMeta = ShaderCompilationMeta_ParseFile(GetCAllocator(), metaFilePath.buffer);
+
+            self->allParsedShadersVariants.Add(metaFilePath);
+        }
+        else metaFilePath.deinit();
     }
-    metaFilePath.deinit();
+    else
+    {
+        fileMeta = *overrideCompilationMeta;
+        fileMetaScope.suppressed = true;
+    }
 
     CharSlice filePathRelativeSlice = CharSlice(filePathRelative);
 
