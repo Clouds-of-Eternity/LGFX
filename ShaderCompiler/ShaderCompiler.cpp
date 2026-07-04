@@ -370,29 +370,102 @@ bool ShaderCompilerWriteBinaryFuncType(FILE *fs, slang::TypeLayoutReflection *ty
 
 typedef slang::VariableLayoutReflection *SlangVar;
 typedef collections::List<SlangVar> SlangVarList;
-void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
+i32 ShaderCompilerWriteBinaryFuncParams(ShaderCompiler *self, FILE *fs, const OutputProgram &programRef, slang::ProgramLayout *layout)
 {
     u32 paramCount = layout->getParameterCount();
     if (paramCount == 0)
     {
         Binary_WriteData<u32>(fs, 0);
-        return;
+        return 0;
     }
     ArenaAllocator arena = ArenaAllocator(GetCAllocator());
     IAllocator tempAlloc = arena.AsAllocator();
 
     Scope(ArenaAllocator, arena);
 
+    bool isCompute = programRef.type == ShaderCompilerShaderStage_Compute;
+    slang::IMetadata *entryPointMetadatas[] = {NULL, NULL};
+
+    if (isCompute)
+    {
+        slang::IBlob *diagnostics = NULL;
+        if (programRef.linkedProgram->getTargetMetadata(0, &entryPointMetadatas[0], &diagnostics) != SLANG_OK)
+        {
+            if (diagnostics)
+            {
+                self->errors.AppendLine((text)diagnostics->getBufferPointer());
+                diagnostics->Release();
+            }
+            return 1;
+        }
+    }
+    else
+    {
+        slang::IBlob *diagnostics = NULL;
+        if (programRef.linkedProgram->getEntryPointMetadata(0, 0, &entryPointMetadatas[0], &diagnostics) != SLANG_OK)
+        {
+            if (diagnostics)
+            {
+                self->errors.AppendLine((text)diagnostics->getBufferPointer());
+                diagnostics->Release();
+            }
+            return 1;
+        }
+
+        diagnostics = NULL;
+        if (programRef.linkedProgram->getEntryPointMetadata(1, 0, &entryPointMetadatas[1], &diagnostics) != SLANG_OK)
+        {
+            if (diagnostics)
+            {
+                self->errors.AppendLine((text)diagnostics->getBufferPointer());
+                diagnostics->Release();
+            }
+            return 1;
+        }
+    }
+
     collections::DenseSet<SlangVarList> setsToVars = collections::DenseSet<SlangVarList>(tempAlloc);
     u32 maxSetIndex = 0;
     for (u32 i = 0; i < paramCount; i++)
     {
         SlangVar var = layout->getParameterByIndex(i);
+        //SlangStage stage = var->getVariable().
+
         u32 setIndex = var->getBindingSpace();
+        u32 bindingIndex = var->getBindingIndex();
         if (setIndex > maxSetIndex)
         {
             maxSetIndex = setIndex;
         }
+
+        bool isUsed = false;
+        slang::ParameterCategory category = var->getCategory();
+        //uniform declared but not actually used
+        if (isCompute)
+        {
+            entryPointMetadatas[0]->isParameterLocationUsed((SlangParameterCategory)category, setIndex, bindingIndex, isUsed);
+        }
+        else
+        {
+            entryPointMetadatas[0]->isParameterLocationUsed((SlangParameterCategory)category, setIndex, bindingIndex, isUsed);
+            if (!isUsed)
+            {
+                entryPointMetadatas[1]->isParameterLocationUsed((SlangParameterCategory)category, setIndex, bindingIndex, isUsed);
+            }
+        }
+        if (!isUsed)
+        {
+            if (programRef.suffix.buffer == NULL)
+            {
+                printf(" - Variable %s is not used\n", var->getName());
+            }
+            else
+            {
+                printf(" - Variable %s is not used for variant %s\n", var->getName(), programRef.suffix.buffer);
+            }
+            continue;
+        }
+
         SlangVarList *list = setsToVars.Get(setIndex);
         if (list == NULL || list->ptr == NULL)
         {
@@ -436,6 +509,8 @@ void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
             }
         }
     }
+
+    return 0;
 }
 void ShaderCompilerWriteBinaryFuncSpv(FILE *fs, ShaderCompilerShaderStage forStage, slang::IBlob *code)
 {
@@ -456,14 +531,14 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputPr
     bool isCompute = program.type == ShaderCompilerShaderStage_Compute;
     Binary_WriteData<u32>(fs, isCompute ? 1 : 0);
 
-    //uniforms
-    slang::ProgramLayout *layout = program.linkedProgram->getLayout();
-    ShaderCompilerWriteBinaryFuncParams(fs, layout);
+    //Calling getTargetCode/getEntryPointCode runs the compilation too. We want that to occur
+    //and return a success before continuing with the reflect and write operations.
+
+    slang::IBlob *codeBlobs[] = {NULL, NULL};
 
     if (isCompute)
     {
-        slang::IBlob *code = NULL;
-        SlangResult getEntryPointResult = program.linkedProgram->getTargetCode(0, &code, &diagnostics);
+        SlangResult getEntryPointResult = program.linkedProgram->getTargetCode(0, &codeBlobs[0], &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -473,16 +548,10 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputPr
             }
             return 1;
         }
-        else
-        {
-            ShaderCompilerWriteBinaryFuncSpv(fs, ShaderCompilerShaderStage_Compute, code);
-        }
-        code->Release();
     }
     else
     {
-        slang::IBlob *code = NULL;
-        SlangResult getEntryPointResult = program.linkedProgram->getEntryPointCode(0, 0, &code, &diagnostics);
+        SlangResult getEntryPointResult = program.linkedProgram->getEntryPointCode(0, 0, &codeBlobs[0], &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -492,13 +561,8 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputPr
             }
             return 1;
         }
-        else
-        {
-            ShaderCompilerWriteBinaryFuncSpv(fs, ShaderCompilerShaderStage_Vertex, code);
-        }
-        code->Release();
 
-        getEntryPointResult = program.linkedProgram->getEntryPointCode(1, 0, &code, &diagnostics);
+        getEntryPointResult = program.linkedProgram->getEntryPointCode(1, 0, &codeBlobs[1], &diagnostics);
         if (getEntryPointResult != SLANG_OK)
         {
             if (diagnostics)
@@ -508,11 +572,26 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputPr
             }
             return 1;
         }
-        else
-        {
-            ShaderCompilerWriteBinaryFuncSpv(fs, ShaderCompilerShaderStage_Fragment, code);
-        }
-        code->Release();
+    }
+    
+    //uniforms
+    slang::ProgramLayout *layout = program.linkedProgram->getLayout();
+    if (ShaderCompilerWriteBinaryFuncParams(self, fs, program, layout) != 0)
+    {
+        return 1;
+    }
+
+    if (isCompute)
+    {
+        ShaderCompilerWriteBinaryFuncSpv(fs, ShaderCompilerShaderStage_Compute, codeBlobs[0]);
+        codeBlobs[0]->Release();
+    }
+    else
+    {
+        ShaderCompilerWriteBinaryFuncSpv(fs, ShaderCompilerShaderStage_Vertex, codeBlobs[0]);
+        ShaderCompilerWriteBinaryFuncSpv(fs, ShaderCompilerShaderStage_Fragment, codeBlobs[1]);
+        codeBlobs[0]->Release();
+        codeBlobs[1]->Release();
     }
     return 0;
 }
@@ -801,7 +880,7 @@ i32 ShaderCompiler_CompileVariant(ShaderCompiler *self, text metaFilePath, text 
     if (fileMeta.sourceFilePath.buffer == NULL)
     {
         fileMeta.deinit();
-        fprintf(stderr, "ShaderCompiler: Failed to compile variant %s as either it is lacking a 'filePath' property\n");
+        fprintf(stderr, "ShaderCompiler: Failed to compile variant %s as either it is lacking a 'filePath' property\n", metaFilePath);
         return 1;
     }
 

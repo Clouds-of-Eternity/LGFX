@@ -1397,7 +1397,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 
     createInfo.preTransform = details.capabilities.currentTransform; // VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = result->presentMode;
+    createInfo.presentMode = (VkPresentModeKHR)result->presentMode;
     createInfo.clipped = true;
 	if (info->oldSwapchain != NULL)
 	{
@@ -1646,7 +1646,7 @@ LGFXTexture VkLGFXCreateTexture(LGFXDevice device, LGFXTextureCreateInfo *info)
 	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewCreateInfo.image = image;
 	viewCreateInfo.format = LGFXTextureFormat2Vulkan(info->format);
-	viewCreateInfo.viewType = imageType;
+	viewCreateInfo.viewType = (VkImageViewType)imageType;
 
 	viewCreateInfo.subresourceRange.aspectMask = imageAspect;
 	viewCreateInfo.subresourceRange.baseMipLevel = 0;
@@ -2666,14 +2666,14 @@ void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer comma
 			VkImageLayout newLayout;
 			if (textures[i]->format >= LGFXTextureFormat_Depth16Unorm)
 			{
-				newLayout = LGFXTextureLayout_DepthStencilAttachmentOptimal;
+				newLayout = (VkImageLayout)LGFXTextureLayout_DepthStencilAttachmentOptimal;
 			}
 			else
 			{
-				newLayout = LGFXTextureLayout_ColorAttachmentOptimal;
+				newLayout = (VkImageLayout)LGFXTextureLayout_ColorAttachmentOptimal;
 			}
-			VkLGFXTextureTransitionLayout(program->device, outputTarget->textures[i], newLayout, commandBuffer, 0, 1);
-			outputTarget->textures[i]->layout = newLayout;
+			VkLGFXTextureTransitionLayout(program->device, outputTarget->textures[i], (LGFXTextureLayout)newLayout, commandBuffer, 0, 1);
+			outputTarget->textures[i]->layout = (LGFXTextureLayout)newLayout;
 		}
 		//VkLGFXEndTemporaryCommandBuffer(program->device, tempBuffer);
 	}
@@ -2808,7 +2808,7 @@ LGFXFunctionVariableBatchTemplate VkLGFXCreateFunctionVariableBatchTemplate(LGFX
 			//LGFXShaderInputAccess2Vulkan(info->uniforms[i].accessedBy);
 			layoutBinding.pImmutableSamplers = NULL;
 
-			bindings[layoutBinding.binding] = layoutBinding;
+			bindings[i] = layoutBinding;
 		}
 	}
 	layoutInfo.pBindings = bindings;
