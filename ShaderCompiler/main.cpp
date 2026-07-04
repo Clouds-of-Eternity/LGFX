@@ -8,7 +8,23 @@ i32 main(i32 argc, char **argv)
 {
     if (argc < 2)
     {
+        fprintf(stderr, "ShaderCompiler: Insufficient arguments\n");
         return 1;
+    }
+
+    if (CharSlice(argv[1]) == "--out-spv")
+    {
+        if (argc != 4)
+        {
+            fprintf(stderr, "ShaderCompiler: --out-spv requires two arguments thereafter: (input-file-path) and (output-file-path)");
+            return 1;
+        }
+        if (!io::FileExists(argv[2]))
+        {
+            fprintf(stderr, "ShaderCompiler: Input file %s does not exist\n", argv[2]);
+            return 1;
+        }
+        return ShaderCompiler_ExtractSpirvFromSFNFilePath(argv[2], argv[3]);
     }
     //argv[0] = exe path
     //argv[1] = compile all files in folder
@@ -20,6 +36,7 @@ i32 main(i32 argc, char **argv)
     collections::List<char *> includeDirectories = collections::List<char *>(GetCAllocator());
     Scope(collections::List<char *>, includeDirectories);
     includeDirectories.Add(argv[1]);
+    bool invalidArgs = false;
     for (u32 i = 0; i < optArgsCount; i++)
     {
         u32 index = i + 2;
@@ -54,6 +71,15 @@ i32 main(i32 argc, char **argv)
                 printf("-All optimizations will be applied\n");
             }
         }
+        else
+        {
+            fprintf(stderr, "ShaderCompiler: Unknown argument %s\n", argString.buffer);
+            invalidArgs = true;
+        }
+    }
+    if (invalidArgs)
+    {
+        return 1;
     }
 
     AssetcShaderCompilerInitialize();
@@ -76,12 +102,12 @@ i32 main(i32 argc, char **argv)
         {
             string relative = allFilePaths[i].CloneTrimStart(arena.AsAllocator(), strlen(argv[1]) + 1);
             string outputPath = path::SwapExtension(arena.AsAllocator(), allFilePaths[i], ".sfn");
-            printf("Compiling %s\n", relative.buffer);
+            printf("ShaderCompiler: Compiling %s\n", relative.buffer);
             returnCode = ShaderCompiler_Compile(result, relative.buffer, outputPath.buffer, -1);
             if (returnCode != 0)
             {
                 text error = ShaderCompiler_GetErrorMessages(result);
-                fprintf(stderr, "%s\n", error);
+                fprintf(stderr, "ShaderCompiler: %s\n", error);
                 break;
             }
         }

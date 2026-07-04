@@ -6,10 +6,6 @@
 #include "ByteStreamOps.hpp"
 #include "AstralCanvasHPP/BatchTemplateStore.hpp"
 
-#ifdef ASTRALCANVAS_JSON_SHADER
-#include "Json.hpp"
-#endif
-
 namespace AstralCanvas
 {
 
@@ -62,13 +58,6 @@ namespace AstralCanvas
             currentGroup = 0;
         }
     };
-
-    #ifdef ASTRALCANVAS_JSON_SHADER
-    //u32 ParseShaderVariables(Json::JsonElement *json, ShaderVariables *results, LGFXShaderInputAccessFlags accessedByShaderOfType);
-
-    usize CreateShaderFromString2(LGFXDevice device, IAllocator allocator, string jsonString, ShaderFunction *result);
-    //usize CreateShaderFromString(LGFXDevice device, IAllocator allocator, string jsonString, ShaderFunction *result);
-    #endif
 
     usize CreateShaderFromSFNFilePath(LGFXDevice device, IAllocator allocator, const char *name, ShaderFunction *result);
     usize CreateShaderFromSFNBytes(LGFXDevice device, IAllocator allocator, const u8 *bytes, ShaderFunction *result);

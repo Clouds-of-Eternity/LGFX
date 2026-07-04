@@ -29,6 +29,156 @@ void AssetcShaderCompilerUnload()
         slang::shutdown();
     }
 }
+
+enum ShaderFunctionResourceType
+{
+    ShaderFunctionResourceType_Uniform,
+    ShaderFunctionResourceType_Sampler,
+    ShaderFunctionResourceType_Texture,
+    ShaderFunctionResourceType_StructuredBuffer,
+    ShaderFunctionResourceType_InputAttachment,
+    ShaderFunctionResourceType_StorageTexture,
+    ShaderFunctionResourceType_Unknown = 0xFFFFFFFF
+};
+enum ShaderFunctionStage
+{
+    ShaderFunctionStage_Vertex,
+    ShaderFunctionStage_Fragment,
+    ShaderFunctionStage_Compute
+};
+
+usize ShaderCompiler_ExtractSpirvFromSFNFilePath(const char *name, text outputPathNoFileExtension)
+{
+    FILE *fs = fopen(name, "rb");
+    if (fs == NULL)
+    {
+        return 1;   
+    }
+    usize errorCode = ShaderCompiler_ExtractSpirvFromSFN(GetFileDataStream(fs), outputPathNoFileExtension);
+    fclose(fs);
+    return errorCode;
+}
+usize ShaderCompiler_ExtractSpirvFromSFN(IDataStream input, text outputPathNoFileExtension)
+{
+    const u32 fileVersion = input.Read<u32>();
+    if (fileVersion == 1)
+    {
+        ArenaAllocator arena = ArenaAllocator(GetCAllocator());
+        Scope(ArenaAllocator, arena);
+
+        const u32 shaderType = input.Read<u32>();
+        const u32 maxSets = input.Read<u32>();
+        for (u32 j = 0; j < maxSets; j++)
+        {
+            const u32 paramCount = input.Read<u32>();
+
+            for (u32 i = 0; i < paramCount; i++)
+            {
+                input.PassString(); //name
+                input.Read<u32>(); //binding index
+                
+                input.Read<u32>(); //array length
+
+                ShaderFunctionResourceType resourceType = (ShaderFunctionResourceType)input.Read<u32>();
+                if (resourceType == ShaderFunctionResourceType_Uniform)
+                {
+                    input.Read<u32>(); //size
+                }
+                else if (resourceType == ShaderFunctionResourceType_Sampler)
+                {
+                }
+                else if (resourceType == ShaderFunctionResourceType_Texture)
+                {
+                }
+                else if (resourceType == ShaderFunctionResourceType_StorageTexture)
+                {
+                }
+                else if (resourceType == ShaderFunctionResourceType_StructuredBuffer)
+                {
+                }
+                else if (resourceType == ShaderFunctionResourceType_InputAttachment)
+                {
+                }
+                else
+                {
+                    return 1;
+                }
+            }
+        }
+        
+        usize result = 0;
+        if (shaderType == 0)
+        {
+            //vertex-fragment
+            ShaderFunctionStage stage1 = (ShaderFunctionStage)input.Read<u32>();
+            if (stage1 != ShaderFunctionStage_Vertex)
+            {
+                return 1;
+            }
+            usize lenBytes = input.Read<u32>();
+            usize module1DataLength = lenBytes / 4;
+            u32 *module1Data = (u32 *)arena.AsAllocator().Allocate(lenBytes);
+            input.ReadByteArray((u8*)module1Data, lenBytes);
+            
+            ShaderFunctionStage stage2 = (ShaderFunctionStage)input.Read<u32>();
+            if (stage2 != ShaderFunctionStage_Fragment)
+            {
+                return 1;
+            }
+            lenBytes = input.Read<u32>();
+            usize module2DataLength = lenBytes / 4;
+            u32 *module2Data = (u32 *)arena.AsAllocator().Allocate(lenBytes);
+            input.ReadByteArray((u8*)module2Data, lenBytes);
+
+            string outputPath1 = string::Format(arena.AsAllocator(), "%s%s", outputPathNoFileExtension, ".vert");
+            string outputPath2 = string::Format(arena.AsAllocator(), "%s%s", outputPathNoFileExtension, ".frag");
+
+            FILE *fs = fopen(outputPath1.buffer, "wb");
+            if (fs != NULL)
+            {
+                fwrite(module1Data, 4, module1DataLength, fs);
+                fclose(fs);
+            }
+            else result = 1;
+            fs = fopen(outputPath2.buffer, "wb");
+            if (fs != NULL)
+            {
+                fwrite(module2Data, 4, module2DataLength, fs);
+                fclose(fs);
+            }
+            else result = 1;
+        }
+        else if (shaderType == 1)
+        {
+            //compute
+            ShaderFunctionStage stage1 = (ShaderFunctionStage)input.Read<u32>();
+            if (stage1 != ShaderFunctionStage_Compute)
+            {
+                return 1;
+            }
+            usize lenBytes = input.Read<u32>();
+
+            usize module1DataLength = lenBytes / 4;
+            u32 *module1Data = (u32 *)arena.AsAllocator().Allocate(lenBytes);
+            input.ReadByteArray((u8*)module1Data, lenBytes);
+
+            string outputPath1 = string::Format(arena.AsAllocator(), "%s%s", outputPathNoFileExtension, ".vert");
+            FILE *fs = fopen(outputPath1.buffer, "wb");
+            if (fs != NULL)
+            {
+                fwrite(module1Data, 4, module1DataLength, fs);
+                fclose(fs);
+            }
+            else result = 1;
+        }
+        return result;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
 ShaderCompiler *ShaderCompiler_Create(const ShaderCompilerCreateInfo *createInfo)
 {
     assert(globalSession != NULL);
@@ -264,8 +414,11 @@ void ShaderCompilerWriteBinaryFuncParams(FILE *fs, slang::ProgramLayout *layout)
             if (kind == slang::TypeReflection::Kind::Array)
             {
                 slang::TypeLayoutReflection *elemType = typeLayout->getElementTypeLayout();
+                
+                const usize elemCountUSize = typeLayout->getTotalArrayElementCount();
+                const u32 elemCount = elemCountUSize == SLANG_UNBOUNDED_SIZE ? 0xFFFFFFFF : (u32)elemCountUSize;
 
-                Binary_WriteData<u32>(fs, (u32)typeLayout->getTotalArrayElementCount());
+                Binary_WriteData<u32>(fs, elemCount);
                 ShaderCompilerWriteBinaryFuncType(fs, elemType);
             }
             else

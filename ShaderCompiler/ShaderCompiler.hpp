@@ -5,6 +5,7 @@
 #include "List.hpp"
 #include "ArenaAllocator.hpp"
 #include "io.hpp"
+#include "DataStream.hpp"
 
 #define FUNC_BINARY_FILE_VERSION 1
 
@@ -190,6 +191,8 @@ bool AssetcShaderCompilerInitialize();
 void AssetcShaderCompilerUnload();
 
 BeginExports()
+usize ShaderCompiler_ExtractSpirvFromSFNFilePath(text name, text outputPathNoFileExtension);
+usize ShaderCompiler_ExtractSpirvFromSFN(IDataStream input, text outputPathNoFileExtension);
 ShaderCompiler *ShaderCompiler_Create(const ShaderCompilerCreateInfo *createInfo);
 void ShaderCompiler_Deinit(ShaderCompiler *self);
 i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text overrideOutputPath, i32 useSourceDirectoryOfIndex);
