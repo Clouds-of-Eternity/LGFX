@@ -52,6 +52,7 @@ struct LoadedModule
     slang::IModule *module;
     slang::IEntryPoint *entryPoint1;
     slang::IEntryPoint *entryPoint2;
+    slang::IEntryPoint *selectorEntryPoint;
 
     collections::List<slang::IComponentType *> specializedEntryPoints;
 
@@ -59,7 +60,14 @@ struct LoadedModule
     {
         module->Release();
         entryPoint1->Release();
-        entryPoint2->Release();
+        if (entryPoint2 != NULL)
+        {
+            entryPoint2->Release();
+        }
+        if (selectorEntryPoint != NULL)
+        {
+            selectorEntryPoint->Release();
+        }
 
         for (u32 i = 0; i < specializedEntryPoints.count; i++)
         {

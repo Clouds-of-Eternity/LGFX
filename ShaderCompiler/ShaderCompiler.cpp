@@ -826,47 +826,56 @@ slang::IComponentType *ShaderCompiler_Compile_SpecializeEntryPoint(const ShaderF
 
     return result;
 }
+
+void ShaderCompiler_Compile_OutputProgram(ShaderCompiler *self, slang::IComponentType *const *components, u32 componentsCount, string suffix, collections::List<OutputProgram> &programs, bool &errored)
+{
+    slang::IBlob *diagnostics = NULL;
+    OutputProgram outputProgram = {};
+    outputProgram.type = componentsCount == 2 ? ShaderCompilerShaderStage_Compute : ShaderCompilerShaderStage_Vertex;
+
+    auto slResult = self->session->createCompositeComponentType(components, componentsCount, &outputProgram.program, &diagnostics);
+    if (slResult != SLANG_OK)
+    {
+        if (diagnostics != NULL)
+        {
+            self->errors.AppendLine((text)diagnostics->getBufferPointer());
+            diagnostics->Release();
+        }
+        errored = true;
+    }
+    else 
+    {
+        outputProgram.suffix = suffix;
+        programs.Add(outputProgram);
+    }
+}
+
+//single specialization utility function
 bool ShaderCompiler_Compile_SpecializeInto(
-    slang::ISession *session, 
-    StringBuilder &errors, 
+    ShaderCompiler *self, 
     slang::IEntryPoint *entryPoint, 
     const collections::Array<ShaderFunctionPermutation> &permutations,
     slang::IComponentType **components, 
-    bool isCompute,
+    u32 componentsCount,
     u32 outputComponentsIndex, 
     collections::List<OutputProgram> &outputPrograms,
     collections::List<slang::IComponentType *> &outputSpecializedEntryPoints)
 {
-    const u32 componentsCount = isCompute ? 2 : 3;
     const u32 totalPermutations = permutations.length;
     const u32 permutationArrayLength = permutations.data[0].typeArguments.length;
     bool errored = false;
     
     for (u32 i = 0; i < totalPermutations; i++)
     {
-        components[outputComponentsIndex] = ShaderCompiler_Compile_SpecializeEntryPoint(permutations.data[i], entryPoint, errors);
+        components[outputComponentsIndex] = ShaderCompiler_Compile_SpecializeEntryPoint(permutations.data[i], entryPoint, self->errors);
+        outputSpecializedEntryPoints.Add(components[outputComponentsIndex]);
         if (components[outputComponentsIndex] == NULL)
         {
             errored = true;
             continue;
         }
-
-        outputSpecializedEntryPoints.Add(components[outputComponentsIndex]);
         
-        OutputProgram outputProgram = {};
-        outputProgram.type = isCompute ? ShaderCompilerShaderStage_Compute : ShaderCompilerShaderStage_Vertex;
-        slang::IBlob *diagnostics = NULL;
-        auto slResult = session->createCompositeComponentType(components, componentsCount, &outputProgram.program, &diagnostics);
-        if (slResult != SLANG_OK)
-        {
-            errors.AppendLine((text)diagnostics->getBufferPointer());
-            diagnostics->Release();
-            errored = true;
-
-            continue;
-        }
-        outputProgram.suffix = permutations.data[i].suffix.Clone(outputPrograms.allocator);
-        outputPrograms.Add(outputProgram);
+        ShaderCompiler_Compile_OutputProgram(self, components, componentsCount, permutations.data[i].suffix.Clone(outputPrograms.allocator), outputPrograms, errored);
     }
 
     return !errored;
@@ -984,6 +993,7 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
             self->errors.Append("Detected file %s to be a vertex-fragment shader, but could not find a valid function 'FragmentFunction' as the entry point\n");
             errored = true;
         }
+        module->findEntryPointByName("SelectorFunction", &loaded.selectorEntryPoint);
     }
     else if (module->findEntryPointByName("main", &loaded.entryPoint1) != SLANG_OK)
     {
@@ -1041,37 +1051,62 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
             else if (vertexSpecializations > 0 && fragmentSpecializations == 0)
             {
                 slang::IComponentType *components[] = {loaded.module, NULL, loaded.entryPoint2};
+
+                u32 startCount = loaded.specializedEntryPoints.count;
             
                 if (!ShaderCompiler_Compile_SpecializeInto(
-                    session, 
-                    self->errors,
+                    self,
                     loaded.entryPoint1,
                     fileMeta.function1Permutations,
                     components,
-                    false,
+                    3,
                     1,
                     programs,
                     loaded.specializedEntryPoints))
                 {
                     errored = true;
                 }
+
+                //all new specialized entry points have been created
+                //since these are vertex specializations, we want to iterate through all of them
+                //to produce the respective selector equivalent (if any)
+                if (loaded.selectorEntryPoint != NULL)
+                {
+                    for (u32 i = startCount; i < loaded.specializedEntryPoints.count; i++)
+                    {
+                        components[1] = loaded.specializedEntryPoints[i];
+                        components[2] = loaded.selectorEntryPoint;
+
+                        string suffix = string::Format(programs.allocator, "%sSelector", fileMeta.function1Permutations[i].suffix.buffer);
+                        ShaderCompiler_Compile_OutputProgram(self, components, 3, suffix, programs, errored);
+                    }
+                }
             }
-            else if (fragmentSpecializations > 0 && vertexSpecializations == 0)
+            else if (vertexSpecializations == 0 && fragmentSpecializations > 0)
             {
                 slang::IComponentType *components[] = {loaded.module, loaded.entryPoint1, NULL};
             
                 if (!ShaderCompiler_Compile_SpecializeInto(
-                    session, 
-                    self->errors,
+                    self,
                     loaded.entryPoint2,
                     fileMeta.function2Permutations,
                     components,
-                    false,
+                    3,
                     2,
                     programs,
                     loaded.specializedEntryPoints))
                 {
                     errored = true;
+                }
+
+                //compared to a shader with only vertex specializations, shaders with only
+                //fragment specializations only output one extra distinct selector shader
+                if (loaded.selectorEntryPoint != NULL)
+                {
+                    components[2] = loaded.selectorEntryPoint;
+                    
+                    string suffix = string(programs.allocator, "Selector");
+                    ShaderCompiler_Compile_OutputProgram(self, components, 3, suffix, programs, errored);
                 }
             }
             else
@@ -1082,18 +1117,16 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
 
                 for (u32 i = 0; i < fileMeta.function1Permutations.length; i++)
                 {
-                    for (u32 j = 0; j < fileMeta.function2Permutations.length; j++)
+                    slang::IComponentType *vertexFunctionSpecialized = ShaderCompiler_Compile_SpecializeEntryPoint(fileMeta.function1Permutations[i], loaded.entryPoint1, self->errors);
+                    if (vertexFunctionSpecialized == NULL)
                     {
-                        slang::IComponentType *components[] = {loaded.module, NULL, NULL};
+                        errored = true;
+                        continue;
+                    }
 
-                        components[1] = ShaderCompiler_Compile_SpecializeEntryPoint(fileMeta.function1Permutations[i], loaded.entryPoint1, self->errors);
-                        components[2] = ShaderCompiler_Compile_SpecializeEntryPoint(fileMeta.function2Permutations[j], loaded.entryPoint2, self->errors);
-                    
-                        if (components[1] == NULL || components[2] == NULL)
-                        {
-                            errored = true;
-                            continue;
-                        }
+                    if (loaded.selectorEntryPoint != NULL)
+                    {
+                        slang::IComponentType *components[] = {loaded.module, vertexFunctionSpecialized, loaded.selectorEntryPoint };
 
                         OutputProgram outputProgram = {};
                         auto slResult = session->createCompositeComponentType(components, 3, &outputProgram.program, &diagnostics);
@@ -1107,9 +1140,25 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                         }
                         else 
                         {
-                            outputProgram.suffix = string::Format(programs.allocator, "%s%s", fileMeta.function1Permutations[i].suffix.buffer, fileMeta.function2Permutations[j].suffix.buffer);
+                            outputProgram.suffix = string::Format(programs.allocator, "%sSelector", fileMeta.function1Permutations[i].suffix.buffer);
                             programs.Add(outputProgram);
                         }
+                    }
+
+                    for (u32 j = 0; j < fileMeta.function2Permutations.length; j++)
+                    {
+                        slang::IComponentType *components[] = {loaded.module, vertexFunctionSpecialized, NULL};
+
+                        components[2] = ShaderCompiler_Compile_SpecializeEntryPoint(fileMeta.function2Permutations[j], loaded.entryPoint2, self->errors);
+                    
+                        if (components[2] == NULL)
+                        {
+                            errored = true;
+                            continue;
+                        }
+
+                        string suffix = string::Format(programs.allocator, "%s%s", fileMeta.function1Permutations[i].suffix.buffer, fileMeta.function2Permutations[j].suffix.buffer);
+                        ShaderCompiler_Compile_OutputProgram(self, components, 3, suffix, programs, errored);
                     }
                 }
             }
@@ -1134,12 +1183,11 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                 slang::IComponentType *components[] = {loaded.module, NULL};
             
                 if (!ShaderCompiler_Compile_SpecializeInto(
-                    session, 
-                    self->errors,
+                    self,
                     loaded.entryPoint1,
                     fileMeta.function1Permutations,
                     components,
-                    true,
+                    3,
                     1,
                     programs,
                     loaded.specializedEntryPoints))
