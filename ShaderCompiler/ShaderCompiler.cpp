@@ -443,7 +443,8 @@ i32 ShaderCompilerWriteBinaryFuncParams(ShaderCompiler *self, FILE *fs, const Ou
         //uniform declared but not actually used
         if (isCompute)
         {
-            entryPointMetadatas[0]->isParameterLocationUsed((SlangParameterCategory)category, setIndex, bindingIndex, isUsed);
+            isUsed = true;
+            //entryPointMetadatas[0]->isParameterLocationUsed((SlangParameterCategory)category, setIndex, bindingIndex, isUsed);
         }
         else
         {
