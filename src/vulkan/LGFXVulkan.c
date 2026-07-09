@@ -2066,45 +2066,124 @@ void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuff
 		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->graphicsQueue, true);
 	}
 
-	LGFXTextureLayout srcOriginalLayout = from->layout;
 	LGFXTextureLayout dstOriginalLayout = to->layout;
-	if (autoTransition)
+	if (from == NULL)
 	{
-		LGFXTextureTransitionLayout(device, from, LGFXTextureLayout_TransferSrcOptimal, transientCmdBuffer, fromMip, 1);
-		LGFXTextureTransitionLayout(device, to, LGFXTextureLayout_TransferDstOptimal, transientCmdBuffer, toMip, 1);
-	}
-	VkImageCopy imageCopy = {0};
-    imageCopy.srcSubresource.aspectMask = from->format >= LGFXTextureFormat_Stencil8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-    imageCopy.srcSubresource.mipLevel = fromMip;
-    imageCopy.srcSubresource.baseArrayLayer = 0;
-    imageCopy.srcSubresource.layerCount = 1;
-	imageCopy.srcOffset.x = fromOffset.X;
-	imageCopy.srcOffset.y = fromOffset.Y;
-	imageCopy.srcOffset.z = fromOffset.Z;
-
-	imageCopy.dstSubresource.aspectMask = from->format >= LGFXTextureFormat_Stencil8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-    imageCopy.dstSubresource.mipLevel = fromMip;
-    imageCopy.dstSubresource.baseArrayLayer = 0;
-    imageCopy.dstSubresource.layerCount = 1;
-	imageCopy.dstOffset.x = toOffset.X;
-	imageCopy.dstOffset.y = toOffset.Y;
-	imageCopy.dstOffset.z = toOffset.Z;
-
-	imageCopy.extent.width = copyAreaSize.X;
-	imageCopy.extent.height = copyAreaSize.Y;
-	imageCopy.extent.depth = copyAreaSize.Z;
-	
-	vkCmdCopyImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)from->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopy);
-
-	if (autoTransition)
-	{
-		if (srcOriginalLayout != LGFXTextureLayout_Undefined)
+		if (autoTransition)
 		{
-			LGFXTextureTransitionLayout(device, from, srcOriginalLayout, transientCmdBuffer, fromMip, 1);
+			LGFXTextureTransitionLayout(device, to, LGFXTextureLayout_TransferDstOptimal, transientCmdBuffer, toMip, 1);
 		}
-		if (dstOriginalLayout != LGFXTextureLayout_Undefined)
+
+		if (to->format < LGFXTextureFormat_Stencil8)
+		{
+			VkClearColorValue clearValues = {0};
+			clearValues.float32[0] = 0.0f;
+			clearValues.float32[1] = 0.0f;
+			clearValues.float32[2] = 0.0f;
+			clearValues.float32[3] = 0.0f;
+
+			clearValues.int32[0] = 0;
+			clearValues.int32[1] = 0;
+			clearValues.int32[2] = 0;
+			clearValues.int32[3] = 0;
+
+			clearValues.uint32[0] = 0;
+			clearValues.uint32[1] = 0;
+			clearValues.uint32[2] = 0;
+			clearValues.uint32[3] = 0;
+
+			VkImageSubresourceRange range = {0};
+			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			range.baseMipLevel = 0;
+			range.baseArrayLayer = 0;
+			range.layerCount = 1;
+			range.levelCount = 1;
+			vkCmdClearColorImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValues, 1, &range);
+		}
+		else
+		{
+			VkClearDepthStencilValue clearValues[2] = {
+				{
+					.depth = 1.0f,
+					.stencil = 0
+				},
+				{
+					.depth = 1.0f,
+					.stencil = 0
+				}
+			};
+
+			VkImageSubresourceRange ranges[2] = {0};
+			int8_t index = 0;
+			if (to->format != LGFXTextureFormat_Stencil8)
+			{
+				ranges[index].aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+				ranges[index].baseMipLevel = 0;
+				ranges[index].baseArrayLayer = 0;
+				ranges[index].layerCount = 1;
+				ranges[index].levelCount = 1;
+
+				index++;
+			}
+			if (to->format == LGFXTextureFormat_Stencil8 || to->format == LGFXTextureFormat_Depth24PlusStencil8 || to->format == LGFXTextureFormat_Depth32FloatStencil8)
+			{
+				ranges[index].aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+				ranges[index].baseMipLevel = 0;
+				ranges[index].baseArrayLayer = 0;
+				ranges[index].layerCount = 1;
+				ranges[index].levelCount = 1;
+
+				index++;
+			}
+			vkCmdClearDepthStencilImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, clearValues, index, ranges);
+		}
+
+		if (autoTransition)
 		{
 			LGFXTextureTransitionLayout(device, to, dstOriginalLayout, transientCmdBuffer, toMip, 1);
+		}
+	}
+	else
+	{
+		LGFXTextureLayout srcOriginalLayout = from->layout;
+		if (autoTransition)
+		{
+			LGFXTextureTransitionLayout(device, from, LGFXTextureLayout_TransferSrcOptimal, transientCmdBuffer, fromMip, 1);
+			LGFXTextureTransitionLayout(device, to, LGFXTextureLayout_TransferDstOptimal, transientCmdBuffer, toMip, 1);
+		}
+		VkImageCopy imageCopy = {0};
+		imageCopy.srcSubresource.aspectMask = from->format >= LGFXTextureFormat_Stencil8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		imageCopy.srcSubresource.mipLevel = fromMip;
+		imageCopy.srcSubresource.baseArrayLayer = 0;
+		imageCopy.srcSubresource.layerCount = 1;
+		imageCopy.srcOffset.x = fromOffset.X;
+		imageCopy.srcOffset.y = fromOffset.Y;
+		imageCopy.srcOffset.z = fromOffset.Z;
+
+		imageCopy.dstSubresource.aspectMask = from->format >= LGFXTextureFormat_Stencil8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		imageCopy.dstSubresource.mipLevel = fromMip;
+		imageCopy.dstSubresource.baseArrayLayer = 0;
+		imageCopy.dstSubresource.layerCount = 1;
+		imageCopy.dstOffset.x = toOffset.X;
+		imageCopy.dstOffset.y = toOffset.Y;
+		imageCopy.dstOffset.z = toOffset.Z;
+
+		imageCopy.extent.width = copyAreaSize.X;
+		imageCopy.extent.height = copyAreaSize.Y;
+		imageCopy.extent.depth = copyAreaSize.Z;
+		
+		vkCmdCopyImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)from->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopy);
+
+		if (autoTransition)
+		{
+			if (srcOriginalLayout != LGFXTextureLayout_Undefined)
+			{
+				LGFXTextureTransitionLayout(device, from, srcOriginalLayout, transientCmdBuffer, fromMip, 1);
+			}
+			if (dstOriginalLayout != LGFXTextureLayout_Undefined)
+			{
+				LGFXTextureTransitionLayout(device, to, dstOriginalLayout, transientCmdBuffer, toMip, 1);
+			}
 		}
 	}
 
@@ -2685,7 +2764,7 @@ void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer comma
 
 	//clear values
 	//arbitrarily large number
-	VkClearValue clearValues[32];
+	VkClearValue clearValues[16];
 
 	info.clearValueCount = program->attachmentsCount; // this->currentRenderProgram->attachments.count;
 	info.pClearValues = clearValues;
@@ -2708,6 +2787,10 @@ void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer comma
 				clearValues[i].depthStencil.depth = 1.0f;
 				clearValues[i].depthStencil.stencil = 255;
 			}
+		}
+		else
+		{
+			info.clearValueCount--;
 		}
 	}
 
