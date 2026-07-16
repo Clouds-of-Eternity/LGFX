@@ -256,6 +256,7 @@ namespace AstralCanvas
 		}
 
 		//await rendering process shutdown
+		LGFXAwaitGraphicsIdle(device);
 
 		if (deinitFunc != NULL)
 		{
