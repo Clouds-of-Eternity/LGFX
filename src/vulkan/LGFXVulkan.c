@@ -498,7 +498,7 @@ void VkLGFXDisableUnsupportedEnvironmentVariables()
 		"VK_LAYER_Twitch_Overlay",
 		"VK_LAYER_OW_OVERLAY",
 		"VK_LAYER_OW_OBS_HOOK",
-		"VK_LAYER_OBS_HOOK",
+		//"VK_LAYER_OBS_HOOK",
 		"VK_LAYER_bandicam_helper",
 		"VK_LAYER_fpsmon",
 		"VK_LAYER_playclaw",
