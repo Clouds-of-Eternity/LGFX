@@ -1052,6 +1052,14 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                     errored = true;
                 }
                 else programs.Add(outputProgram);
+
+                if (loaded.selectorEntryPoint != NULL)
+                {
+                    components[1] = loaded.entryPoint1;
+                    components[2] = loaded.selectorEntryPoint;
+
+                    ShaderCompiler_Compile_OutputProgram(self, components, 3, string(GetCAllocator(), "Selector"), programs, errored);
+                }
             }
             else if (vertexSpecializations > 0 && fragmentSpecializations == 0)
             {
