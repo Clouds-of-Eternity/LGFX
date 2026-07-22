@@ -12,6 +12,7 @@ namespace AstralCanvas
         gpuFunction = NULL;
         resourceSets = collections::Array<ShaderResourceSet>();
         functionType = LGFXFunctionType_Unknown;
+        baseName = string();
     }
     ShaderFunction::ShaderFunction(IAllocator allocator, LGFXDevice device)
     {
@@ -20,6 +21,7 @@ namespace AstralCanvas
         gpuFunction = NULL;
         resourceSets = collections::Array<ShaderResourceSet>();
         functionType = LGFXFunctionType_Unknown;
+        baseName = string();
     }
     void ShaderFunction::deinit()
     {
@@ -36,6 +38,7 @@ namespace AstralCanvas
             }
             resourceSets.deinit();
         }
+        baseName.deinit();
     }
 
     void ShaderFunctionState::SetComputeBuffer(const char* variableName, LGFXBuffer buffer)
@@ -299,7 +302,7 @@ namespace AstralCanvas
     usize CreateShaderFromSFN(LGFXDevice device, IAllocator allocator, IDataStream input, ShaderFunction *result)
     {
         const u32 fileVersion = input.Read<u32>();
-        if (fileVersion == 1)
+        if (fileVersion == 1 || fileVersion == 2)
         {
             ArenaAllocator arena = ArenaAllocator(GetCAllocator());
             Scope(ArenaAllocator, arena);
@@ -308,6 +311,12 @@ namespace AstralCanvas
             LGFXFunctionCreateInfo info = {};
 
             *result = ShaderFunction(allocator, device);
+            
+            if (fileVersion == 2)
+            {
+                result->baseName = input.ReadString(allocator);
+            }
+
             const u32 maxSets = input.Read<u32>();
             result->resourceSets = collections::Array<ShaderResourceSet>(allocator, maxSets);
             //LGFXFunctionVariableBatchTemplate templates[16];

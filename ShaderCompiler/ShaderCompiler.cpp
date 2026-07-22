@@ -522,7 +522,7 @@ void ShaderCompilerWriteBinaryFuncSpv(FILE *fs, ShaderCompilerShaderStage forSta
     const void *ptr = code->getBufferPointer();
     fwrite(ptr, 1, size, fs);
 }
-i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputProgram &program, slang::IBlob *diagnostics)
+i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, CharSlice filePathRelative, const OutputProgram &program, slang::IBlob *diagnostics)
 {
     //version
     Binary_WriteData<u32>(fs, FUNC_BINARY_FILE_VERSION);
@@ -531,6 +531,10 @@ i32 ShaderCompilerWriteBinaryFunc(ShaderCompiler *self, FILE *fs, const OutputPr
     //1: Compute
     bool isCompute = program.type == ShaderCompilerShaderStage_Compute;
     Binary_WriteData<u32>(fs, isCompute ? 1 : 0);
+
+    string withoutExt = path::SwapExtension(GetCAllocator(), filePathRelative, CharSlice());
+    Binary_WriteText(fs, withoutExt.buffer);
+    withoutExt.deinit();
 
     //Calling getTargetCode/getEntryPointCode runs the compilation too. We want that to occur
     //and return a success before continuing with the reflect and write operations.
@@ -1266,7 +1270,7 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                 i32 errorCode;
                 if (isSFN)
                 {
-                    errorCode = ShaderCompilerWriteBinaryFunc(self, fs, programs[i], diagnostics);
+                    errorCode = ShaderCompilerWriteBinaryFunc(self, fs, filePathRelativeSlice, programs[i], diagnostics);
                 }
                 else
                 {

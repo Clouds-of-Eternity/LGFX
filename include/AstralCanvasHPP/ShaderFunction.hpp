@@ -16,6 +16,7 @@ namespace AstralCanvas
         LGFXFunction gpuFunction;
         LGFXFunctionType functionType;
         collections::Array<ShaderResourceSet> resourceSets;
+        string baseName;
 
         ShaderFunction();
         ShaderFunction(IAllocator allocator, LGFXDevice device);

@@ -8,7 +8,7 @@
 #include "DataStream.hpp"
 #include "HashSet.hpp"
 
-#define FUNC_BINARY_FILE_VERSION 1
+#define FUNC_BINARY_FILE_VERSION 2
 
 enum ShaderCompilerOptimizationLevel : i32
 {
