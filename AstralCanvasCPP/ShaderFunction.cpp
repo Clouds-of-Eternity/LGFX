@@ -70,7 +70,7 @@ namespace AstralCanvas
             
             if (resourceStates[i].data.name == variableName)
             {
-                LGFXSetBufferDataFast(((LGFXBuffer *)resourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0], (u8*)ptr, size);
+                LGFXSetBufferDataFast(((LGFXBuffer *)resourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0], (u8*)ptr, 0, size);
                 return;
                 //uniforms.data[i].states.ptr[descriptorForThisDrawCall].ub.SetData(ptr, size);
             }

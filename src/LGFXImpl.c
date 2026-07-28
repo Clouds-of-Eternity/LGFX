@@ -419,20 +419,20 @@ void LGFXTextureSetData(LGFXDevice device, LGFXTexture texture, uint8_t* bytes, 
     }
     LGFX_ERROR("LGFXTextureSetData: Unknown backend\n");
 }
-void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, uint32_t toMip)
+void LGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, size_t fromBufferOffset, uint32_t toMip)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXCopyBufferToTexture(device, commandBuffer, from, to, toMip);
+        VkLGFXCopyBufferToTexture(device, commandBuffer, from, to, fromBufferOffset, toMip);
         return;
     }
     LGFX_ERROR("LGFXCopyBufferToTexture: Unknown backend\n");
 }
-void LGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, LGFXPoint3 extents, LGFXPoint3 offset, uint32_t toMip)
+void LGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, size_t fromBufferOffset, LGFXPoint3 extents, LGFXPoint3 offset, uint32_t toMip)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXCopyBufferToTextureWithExtents(device, commandBuffer, from, to, extents, offset, toMip);
+        VkLGFXCopyBufferToTextureWithExtents(device, commandBuffer, from, to, fromBufferOffset, extents, offset, toMip);
         return;
     }
     LGFX_ERROR("LGFXCopyBufferToTextureWithExtents: Unknown backend\n");
@@ -512,29 +512,29 @@ LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
     LGFX_ERROR("LGFXCreateBuffer: Unknown backend\n");
     return NULL;
 }
-void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to)
+void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to, size_t fromBufferOffset, size_t setIntoBufferOffset)
 {
     if (device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXCopyBufferToBuffer(device, commandBuffer, from, to);
+        VkLGFXCopyBufferToBuffer(device, commandBuffer, from, to, fromBufferOffset, setIntoBufferOffset);
         return;
     }
     LGFX_ERROR("LGFXCopyBufferToBuffer: Unknown backend\n");
 }
-void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t dataLength)
+void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXSetBufferDataOptimizedData(buffer, commandBufferToUse, data, dataLength);
+        VkLGFXSetBufferDataOptimizedData(buffer, commandBufferToUse, data, setIntoBufferOffset, dataLength);
         return;
     }
     LGFX_ERROR("LGFXSetBufferDataOptimizedData: Unknown backend\n");
 }
-void LGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t dataLength)
+void LGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXSetBufferDataFast(buffer, data, dataLength);
+        VkLGFXSetBufferDataFast(buffer, data, setIntoBufferOffset, dataLength);
         return;
     }
     LGFX_ERROR("LGFXSetBufferDataFast: Unknown backend\n");

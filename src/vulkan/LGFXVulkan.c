@@ -1904,7 +1904,7 @@ void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, uint8_t* bytes
 
 	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_TransferDstOptimal, cmdBuffer, 0, 1);
 
-	VkLGFXCopyBufferToTexture(device, cmdBuffer, stagingBuffer, texture, 0);
+	VkLGFXCopyBufferToTexture(device, cmdBuffer, stagingBuffer, texture, 0, 0);
 
 	VkLGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_ShaderReadOptimal, cmdBuffer, 0, 1);
 
@@ -1912,7 +1912,7 @@ void VkLGFXTextureSetData(LGFXDevice device, LGFXTexture texture, uint8_t* bytes
 
 	VkLGFXDestroyBuffer(stagingBuffer);
 }
-void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, uint32_t toMip)
+void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, size_t fromBufferOffset, uint32_t toMip)
 {
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	if (commandBuffer == NULL)
@@ -1922,7 +1922,7 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 
 	VkBufferImageCopy bufferImageCopy = {0};
     
-    bufferImageCopy.bufferOffset = 0;
+    bufferImageCopy.bufferOffset = fromBufferOffset;
     //only set values other than 0 if the image buffer is not tightly packed
     bufferImageCopy.bufferRowLength = 0;
     bufferImageCopy.bufferImageHeight = 0;
@@ -1956,7 +1956,7 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
 	}
 }
-void VkLGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, LGFXPoint3 extents, LGFXPoint3 offset, uint32_t toMip)
+void VkLGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, size_t fromBufferOffset, LGFXPoint3 extents, LGFXPoint3 offset, uint32_t toMip)
 {
 	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
 	LGFXTextureLayout originalLayout = LGFXTextureLayout_Undefined;
@@ -1972,7 +1972,7 @@ void VkLGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer c
 
 	VkBufferImageCopy bufferImageCopy = {0};
     
-    bufferImageCopy.bufferOffset = 0;
+    bufferImageCopy.bufferOffset = fromBufferOffset;
     //only set values other than 0 if the image buffer is not tightly packed
     bufferImageCopy.bufferRowLength = 0;
     bufferImageCopy.bufferImageHeight = 0;
@@ -2291,17 +2291,17 @@ LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
 	*ptr = result;
 	return ptr;
 }
-void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to)
+void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to, size_t fromBufferOffset, size_t setIntoBufferOffset)
 {
 	assert(commandBuffer != NULL);
 
 	VkBufferCopy regions;
 	regions.size = from->size;
-	regions.srcOffset = 0;
-	regions.dstOffset = 0;
+	regions.srcOffset = fromBufferOffset;
+	regions.dstOffset = setIntoBufferOffset;
 	vkCmdCopyBuffer((VkCommandBuffer)commandBuffer->cmdBuffer, (VkBuffer)from->handle, (VkBuffer)to->handle, 1, &regions);
 }
-void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t dataLength)
+void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
 	LGFXBufferCreateInfo stagingBufferInfo = {0};
 	stagingBufferInfo.bufferUsage = LGFXBufferUsage_TransferSource;
@@ -2310,7 +2310,7 @@ void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer comma
 
 	LGFXBuffer stagingBuffer = VkLGFXCreateBuffer(buffer->device, &stagingBufferInfo);
 
-	memcpy(stagingBuffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
+	memcpy((uint8_t *)stagingBuffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
 
 	LGFXCommandBuffer cmdBuffer = commandBufferToUse;
 	if (commandBufferToUse == NULL)
@@ -2318,7 +2318,7 @@ void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer comma
 		cmdBuffer = VkLGFXCreateTemporaryCommandBuffer(buffer->device, buffer->device->transferQueue, true);
 	}
 
-	VkLGFXCopyBufferToBuffer(buffer->device, cmdBuffer, stagingBuffer, buffer);
+	VkLGFXCopyBufferToBuffer(buffer->device, cmdBuffer, stagingBuffer, buffer, 0, setIntoBufferOffset);
 
 	if (commandBufferToUse == NULL)
 	{
@@ -2327,9 +2327,9 @@ void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer comma
 
 	VkLGFXDestroyBuffer(stagingBuffer);
 }
-void VkLGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t dataLength)
+void VkLGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t bufferStartOffset, size_t dataLength)
 {
-	memcpy(buffer->bufferMemory->vkAllocationInfo.pMappedData, data, dataLength);
+	memcpy((uint8_t *)buffer->bufferMemory->vkAllocationInfo.pMappedData + bufferStartOffset, data, dataLength);
 }
 void VkLGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t value)
 {
@@ -2352,7 +2352,7 @@ void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_
 
 	LGFXCommandBuffer cmds = VkLGFXCreateTemporaryCommandBuffer(buffer->device, buffer->device->transferQueue, true);
 
-	VkLGFXCopyBufferToBuffer(buffer->device, cmds, buffer, destBuffer);
+	VkLGFXCopyBufferToBuffer(buffer->device, cmds, buffer, destBuffer, 0, 0);
 
 	VkLGFXEndTemporaryCommandBuffer(buffer->device, cmds);
 
