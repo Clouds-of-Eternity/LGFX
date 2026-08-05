@@ -1385,7 +1385,11 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
     VkSwapchainCreateInfoKHR createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = surfaceKHR;
-	createInfo.minImageCount = details.capabilities.minImageCount;
+	if (details.capabilities.maxImageCount >= 3)
+	{
+		createInfo.minImageCount = 3;
+	}
+	else createInfo.minImageCount = details.capabilities.minImageCount;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
 	createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageArrayLayers = 1;
@@ -1763,7 +1767,7 @@ void VkLGFXTextureTransitionLayout(LGFXDevice device, LGFXTexture texture, LGFXT
 
 			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
 				sourceStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-				memBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+				memBarrier.srcAccessMask = 0;
 				break;
 
 			default:
