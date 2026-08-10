@@ -3,7 +3,7 @@
 #include "lgfx/lgfx.h"
 #include "List.hpp"
 #include "ArenaAllocator.hpp"
-#include "Maths/All.h"
+#include "Maths/All.hpp"
 
 namespace AstralCanvas
 {

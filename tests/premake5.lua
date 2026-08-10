@@ -7,6 +7,7 @@ project "Tests"
     includedirs {
         "../include",
         "../Astral.Core/Astral.Core",
+        "../Astral.Core/Astral.Plane",
         "../dependencies/glfw/include",
         "%{VULKAN_SDK}/include"
     }

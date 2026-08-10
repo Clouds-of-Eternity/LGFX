@@ -1,7 +1,8 @@
 #pragma once
 #include "AstralCanvasHPP/InputState.hpp"
 #include "lgfx/lgfx.h"
-#include "Maths/All.h"
+#include "Maths/All.hpp"
+#include "Box.hpp"
 #include "Linxc.h"
 #include "option.hpp"
 #include "string.hpp"
@@ -52,9 +53,9 @@ namespace AstralCanvas
 		Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
 
 		void deinit();
-		inline Maths::Rectangle AsRectangle()
+		inline Rect32 AsRectangle()
 		{
-			return Maths::Rectangle(0, 0, resolution.X, resolution.Y);
+			return Rect32(0, 0, resolution.X, resolution.Y);
 		}
 		void SetWindowTitle(string title);
 		void SetMaximized(bool value);

@@ -6,7 +6,8 @@ project "ShaderCompiler"
     targetdir "bin/%{cfg.buildcfg}"
     includedirs {
         "%{VULKAN_SDK}/include",
-        "../Astral.Core/Astral.Core"
+        "../Astral.Core/Astral.Core",
+        "../Astral.Core/Astral.Plane"
     }
     files {
         "ShaderCompiler.cpp",

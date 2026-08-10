@@ -7,6 +7,7 @@ project "ComputeCPP"
     includedirs {
         "../../../include",
         "../../../Astral.Core/Astral.Core",
+        "../../../Astral.Core/Astral.Plane",
         "../../../dependencies/glfw/include"
     }
     links {"LGFX", "AstralCanvasCPP", "GLFW"}
