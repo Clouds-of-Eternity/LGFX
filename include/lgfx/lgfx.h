@@ -277,6 +277,8 @@ typedef enum
     LGFXTextureFormat_R8Snorm,
     LGFXTextureFormat_R8Uint,
     LGFXTextureFormat_R8Sint,
+    LGFXTextureFormat_R16Unorm,
+    LGFXTextureFormat_R16Snorm,
     LGFXTextureFormat_R16Uint,
     LGFXTextureFormat_R16Sint,
     LGFXTextureFormat_R16Float,

@@ -39,7 +39,7 @@ LGFXMemoryBlock VkLGFXAllocMemoryForBuffer(LGFXDevice device, VkBuffer buffer, L
 // END
 
 // HELPER FUNCTIONS
-VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
+static inline VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
 {
     switch (blend)
     {
@@ -71,7 +71,7 @@ VkBlendFactor LGFXBlendState2Vulkan(LGFXBlend blend)
     }
 }
 
-VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
+static inline VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
 {
 	switch (type)
 	{
@@ -92,7 +92,7 @@ VkPrimitiveTopology LGFXPrimitiveType2Vulkan(LGFXPrimitiveType type)
 	}
 }
 
-VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
+static inline VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
 {
     switch (format)
     {
@@ -130,12 +130,12 @@ VkFormat LGFXVertexElementFormat2Vulkan(LGFXVertexElementFormat format)
 	}
 }
 
-VkBufferUsageFlags LGFXBufferUsage2Vulkan(LGFXBufferUsage usage)
+static inline VkBufferUsageFlags LGFXBufferUsage2Vulkan(LGFXBufferUsage usage)
 {
 	return (VkBufferUsageFlags)usage;
 }
 
-VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationMode mode)
+static inline VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationMode mode)
 {
 	switch (mode)
 	{
@@ -149,7 +149,7 @@ VkPresentModeKHR LGFXSwapchainPresentationMode2Vulkan(LGFXSwapchainPresentationM
 			return VK_PRESENT_MODE_FIFO_KHR;
 	}
 }
-VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMode)
+static inline VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMode)
 {
 	switch (repeatMode)
 	{
@@ -163,7 +163,7 @@ VkSamplerAddressMode LGFXSamplerRepeatMode2Vulkan(LGFXSamplerRepeatMode repeatMo
 			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	}
 }
-VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
+static inline VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
 {
 	switch (type)
 	{
@@ -177,7 +177,7 @@ VkFilter LGFXFilterType2Vulkan(LGFXFilterType type)
 			return VK_FILTER_NEAREST;
 	}
 }
-VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
+static inline VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
 {
 	switch (color)
 	{
@@ -201,12 +201,12 @@ VkBorderColor LGFXSamplerBorderColor2Vulkan(LGFXSamplerBorderColor color)
 	}
 }
 
-VkImageUsageFlags LGFXTextureUsage2Vulkan(LGFXTextureUsage usage)
+static inline VkImageUsageFlags LGFXTextureUsage2Vulkan(LGFXTextureUsage usage)
 {
 	//these map 1:1
 	return (VkImageUsageFlags)usage;
 }
-VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
+static inline VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 {
 	switch (layout)
 	{
@@ -240,7 +240,7 @@ VkImageLayout LGFXTextureLayout2Vulkan(LGFXTextureLayout layout)
 			return VK_IMAGE_LAYOUT_UNDEFINED;
 	}
 }
-VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags)
+static inline VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags)
 {
 	VkShaderStageFlags result = 0;
 	if ((flags & LGFXShaderInputAccess_Vertex) != 0)
@@ -257,7 +257,7 @@ VkShaderStageFlags LGFXShaderInputAccess2Vulkan(LGFXShaderInputAccessFlags flags
 	}
 	return result;
 }
-VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType type)
+static inline VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType type)
 {
 	switch (type)
 	{
@@ -278,7 +278,7 @@ VkDescriptorType LGFXShaderResourceType2Vulkan(LGFXShaderResourceType type)
 			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	}
 }
-VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
+static inline VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
 {
 	switch (format)
 	{
@@ -292,6 +292,10 @@ VkFormat LGFXTextureFormat2Vulkan(LGFXTextureFormat format)
 			return VK_FORMAT_R8_UINT;
 		case LGFXTextureFormat_R8Sint:
 			return VK_FORMAT_R8_SINT;
+		case LGFXTextureFormat_R16Unorm:
+			return VK_FORMAT_R16_UNORM;
+		case LGFXTextureFormat_R16Snorm:
+			return VK_FORMAT_R16_SNORM;
 		case LGFXTextureFormat_R16Uint:
 			return VK_FORMAT_R16_UINT;
 		case LGFXTextureFormat_R16Sint:

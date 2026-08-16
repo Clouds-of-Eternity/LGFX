@@ -1,6 +1,4 @@
-#ifndef LGFXVULKAN_HPP
-#define LGFXVULKAN_HPP
-
+#pragma once
 #include "LGFXImpl.h"
 
 #define LGFX_VULKAN_API_VERSION VK_API_VERSION_1_3
@@ -111,5 +109,3 @@ void VkLGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParams
 
 void VkLGFXDispatchCompute(LGFXCommandBuffer commands, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ);
 void VkLGFXDispatchComputeIndirect(LGFXCommandBuffer commands, LGFXBuffer dispatchParamsBuffer, size_t offset);
-
-#endif

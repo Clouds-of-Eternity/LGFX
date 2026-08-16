@@ -10,7 +10,9 @@
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",
                 "${workspaceFolder}/Astral.Core/Astral.Plane",
-                "C:/VulkanSDK/1.4.341.1/Include"
+                "C:/VulkanSDK/1.4.341.1/Include",
+                "${workspaceFolder}/../emsdk/upstream/emscripten/system/include",
+                "${workspaceFolder}/../emdawnwebgpu_pkg/webgpu/include"
             ],
             "defines": [
                 "WINDOWS",
@@ -19,6 +21,28 @@
                 "ASTRALCANVAS_VULKAN",
                 "VK_USE_PLATFORM_WIN32_KHR",
                 "GLFW_EXPOSE_NATIVE_WIN32"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "WebGPU",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/AstralCanvasCPP",
+                "${workspaceFolder}/dependencies/glfw/include",
+                "${workspaceFolder}/Astral.Core/Astral.Core",
+                "${workspaceFolder}/Astral.Core/Astral.Plane",
+                "${workspaceFolder}/../emsdk/upstream/emscripten/cache/sysroot/include",
+                "${workspaceFolder}/../emdawnwebgpu_pkg/webgpu/include",
+                "${workspaceFolder}/../emdawnwebgpu_pkg/webgpu_cpp/include"
+            ],
+            "defines": [
+                "__EMSCRIPTEN__",
+                "DEBUG",
+                "ASTRALCANVAS_WEBGPU",
+                "POSIX"
             ],
             "cStandard": "c17",
             "cppStandard": "c++17"
