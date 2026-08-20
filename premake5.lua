@@ -48,14 +48,11 @@ workspace "LGFX"
     include("dependencies/GLFW.lua")
 
     include("src")
-
-    include("AstralCanvasC")
+    
     include("AstralCanvasCPP")
     
     include("ShaderCompiler")
 
     include("examples/AstralCanvasCPP/triangle")
     include("examples/AstralCanvasCPP/compute")
-    include("examples/AstralCanvas/triangle")
-    include("examples/AstralCanvas/compute")
     include("tests")

@@ -8,7 +8,7 @@
             "type": "shell",
             "command": "${workspaceFolder}/ShaderCompiler/bin/Debug/ShaderCompiler",
             "args": [
-                "${workspaceFolder}/examples/high-level-api"
+                "${workspaceFolder}/examples/Shaders"
             ],
         }
     ]

@@ -108,12 +108,12 @@ void Init()
         VertexPositionColor(Maths::Vec3(-1.0, 1.0, 0.0), Maths::Vec4(0.0, 1.0, 0.0, 1.0)),
         VertexPositionColor(Maths::Vec3(1.0, 1.0, 0.0), Maths::Vec4(0.0, 0.0, 1.0, 1.0))
     };
-    LGFXSetBufferDataOptimizedData(vertexBuffer, NULL, (u8*)vertices, sizeof(vertices));
+    LGFXSetBufferDataOptimizedData(vertexBuffer, NULL, (u8*)vertices, 0, sizeof(vertices));
 
     u32 indices[3] = {
         0, 1, 2
     };
-    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8 *)indices, sizeof(indices));
+    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (u8 *)indices, 0, sizeof(indices));
 
     //shader
     usize errorCode = AstralCanvas::CreateShaderFromSFNFilePath(device, GetCAllocator(), "Triangle.sfn", &shader);
