@@ -1,5 +1,4 @@
-#ifndef LOGGING_H
-#define LOGGING_H
+#pragma once
 
 #include <stdio.h>
 #include <assert.h>
@@ -10,6 +9,4 @@
 
 #ifndef LGFX_WARN
 #define LGFX_WARN(...) printf(__VA_ARGS__)
-#endif
-
 #endif

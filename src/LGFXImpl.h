@@ -1,5 +1,4 @@
-#ifndef LGFXINSTANCE_H
-#define LGFXINSTANCE_H
+#pragma once
 
 #include "lgfx/lgfx.h"
 #include "lgfx/sync.h"
@@ -133,5 +132,3 @@ typedef struct LGFXSamplerStateImpl
     void *handle;
     LGFXDevice device;
 } LGFXSamplerStateImpl;
-
-#endif
