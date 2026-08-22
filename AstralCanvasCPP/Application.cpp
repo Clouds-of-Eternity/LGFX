@@ -86,7 +86,7 @@ namespace AstralCanvas
 			this->device = LGFXCreateDevice(this->instance, &deviceCreateInfo);
 		}
 	}
-	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
+	bool Application::AddWindow(const char *name, i32 width, i32 height, bool resizeable, bool fullscreen, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode, LGFXColor initialColor)
 	{
 		Window *result = (Window *)allocator.Allocate(sizeof(Window));
 
@@ -99,7 +99,7 @@ namespace AstralCanvas
 		{
 			height = vidMode->height;
 		}
-		*result = Window(allocator, name, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode);
+		*result = Window(allocator, name, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode, initialColor);
 		
 		if (framesPerSecond <= -1.0f)
 		{
@@ -122,17 +122,19 @@ namespace AstralCanvas
 		fixedUpdateTimer = 0.0f;
 		AstralCanvas::globalTemplateStore = AstralCanvas::BatchTemplateStore(GetCAllocator(), AstralCanvas::applicationInstance.device);
 		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
+		
+		bool noWindows = windows.count == 0;
+		if (noWindows)
+		{
+			alwaysUpdate = true;
+		}
+		
 		if (initFunc != NULL)
 		{
 			initFunc();
 		}
 		startTime = (float)glfwGetTime();
 		endTime = startTime;
-		bool noWindows = windows.count == 0;
-		if (noWindows)
-		{
-			alwaysUpdate = true;
-		}
 
 		bool shouldStop = false;
 		while (!shouldStop)

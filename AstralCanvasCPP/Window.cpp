@@ -196,6 +196,33 @@ namespace AstralCanvas
 		}
     }
 	
+	void InitWindowClear(LGFXDevice device, AstralCanvas::Window *window, LGFXColor initialColor)
+	{
+		if (LGFXNewFrame(device, &window->swapchain, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y))
+		{
+			const u32 frameIndex = LGFXSwapchainGetCurrentFrameIndex(window->swapchain);
+			LGFXCommandBuffer commandBuffer = window->frameCommandBuffers[frameIndex];
+			window->currentCommandBuffer = commandBuffer;
+			LGFXCommandBufferReset(commandBuffer);
+			LGFXCommandBufferBegin(commandBuffer, true);
+
+			LGFXTexture frame = LGFXSwapchainGetCurrentFrame(window->swapchain);
+			LGFXClearValues clearValues = LGFXClearValues();
+
+			clearValues.floatRGBA[0] = initialColor.R / 255.0f;
+			clearValues.floatRGBA[1] = initialColor.G / 255.0f;
+			clearValues.floatRGBA[2] = initialColor.B / 255.0f;
+			clearValues.floatRGBA[3] = 1.0f;
+
+			LGFXTextureTransitionLayout(device, frame, LGFXTextureLayout_TransferDstOptimal, commandBuffer, 0, 1);
+			LGFXClearTexture(device, commandBuffer, frame, clearValues, 0, 1, false);
+			LGFXTextureTransitionLayout(device, frame, LGFXTextureLayout_PresentSource, commandBuffer, 0, 1);
+
+			LGFXCommandBufferEndSwapchain(commandBuffer, window->swapchain);
+			LGFXSubmitFrame(device, window->swapchain);
+			window->currentCommandBuffer = NULL;
+		}
+	}
 	Window::Window()
 	{
 		customCursorHandle = NULL;
@@ -221,7 +248,7 @@ namespace AstralCanvas
 
 		isDisposed = false;
 	}
-	Window::Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode)
+	Window::Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode, LGFXColor initialColor)
 	{
 		customCursorHandle = NULL;
 		handle = NULL;
@@ -257,6 +284,10 @@ namespace AstralCanvas
 			const GLFWvidmode *vidMode = glfwGetVideoMode(toFullscreenOn);
 			width = vidMode->width;
 			height = vidMode->height;
+		}
+		else
+		{
+			glfwWindowHint(GLFW_VISIBLE, (i32)false);
 		}
 		
 		this->handle = glfwCreateWindow(width, height, name, toFullscreenOn, NULL);
@@ -310,6 +341,18 @@ namespace AstralCanvas
 			for (u32 i = 0; i < totalTextures; i++)
 			{
 				this->frameCommandBuffers[i] = LGFXCreateCommandBuffer(applicationInstance.device, false);
+			}
+
+			//clear backbuffer for the first time
+			if (initialColor.A != 0)
+			{
+				InitWindowClear(AstralCanvas::applicationInstance.device, this, initialColor);
+			}
+			if (!fullscreen)
+			{
+				glfwShowWindow((GLFWwindow *)this->handle);
+				//glfwSetWindowAttrib((GLFWwindow *)this->handle, GLFW_VISIBLE, true);
+				//glfwWindowHint(GLFW_VISIBLE, (i32)true);
 			}
 		}
 	}

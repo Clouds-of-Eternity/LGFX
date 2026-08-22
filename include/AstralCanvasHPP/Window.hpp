@@ -50,7 +50,7 @@ namespace AstralCanvas
 		bool isDisposed;
 
 		Window();
-		Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode);
+		Window(IAllocator allocator, const char *name, i32 width, i32 height, bool resizeable, bool maximized, bool fullscreen, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode, LGFXColor initialColor);
 
 		void deinit();
 		inline Rect32 AsRectangle()
@@ -71,7 +71,7 @@ namespace AstralCanvas
 		void *GetOSWindowHandle();
 		i32 GetCurrentMonitorFramerate();
 		Maths::Vec2 GetCurrentMonitorResolution();
-
+		
 		void SetResolution(u32 width, u32 height);
 		void SetPosition(float posX, float posY);
 		void SetMousePosition(float X, float Y);

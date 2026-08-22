@@ -39,6 +39,8 @@ LGFXSemaphore VkLGFXSwapchainGetAwaitRenderedSemaphore(LGFXSwapchain swapchain);
 LGFXSemaphore VkLGFXSwapchainGetAwaitPresentedSemaphore(LGFXSwapchain swapchain);
 uint32_t VkLGFXSwapchainGetCurrentFrameIndex(LGFXSwapchain swapchain);
 uint32_t VkLGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain);
+LGFXTexture VkLGFXSwapchainGetCurrentFrame(LGFXSwapchain swapchain);
+LGFXTexture VkLGFXSwapchainGetCurrentImage(LGFXSwapchain swapchain);
 
 bool VkLGFXNewFrame(LGFXDevice device, LGFXSwapchain *swapchain, uint32_t frameWidth, uint32_t frameHeight);
 void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain);
@@ -50,6 +52,7 @@ void VkLGFXCopyBufferToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffe
 void VkLGFXCopyBufferToTextureWithExtents(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXTexture to, size_t fromBufferOffset, LGFXPoint3 extents, LGFXPoint3 offset, uint32_t toMip);
 void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXBuffer to, uint32_t toMip);
 void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, uint32_t fromMip, LGFXPoint3 toOffset, uint32_t toMip, LGFXPoint3 copyAreaSize, bool autoTransition);
+void VkLGFXClearTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture texture, LGFXClearValues clearValues, uint32_t firstMipToTransition, uint32_t mipsToTransitionDepth, bool autoTransition);
 void VkLGFXDestroyTexture(LGFXTexture texture);
 // void VkLGFXTextureBlit(LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to);
 

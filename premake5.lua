@@ -18,6 +18,10 @@ workspace "LGFX"
         trigger = "clang",
         description = "Utilise the clang compiler toolchain"
     }
+    newoption {
+        trigger = "dll",
+        description = "Build as a dynamic library file (.dll on Windows, .so on Linux, .dylib on MacOS)"
+    }
     
     filter "options:clang"
         toolset "clang"

@@ -1393,7 +1393,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
 	createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.queueFamilyIndexCount = 0;
@@ -1440,7 +1440,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		textureCreateInfo.depth = 1;
 		textureCreateInfo.mipLevels = 1;
 		textureCreateInfo.sampleCount = 1;
-		textureCreateInfo.usage = LGFXTextureUsage_ColorAttachment;
+		textureCreateInfo.usage = LGFXTextureUsage_ColorAttachment | LGFXTextureUsage_TransferDest;
 		result->frameDatas[i].backbufferTexture = LGFXCreateTexture(device, &textureCreateInfo);
 		//result->backbufferTextures[i]->layout = LGFXTextureLayout_PresentSource;
 
@@ -1451,7 +1451,7 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 		textureCreateInfo.format = LGFXTextureFormat_Depth32Float;
 		textureCreateInfo.mipLevels = 1;
 		textureCreateInfo.sampleCount = 1;
-		textureCreateInfo.usage = (LGFXTextureUsage)(LGFXTextureUsage_DepthAttachment | LGFXTextureUsage_Sampled);
+		textureCreateInfo.usage = (LGFXTextureUsage)(LGFXTextureUsage_DepthAttachment | LGFXTextureUsage_Sampled | LGFXTextureUsage_TransferDest);
 		result->frameDatas[i].backDepthbuffer = LGFXCreateTexture(device, &textureCreateInfo);
 
 		result->frameDatas[i].awaitAcquireNextImage = LGFXCreateSemaphore(device);
@@ -2070,86 +2070,15 @@ void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuff
 		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->graphicsQueue, true);
 	}
 
-	LGFXTextureLayout dstOriginalLayout = to->layout;
 	if (from == NULL)
 	{
-		if (autoTransition)
-		{
-			LGFXTextureTransitionLayout(device, to, LGFXTextureLayout_TransferDstOptimal, transientCmdBuffer, toMip, 1);
-		}
-
-		if (to->format < LGFXTextureFormat_Stencil8)
-		{
-			VkClearColorValue clearValues = {0};
-			clearValues.float32[0] = 0.0f;
-			clearValues.float32[1] = 0.0f;
-			clearValues.float32[2] = 0.0f;
-			clearValues.float32[3] = 0.0f;
-
-			clearValues.int32[0] = 0;
-			clearValues.int32[1] = 0;
-			clearValues.int32[2] = 0;
-			clearValues.int32[3] = 0;
-
-			clearValues.uint32[0] = 0;
-			clearValues.uint32[1] = 0;
-			clearValues.uint32[2] = 0;
-			clearValues.uint32[3] = 0;
-
-			VkImageSubresourceRange range = {0};
-			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			range.baseMipLevel = 0;
-			range.baseArrayLayer = 0;
-			range.layerCount = 1;
-			range.levelCount = 1;
-			vkCmdClearColorImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValues, 1, &range);
-		}
-		else
-		{
-			VkClearDepthStencilValue clearValues[2] = {
-				{
-					.depth = 1.0f,
-					.stencil = 0
-				},
-				{
-					.depth = 1.0f,
-					.stencil = 0
-				}
-			};
-
-			VkImageSubresourceRange ranges[2] = {0};
-			int8_t index = 0;
-			if (to->format != LGFXTextureFormat_Stencil8)
-			{
-				ranges[index].aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-				ranges[index].baseMipLevel = 0;
-				ranges[index].baseArrayLayer = 0;
-				ranges[index].layerCount = 1;
-				ranges[index].levelCount = 1;
-
-				index++;
-			}
-			if (to->format == LGFXTextureFormat_Stencil8 || to->format == LGFXTextureFormat_Depth24PlusStencil8 || to->format == LGFXTextureFormat_Depth32FloatStencil8)
-			{
-				ranges[index].aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-				ranges[index].baseMipLevel = 0;
-				ranges[index].baseArrayLayer = 0;
-				ranges[index].layerCount = 1;
-				ranges[index].levelCount = 1;
-
-				index++;
-			}
-			vkCmdClearDepthStencilImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)to->imageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, clearValues, index, ranges);
-		}
-
-		if (autoTransition)
-		{
-			LGFXTextureTransitionLayout(device, to, dstOriginalLayout, transientCmdBuffer, toMip, 1);
-		}
+		LGFXClearValues clearValues = (LGFXClearValues){0};
+		VkLGFXClearTexture(device, transientCmdBuffer, to, clearValues, toMip, 1, autoTransition);
 	}
 	else
 	{
-		LGFXTextureLayout srcOriginalLayout = from->layout;
+		const LGFXTextureLayout dstOriginalLayout = to->layout;
+		const LGFXTextureLayout srcOriginalLayout = from->layout;
 		if (autoTransition)
 		{
 			LGFXTextureTransitionLayout(device, from, LGFXTextureLayout_TransferSrcOptimal, transientCmdBuffer, fromMip, 1);
@@ -2195,6 +2124,95 @@ void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuff
 	{
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
 		ExitLock(&device->graphicsQueue->commandPoolLock);
+	}
+}
+void VkLGFXClearTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture texture, LGFXClearValues clearValues, uint32_t firstMipToTransition, uint32_t mipsToTransitionDepth, bool autoTransition)
+{
+	if (mipsToTransitionDepth == 0)
+	{
+		mipsToTransitionDepth = 1;
+	}
+	LGFXCommandBuffer transientCmdBuffer = commandBuffer;
+	if (commandBuffer == NULL)
+	{
+		EnterLock(&device->transferQueue->commandPoolLock);
+		transientCmdBuffer = VkLGFXCreateTemporaryCommandBuffer(device, device->transferQueue, true);
+	}
+
+	const LGFXTextureLayout dstOriginalLayout = texture->layout;
+	if (autoTransition && dstOriginalLayout != LGFXTextureLayout_General && dstOriginalLayout != LGFXTextureLayout_TransferDstOptimal)
+	{
+		LGFXTextureTransitionLayout(device, texture, LGFXTextureLayout_TransferDstOptimal, transientCmdBuffer, firstMipToTransition, mipsToTransitionDepth);
+	}
+	VkImageLayout clearCommandLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	if (dstOriginalLayout == LGFXTextureLayout_General)
+	{
+		clearCommandLayout = VK_IMAGE_LAYOUT_GENERAL;
+	}
+
+	if (texture->format < LGFXTextureFormat_Stencil8)
+	{
+		VkClearColorValue vkClearValues = (VkClearColorValue){0};
+		vkClearValues.float32[0] = clearValues.floatRGBA[0];
+		vkClearValues.float32[1] = clearValues.floatRGBA[1];
+		vkClearValues.float32[2] = clearValues.floatRGBA[2];
+		vkClearValues.float32[3] = clearValues.floatRGBA[3];
+
+		VkImageSubresourceRange range = {0};
+		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		range.baseMipLevel = firstMipToTransition;
+		range.baseArrayLayer = 0;
+		range.levelCount = mipsToTransitionDepth;
+		range.layerCount = 1;
+
+		vkCmdClearColorImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)texture->imageHandle, clearCommandLayout, &vkClearValues, 1, &range);
+	}
+	else
+	{
+		VkClearDepthStencilValue clearValues[2] = {
+			{
+				.depth = 1.0f,
+				.stencil = 0
+			},
+			{
+				.depth = 1.0f,
+				.stencil = 0
+			}
+		};
+
+		VkImageSubresourceRange ranges[2] = {0};
+		int8_t index = 0;
+		if (texture->format != LGFXTextureFormat_Stencil8)
+		{
+			ranges[index].aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+			ranges[index].baseMipLevel = 0;
+			ranges[index].baseArrayLayer = 0;
+			ranges[index].layerCount = 1;
+			ranges[index].levelCount = 1;
+
+			index++;
+		}
+		if (texture->format == LGFXTextureFormat_Stencil8 || texture->format == LGFXTextureFormat_Depth24PlusStencil8 || texture->format == LGFXTextureFormat_Depth32FloatStencil8)
+		{
+			ranges[index].aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+			ranges[index].baseMipLevel = 0;
+			ranges[index].baseArrayLayer = 0;
+			ranges[index].layerCount = 1;
+			ranges[index].levelCount = 1;
+
+			index++;
+		}
+		vkCmdClearDepthStencilImage((VkCommandBuffer)transientCmdBuffer->cmdBuffer, (VkImage)texture->imageHandle, clearCommandLayout, clearValues, index, ranges);
+	}
+
+	if (autoTransition && dstOriginalLayout != LGFXTextureLayout_General && dstOriginalLayout != LGFXTextureLayout_TransferDstOptimal)
+	{
+		LGFXTextureTransitionLayout(device, texture, dstOriginalLayout, transientCmdBuffer, firstMipToTransition, mipsToTransitionDepth);
+	}
+	if (commandBuffer == NULL)
+	{
+		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
+		ExitLock(&device->transferQueue->commandPoolLock);
 	}
 }
 void VkLGFXDestroyTexture(LGFXTexture texture)
@@ -3831,6 +3849,14 @@ uint32_t VkLGFXSwapchainGetCurrentFrameIndex(LGFXSwapchain swapchain)
 uint32_t VkLGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain)
 {
 	return swapchain->currentImageIndex;
+}
+LGFXTexture VkLGFXSwapchainGetCurrentFrame(LGFXSwapchain swapchain)
+{
+	return swapchain->frameDatas[swapchain->currentFrameIndex].backbufferTexture;
+}
+LGFXTexture VkLGFXSwapchainGetCurrentImage(LGFXSwapchain swapchain)
+{
+	return swapchain->frameDatas[swapchain->currentImageIndex].backbufferTexture;
 }
 
 void VkLGFXDestroyCommandQueue(LGFXDevice device, LGFXCommandQueue queue)

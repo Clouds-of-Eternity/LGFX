@@ -308,6 +308,24 @@ uint32_t LGFXSwapchainGetCurrentImageIndex(LGFXSwapchain swapchain)
     LGFX_ERROR("LGFXSwapchainGetCurrentImageIndex: Unknown backend\n");
     return 0xFFFFFFFF;
 }
+LGFXTexture LGFXSwapchainGetCurrentFrame(LGFXSwapchain swapchain)
+{
+    if (swapchain->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXSwapchainGetCurrentFrame(swapchain);
+    }
+    LGFX_ERROR("LGFXSwapchainGetCurrentFrame: Unknown backend\n");
+    return NULL;
+}
+LGFX_EXPORT LGFXTexture LGFXSwapchainGetCurrentImage(LGFXSwapchain swapchain)
+{
+    if (swapchain->device->backend == LGFXBackendType_Vulkan)
+    {
+        return VkLGFXSwapchainGetCurrentImage(swapchain);
+    }
+    LGFX_ERROR("LGFXSwapchainGetCurrentImage: Unknown backend\n");
+    return NULL;
+}
 
 void LGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType funcType, LGFXFunctionOperationType opType)
 {
@@ -453,7 +471,16 @@ void LGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer
         VkLGFXCopyTextureToTexture(device, commandBuffer, from, to, fromOffset, fromMip, toOffset, toMip, copyAreaSize, autoTransition);
         return;
     }
-    LGFX_ERROR("LGFXCopyTextureToBuffer: Unknown backend\n");
+    LGFX_ERROR("LGFXCopyTextureToTexture: Unknown backend\n");
+}
+void LGFXClearTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture texture, LGFXClearValues clearValues, uint32_t firstMipToTransition, uint32_t mipsToTransitionDepth, bool autoTransition)
+{
+    if (device->backend == LGFXBackendType_Vulkan)
+    {
+        VkLGFXClearTexture(device, commandBuffer, texture, clearValues, firstMipToTransition, mipsToTransitionDepth, autoTransition);
+        return;
+    }
+    LGFX_ERROR("LGFXClearTexture: Unknown backend\n");
 }
 void LGFXDestroyTexture(LGFXTexture texture)
 {

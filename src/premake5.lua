@@ -21,6 +21,10 @@ project "LGFX"
         "../include/**.h",
         "../dependencies/volk/volk.c"
     }
+    
+    filter "options:dll"
+        kind "SharedLib"
+        defines { "BUILD_LGFX_DLL" }
 
     filter "system:windows"
         systemversion "latest"
