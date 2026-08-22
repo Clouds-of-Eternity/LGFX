@@ -1227,33 +1227,146 @@ LGFXBuffer wLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info)
 }
 void wLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to, size_t fromBufferOffset, size_t setIntoBufferOffset)
 {
-    wgpuCommandEncoderCopyBufferToBuffer
+    WGPUDevice wDevice = (WGPUDevice)device->logicalDevice;
+    WGPUCommandEncoder encoder;
+    
+    if (commandBuffer != NULL)
+    {
+        encoder = (WGPUCommandEncoder)commandBuffer->cmdBuffer;
+    }
+    else
+    {
+        encoder = wgpuDeviceCreateCommandEncoder(wDevice, NULL);
+    }
+
+    wgpuCommandEncoderCopyBufferToBuffer(encoder, (WGPUBuffer)from->handle, fromBufferOffset, (WGPUBuffer)to->handle, setIntoBufferOffset, from->size);
+
+    if (commandBuffer == NULL)
+    {
+        WGPUCommandBuffer finalizedCommands = wgpuCommandEncoderFinish(encoder, NULL);
+        wgpuQueueSubmit((WGPUQueue)device->graphicsQueue->queue, 1, &finalizedCommands);
+        wgpuCommandEncoderRelease(encoder);
+        wgpuCommandBufferRelease(finalizedCommands);
+    }
 }
 void wLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
-
+    LGFXDevice device = buffer->device;
+    wgpuQueueWriteBuffer((WGPUQueue)device->graphicsQueue->queue, (WGPUBuffer)buffer->handle, setIntoBufferOffset, data, dataLength);
 }
 void wLGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
-
+    LGFXDevice device = buffer->device;
+    wgpuQueueWriteBuffer((WGPUQueue)device->graphicsQueue->queue, (WGPUBuffer)buffer->handle, setIntoBufferOffset, data, dataLength);
 }
 void wLGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t value)
 {
-
+    LGFXDevice device = buffer->device;
+    usize bufferSizeRound = (u32)(floorf(sizeof(buffer->size) / (float)sizeof(u32)) * sizeof(u32));
+    u32 *fill = (u32 *)malloc(bufferSizeRound);
+    memset(fill, value, bufferSizeRound);
+    wgpuQueueWriteBuffer((WGPUQueue)device->graphicsQueue->queue, (WGPUBuffer)buffer->handle, 0, fill, bufferSizeRound);
+    free(fill);
 }
 void wLGFXDestroyBuffer(LGFXBuffer buffer)
 {
-
+    wgpuBufferRelease(buffer);
 }
+
+void wLGFXMapBufferCallback(WGPUMapAsyncStatus status, WGPUStringView message, void* userdata1, void* userdata2)
+{
+    if (status != WGPUMapAsyncStatus_Success)
+    {
+        *((u32 *)userdata1) = 0;
+    }
+}
+bool wLGFXMapBuffer(LGFXBuffer buffer)
+{
+    u32 result = 1;
+    WGPUBufferMapCallbackInfo callbackInfo = (WGPUBufferMapCallbackInfo){0};
+    callbackInfo.mode = WGPUCallbackMode_WaitAnyOnly;
+    callbackInfo.callback = &wLGFXMapBufferCallback;
+    callbackInfo.userdata1 = &result;
+
+    WGPUFuture future = wgpuBufferMapAsync((WGPUBuffer)buffer->handle, WGPUMapMode_Read, 0, buffer->size, callbackInfo);
+    wLGFXAwaitFuture(future, buffer->device->instance);
+
+    return result == 1;
+}
+
 void *wLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_t))
 {
+    WGPUDevice wDevice = (WGPUDevice)buffer->device->logicalDevice;
 
+    WGPUBufferDescriptor descriptor = (WGPUBufferDescriptor){0};
+    descriptor.mappedAtCreation = WGPU_TRUE;
+    descriptor.size = buffer->size;
+    descriptor.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead;
+    WGPUBuffer tempBufferHandle = wgpuDeviceCreateBuffer(wDevice, &descriptor);
+
+    LGFXBufferImpl tempBuffer = (LGFXBufferImpl){0};
+    tempBuffer.device = buffer->device;
+    tempBuffer.handle = tempBufferHandle;
+    tempBuffer.size = buffer->size;
+
+    bool mapped = wLGFXMapBuffer(&tempBuffer);
+    if (mapped)
+    {
+        wLGFXCopyBufferToBuffer(buffer->device, NULL, buffer, &tempBuffer, 0, 0);
+
+        const void *ptr = wgpuBufferGetConstMappedRange(tempBufferHandle, 0, WGPU_WHOLE_MAP_SIZE);
+        void *result = allocateFunction(buffer->size);
+        memcpy(result, ptr, buffer->size);
+
+        wgpuBufferUnmap(tempBufferHandle);
+        wgpuBufferRelease(tempBufferHandle);
+
+        return result;
+    }
+    else return NULL;
 }
 void *wLGFXGetBufferData(LGFXBuffer buffer)
 {
-
+    bool mapped = wgpuBufferGetMapState((WGPUBuffer)buffer->handle) == WGPUBufferMapState_Mapped;
+    if (!mapped)
+    {
+        mapped = wLGFXMapBuffer(buffer);
+        if (!mapped)
+        {
+            return NULL;
+        }
+    }
+    return wgpuBufferGetMappedRange((WGPUBuffer)buffer->handle, 0, WGPU_WHOLE_MAP_SIZE);
 }
 bool wLGFXBufferResize(LGFXBuffer buffer, size_t newSize)
 {
+	if (newSize == 0 || (buffer->usage & LGFXBufferUsage_TransferSource) == 0 || (buffer->usage & LGFXBufferUsage_TransferDest) == 0)
+	{
+		return false;
+	}
 
+    WGPUBuffer originalHandle = (WGPUBuffer)buffer->handle;
+    void *data = wLGFXReadBufferFromGPU(buffer, &malloc);
+
+    if (data == NULL)
+    {
+        return false;
+    }
+
+    WGPUBufferDescriptor bufferDescriptor = WGPU_BUFFER_DESCRIPTOR_INIT;
+    bufferDescriptor.usage = LGFXBufferUsage2WebGPU(buffer->usage);
+    bufferDescriptor.mappedAtCreation = WGPU_FALSE;
+    bufferDescriptor.size = buffer->size;
+
+    // if (buffer->bufferMemory != NULL)
+    // {
+    //     bufferDescriptor.label.data = info->memoryIdentifierName;
+    //     bufferDescriptor.label.length = WGPU_STRLEN;
+    // }
+
+    free(data);
+
+    buffer->size = newSize;
+    wgpuBufferRelease(originalHandle);
+    return true;
 }
