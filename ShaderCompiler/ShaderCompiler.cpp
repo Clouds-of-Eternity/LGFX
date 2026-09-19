@@ -1200,7 +1200,7 @@ i32 ShaderCompiler_Compile(ShaderCompiler *self, text filePathRelative, text ove
                     loaded.entryPoint1,
                     fileMeta.function1Permutations,
                     components,
-                    3,
+                    2,
                     1,
                     programs,
                     loaded.specializedEntryPoints))
