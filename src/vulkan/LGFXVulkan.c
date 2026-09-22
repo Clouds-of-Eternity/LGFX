@@ -3048,6 +3048,13 @@ LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctio
 			variable.currentValues.asBuffers = Allocate(LGFXFunctionVariableBufferData, variable.valuesCount);
 			variable.infos = (void **)Allocate(VkDescriptorBufferInfo, variable.valuesCount);
 
+			for (u32 i = 0; i < variable.valuesCount; i++)
+			{
+				variable.currentValues.asBuffers->buffer = NULL;
+				variable.currentValues.asBuffers->startOffset = 0;
+				variable.currentValues.asBuffers->length = 0;
+			}
+
 			if (info->type == LGFXShaderResourceType_Uniform)
 			{
 				variable.valueIsOwnedBuffer = true;
