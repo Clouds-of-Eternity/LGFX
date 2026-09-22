@@ -681,14 +681,29 @@ typedef struct LGFXFunctionVariableMetadata
     uint32_t size;
 } LGFXFunctionVariableMetadata;
 
+typedef struct LGFXFunctionVariableBufferData
+{
+    LGFXBuffer buffer;
+    uint32_t startOffset;
+    uint32_t length;
+} LGFXFunctionVariableBufferData;
+
+typedef union LGFXFunctionVariableValues
+{
+    LGFXFunctionVariableBufferData *asBuffers;
+    LGFXSamplerState *asSamplers;
+    LGFXTexture *asTextures;
+} LGFXFunctionVariableValues;
+
 typedef struct LGFXFunctionVariable
 {
-    void **currentValues;
-    uint32_t valuesCount;
+    //void **currentValues;
+    LGFXFunctionVariableValues currentValues;
     void *infos;
+
+    uint32_t valuesCount;
     LGFXFunctionVariableMetadata variableMetadata;
 
-    LGFXDevice device;
     bool valueIsOwnedBuffer;
 } LGFXFunctionVariable;
 

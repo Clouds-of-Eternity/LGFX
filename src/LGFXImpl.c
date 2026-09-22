@@ -758,12 +758,14 @@ void LGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVaria
 }
 void LGFXDestroyFunctionVariable(LGFXFunctionVariable variable)
 {
-    if (variable.device->backend == LGFXBackendType_Vulkan)
-    {
-        VkLGFXDestroyFunctionVariable(variable);
-        return;
-    }
-    LGFX_ERROR("LGFXDestroyFunctionVariable: Unknown backend\n");
+	if (variable.valueIsOwnedBuffer)
+	{
+		LGFXBuffer buffer = (LGFXBuffer)variable.currentValues.asBuffers[0].buffer;
+		LGFXDestroyBuffer(buffer);
+	}
+	free(variable.infos);
+	//its the same malloc anyways
+	free(variable.currentValues.asBuffers);
 }
 
 LGFXShaderPipeline LGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info)

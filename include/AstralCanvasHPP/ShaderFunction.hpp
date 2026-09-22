@@ -53,7 +53,7 @@ namespace AstralCanvas
         void SetTextures(const char* variableName, LGFXTexture *textures, usize count);
         void SetSampler(const char* variableName, LGFXSamplerState sampler);
         void SetSamplers(const char* variableName, LGFXSamplerState *samplers, usize count);
-        void SetComputeBuffer(const char* variableName, LGFXBuffer computeBuffer);
+        void SetComputeBuffer(const char* variableName, LGFXBuffer computeBuffer, usize startOffset = 0, usize length = 0);
         inline void Clear()
         {
             currentGroup = 0;

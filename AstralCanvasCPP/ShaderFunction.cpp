@@ -41,7 +41,7 @@ namespace AstralCanvas
         baseName.deinit();
     }
 
-    void ShaderFunctionState::SetComputeBuffer(const char* variableName, LGFXBuffer buffer)
+    void ShaderFunctionState::SetComputeBuffer(const char* variableName, LGFXBuffer buffer, usize startOffset, usize length)
     {
         CheckDescriptorSetAvailability();
         for (usize i = 0; i < resourceStates.length; i++)
@@ -53,7 +53,10 @@ namespace AstralCanvas
             
             if (resourceStates[i].data.name == variableName)
             {
-                ((LGFXBuffer *)resourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0] = buffer;
+                resourceStates[i].variableSlots.ptr[currentGroup].currentValues.asBuffers[0].buffer = buffer;
+                resourceStates[i].variableSlots.ptr[currentGroup].currentValues.asBuffers[0].startOffset = startOffset;
+                resourceStates[i].variableSlots.ptr[currentGroup].currentValues.asBuffers[0].length = length;
+                //((LGFXBuffer *)resourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0] = buffer;
                 break;
             }
         }
@@ -70,7 +73,7 @@ namespace AstralCanvas
             
             if (resourceStates[i].data.name == variableName)
             {
-                LGFXSetBufferDataFast(((LGFXBuffer *)resourceStates[i].variableSlots.ptr[currentGroup].currentValues)[0], (u8*)ptr, 0, size);
+                LGFXSetBufferDataFast(resourceStates[i].variableSlots.ptr[currentGroup].currentValues.asBuffers[0].buffer, (u8*)ptr, 0, size);
                 return;
                 //uniforms.data[i].states.ptr[descriptorForThisDrawCall].ub.SetData(ptr, size);
             }
@@ -91,7 +94,7 @@ namespace AstralCanvas
                 LGFXFunctionVariable *mutableState = &resourceStates[i].variableSlots.ptr[currentGroup];
                 for (usize j = 0; j < count; j++)
                 {
-                   ((LGFXTexture *)mutableState->currentValues)[j] = textures[j];
+                    mutableState->currentValues.asTextures[j] = textures[j];
                 }
                 return;
             }
@@ -116,7 +119,7 @@ namespace AstralCanvas
                 LGFXFunctionVariable *mutableState = &resourceStates[i].variableSlots.ptr[currentGroup];
                 for (usize j = 0; j < count; j++)
                 {
-                   ((LGFXSamplerState *)mutableState->currentValues)[j] = samplers[j];
+                    mutableState->currentValues.asSamplers[j] = samplers[j];
                 }
                 return;
             }
