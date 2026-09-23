@@ -105,8 +105,8 @@ void VkLGFXDestroyCommandBuffer(LGFXCommandBuffer commandBuffer);
 void VkLGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area);
 void VkLGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 
-void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, size_t offset);
-void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount);
+void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, const LGFXBuffer indexBuffer, size_t offset);
+void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, const LGFXBuffer *vertexBuffers, const size_t *_Nullable offsetsPerVertexBuffer, uint32_t vertexBuffersCount);
 void VkLGFXDrawIndexed(LGFXCommandBuffer commands, uint32_t indexCount, uint32_t instances, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance);
 void VkLGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, size_t bufferOffset, size_t drawCount, size_t drawParamsStride);
 

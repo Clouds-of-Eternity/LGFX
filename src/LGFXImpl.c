@@ -880,7 +880,7 @@ void LGFXCommandBufferReset(LGFXCommandBuffer buffer)
     LGFX_ERROR("LGFXCommandBufferReset: Unknown backend\n");
 }
 
-void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, size_t offset)
+void LGFXUseIndexBuffer(LGFXCommandBuffer commands, const LGFXBuffer indexBuffer, size_t offset)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
@@ -889,11 +889,15 @@ void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, size
     }
     LGFX_ERROR("LGFXUseIndexBuffer: Unknown backend\n");
 }
-void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount)
+void LGFXUseVertexBuffer(LGFXCommandBuffer commands, const LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount)
+{
+    LGFXUseVertexBuffer2(commands, vertexBuffers, NULL, vertexBuffersCount);
+}
+void LGFXUseVertexBuffer2(LGFXCommandBuffer commands, const LGFXBuffer *vertexBuffers, const size_t *offsetsPerVertexBuffer, uint32_t vertexBuffersCount)
 {
     if (commands->queue->inDevice->backend == LGFXBackendType_Vulkan)
     {
-        VkLGFXUseVertexBuffer(commands, vertexBuffers, vertexBuffersCount);
+        VkLGFXUseVertexBuffer(commands, vertexBuffers, offsetsPerVertexBuffer, vertexBuffersCount);
         return;
     }
     LGFX_ERROR("LGFXUseVertexBuffer: Unknown backend\n");

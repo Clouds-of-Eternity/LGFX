@@ -844,8 +844,10 @@ LGFX_EXPORT void LGFXUseShaderPipeline(LGFXCommandBuffer buffer, LGFXShaderPipel
 LGFX_EXPORT void LGFXSetViewport(LGFXCommandBuffer commandBuffer, LGFXBox area);
 LGFX_EXPORT void LGFXSetClipArea(LGFXCommandBuffer commandBuffer, LGFXRectangle area);
 
-LGFX_EXPORT void LGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, size_t offset);
-LGFX_EXPORT void LGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount);
+LGFX_EXPORT void LGFXUseIndexBuffer(LGFXCommandBuffer commands, const LGFXBuffer indexBuffer, size_t offset);
+LGFX_EXPORT void LGFXUseVertexBuffer(LGFXCommandBuffer commands, const LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount);
+LGFX_EXPORT void LGFXUseVertexBuffer2(LGFXCommandBuffer commands, const LGFXBuffer *vertexBuffers, const size_t *_Nullable offsetsPerVertexBuffer, uint32_t vertexBuffersCount);
+
 LGFX_EXPORT void LGFXDrawIndexed(LGFXCommandBuffer commands, uint32_t indexCount, uint32_t instances, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance);
 LGFX_EXPORT void LGFXDrawIndexedIndirect(LGFXCommandBuffer commands, LGFXBuffer drawParamsBuffer, size_t bufferOffset, size_t drawCount, size_t drawParamsStride);
 

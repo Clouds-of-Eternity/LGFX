@@ -3050,9 +3050,9 @@ LGFXFunctionVariable VkLGFXCreateFunctionVariable(LGFXDevice device, LGFXFunctio
 
 			for (u32 i = 0; i < variable.valuesCount; i++)
 			{
-				variable.currentValues.asBuffers->buffer = NULL;
-				variable.currentValues.asBuffers->startOffset = 0;
-				variable.currentValues.asBuffers->length = 0;
+				variable.currentValues.asBuffers[i].buffer = NULL;
+				variable.currentValues.asBuffers[i].startOffset = 0;
+				variable.currentValues.asBuffers[i].length = 0;
 			}
 
 			if (info->type == LGFXShaderResourceType_Uniform)
@@ -3703,18 +3703,18 @@ void VkLGFXDestroySamplerState(LGFXSamplerState state)
 	free(state);
 }
 
-void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, LGFXBuffer indexBuffer, size_t offset)
+void VkLGFXUseIndexBuffer(LGFXCommandBuffer commands, const LGFXBuffer indexBuffer, size_t offset)
 {
 	vkCmdBindIndexBuffer((VkCommandBuffer)commands->cmdBuffer, (VkBuffer)indexBuffer->handle, offset, VK_INDEX_TYPE_UINT32);
 }
-void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, LGFXBuffer *vertexBuffers, uint32_t vertexBuffersCount)
+void VkLGFXUseVertexBuffer(LGFXCommandBuffer commands, const LGFXBuffer *vertexBuffers, const size_t *offsetsPerVertexBuffer, uint32_t vertexBuffersCount)
 {
 	VkBuffer vkBuffers[16];
 	VkDeviceSize offsets[16];
 	for (uint32_t i = 0; i < vertexBuffersCount; i++)
 	{
 		vkBuffers[i] = (VkBuffer)vertexBuffers[i]->handle;
-		offsets[i] = 0;
+		offsets[i] = offsetsPerVertexBuffer == NULL ? 0 : offsetsPerVertexBuffer[i];
 	}
 	vkCmdBindVertexBuffers((VkCommandBuffer)commands->cmdBuffer, 0, vertexBuffersCount, vkBuffers, offsets);
 }
