@@ -416,6 +416,14 @@ namespace AstralCanvas
 #endif
 return NULL;
 	}
+	void Window::HideWindow()
+	{
+		glfwHideWindow((GLFWwindow *)this->handle);
+	}
+	void Window::ShowWindow()
+	{
+		glfwShowWindow((GLFWwindow *)this->handle);
+	}
 
 	void Window::SetResolution(u32 width, u32 height)
 	{
@@ -501,6 +509,7 @@ return NULL;
 			image.height = (i32)iconHeight;
 			glfwSetWindowIcon((GLFWwindow *)handle, 1, &image);
 		}
+		glfwPollEvents();
 	}
 	void Window::SetCanDragResize(bool canDragResize)
 	{

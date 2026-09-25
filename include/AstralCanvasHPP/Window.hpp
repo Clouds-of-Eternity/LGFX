@@ -69,6 +69,8 @@ namespace AstralCanvas
 		bool GetShouldClose();
         void InterceptClose();
 		void *GetOSWindowHandle();
+		void HideWindow();
+		void ShowWindow();
 		i32 GetCurrentMonitorFramerate();
 		Maths::Vec2 GetCurrentMonitorResolution();
 		
