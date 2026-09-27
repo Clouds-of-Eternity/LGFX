@@ -58,7 +58,8 @@ namespace AstralCanvas
 	{
 		Window *canvas = (Window*)glfwGetWindowUserPointer(window);
 		glfwGetWindowSize(window, &canvas->resolution.X, &canvas->resolution.Y);
-		canvas->isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
+		glfwGetFramebufferSize(window, &canvas->frameBufferSize.X, &canvas->frameBufferSize.Y);
+		canvas->isMaximized = maximized;//glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
 	}
 	void WindowOnTextInput(GLFWwindow* window, u32 characterUnicode)
 	{
@@ -261,8 +262,8 @@ namespace AstralCanvas
 		position = Maths::Point2();
 		windowInputState = {};
 		windowTitle = string();
-		isFullscreen = false;
-		isMaximized = false;
+		isFullscreen = fullscreen;
+		isMaximized = maximized;
 		isVSync = false;
 		justResized = false;
 
@@ -305,8 +306,6 @@ namespace AstralCanvas
 			
 			this->windowInputState = AstralCanvas::InputState(allocator);
 			this->resolution = Point2(width, height);
-			this->isFullscreen = fullscreen;
-			this->isMaximized = maximized;
 
 			glfwSetWindowIconifyCallback(handle, &WindowHidden);
 			glfwSetWindowMaximizeCallback(handle, &WindowMaximized);
@@ -573,6 +572,7 @@ return NULL;
 		{
 			glfwRestoreWindow((GLFWwindow *)handle);
 		}
+		isMaximized = value;
 	}
 	void Window::SetFullscreen(bool value)
 	{
