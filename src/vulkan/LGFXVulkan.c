@@ -958,6 +958,7 @@ VkBool32 VkLGFXErrorFunc(
 
 LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 {
+	const char * validationLayerName = "VK_LAYER_KHRONOS_validation";
 	if (!info->allowProblematicEnvironmentVariables)
 	{
 		VkLGFXDisableUnsupportedEnvironmentVariables();
@@ -1023,17 +1024,17 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 
 	if (info->runtimeErrorChecking)
 	{
-		const char * errorChecker = "VK_LAYER_KHRONOS_validation";
 		uint32_t layerCount = 0;
 
+		vkEnumerateInstanceLayerProperties(&layerCount, NULL);
 		VkLayerProperties *layerProperties = Allocate(VkLayerProperties, layerCount);
 		vkEnumerateInstanceLayerProperties(&layerCount, layerProperties);
 
 		uint32_t totalSupported = 0;
 		for (size_t i = 0; i < layerCount; i++)
 		{
-			//printf("instance has layer %s\n", layerProperties[i].layerName);
-			if (strcmp(errorChecker, layerProperties[i].layerName) == 0)
+			printf("instance has layer %s\n", layerProperties[i].layerName);
+			if (strcmp(validationLayerName, layerProperties[i].layerName) == 0)
 			{
 				totalSupported++;
 			}
@@ -1046,7 +1047,7 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 		else
 		{
 			result->enabledErrorCheckerExtensions = Allocate(const char *, 1);
-			result->enabledErrorCheckerExtensions[0] = errorChecker;
+			result->enabledErrorCheckerExtensions[0] = validationLayerName;
 			//check validation layer support
 			vkEnumerateInstanceLayerProperties(&layerCount, NULL);
 
