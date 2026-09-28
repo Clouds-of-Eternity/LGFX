@@ -986,7 +986,7 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	instanceInfo.pApplicationInfo = &appInfo;
 
 	//count extensions
-	uint32_t enabledExtensionsCount = info->enabledExtensionsCount;
+	uint32_t enabledExtensionsCount = info->enabledExtensionsCount + 1;
 	if (info->runtimeErrorChecking)
 	{
 		enabledExtensionsCount++;
@@ -1009,9 +1009,9 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	{
 		result->enabledInstanceExtensions[index++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 	}
+	result->enabledInstanceExtensions[index++] = VK_KHR_SURFACE_EXTENSION_NAME;
 	#ifdef MACOS
 	result->enabledInstanceExtensions[index++] = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
-	result->enabledInstanceExtensions[index++] = VK_KHR_SURFACE_EXTENSION_NAME;
 	result->enabledInstanceExtensions[index++] = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
 	result->enabledInstanceExtensions[index++] = VK_MVK_MACOS_SURFACE_EXTENSION_NAME;
 	#endif

@@ -1,7 +1,7 @@
 #include "lgfx/lgfx.h"
-#include "memory.h"
 #include "Logging.h"
 #include <math.h>
+#include <memory.h>
 
 #include "vulkan/LGFXVulkan.h"
 

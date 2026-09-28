@@ -57,7 +57,10 @@ namespace AstralCanvas
 			#ifdef X11
 			glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
 			#endif
-			glfwInit();
+			if (!glfwInit())
+			{
+				assert(false);
+			}
 			u32 extensionsCount;
 			const char **extensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
 

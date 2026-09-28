@@ -1,4 +1,9 @@
 #pragma once
+#include <stddef.h>
+
+#ifndef _Nullable
+#define _Nullable
+#endif
 
 #ifndef __cplusplus
 #include <stdbool.h>

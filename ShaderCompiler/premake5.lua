@@ -14,7 +14,9 @@ project "ShaderCompiler"
         "HeaderImpls.cpp",
         "main.cpp"
     }
-    links { "%{VULKAN_SDK}/Lib/slang" }
+    libdirs "%{VULKAN_SDK}/lib"
+    libdirs "%{VULKAN_SDK}/Lib"
+    links { "slang" }
     
     filter "system:macosx"
         runpathdirs "/deps/"

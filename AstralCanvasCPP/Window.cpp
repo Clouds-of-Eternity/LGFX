@@ -292,6 +292,8 @@ namespace AstralCanvas
 		}
 		
 		this->handle = glfwCreateWindow(width, height, name, toFullscreenOn, NULL);
+
+		assert(handle != NULL);
 		
 		if (handle != NULL)
 		{

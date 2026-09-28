@@ -1,5 +1,4 @@
 #pragma once
-
 #include "lgfx/lgfx.h"
 #include "lgfx/sync.h"
 
