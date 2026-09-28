@@ -963,6 +963,7 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 		VkLGFXDisableUnsupportedEnvironmentVariables();
 	}
 	LGFXInstanceImpl *result = Allocate(LGFXInstanceImpl, 1);
+	*result = (LGFXInstanceImpl){};
 	VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {0};
 
 	result->runtimeErrorChecking = info->runtimeErrorChecking;
@@ -1023,11 +1024,7 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	if (info->runtimeErrorChecking)
 	{
 		const char * errorChecker = "VK_LAYER_KHRONOS_validation";
-		result->enabledErrorCheckerExtensions = Allocate(const char *, 1);
-		result->enabledErrorCheckerExtensions[0] = errorChecker;
-		//check validation layer support
 		uint32_t layerCount = 0;
-		vkEnumerateInstanceLayerProperties(&layerCount, NULL);
 
 		VkLayerProperties *layerProperties = Allocate(VkLayerProperties, layerCount);
 		vkEnumerateInstanceLayerProperties(&layerCount, layerProperties);
@@ -1043,21 +1040,27 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 		}
 		if (totalSupported != 1)
 		{
-			LGFX_ERROR("Not all requested error checkers are supported\n");
-			VkLGFXDestroyInstance(result);
-			return NULL;
+			result->enabledErrorCheckerExtensions = NULL;
+			LGFX_WARN("Not all requested error checkers are supported\n");
 		}
+		else
+		{
+			result->enabledErrorCheckerExtensions = Allocate(const char *, 1);
+			result->enabledErrorCheckerExtensions[0] = errorChecker;
+			//check validation layer support
+			vkEnumerateInstanceLayerProperties(&layerCount, NULL);
 
-		instanceInfo.enabledLayerCount = 1;
-		instanceInfo.ppEnabledLayerNames = result->enabledErrorCheckerExtensions;
+			instanceInfo.enabledLayerCount = 1;
+			instanceInfo.ppEnabledLayerNames = result->enabledErrorCheckerExtensions;
 
-		debugMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;//StructureType.DebugUtilsMessengerCreateInfoExt;
-		debugMessengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-		debugMessengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-		debugMessengerCreateInfo.pNext = NULL;
-		debugMessengerCreateInfo.pUserData = NULL;
-		debugMessengerCreateInfo.pfnUserCallback = &VkLGFXErrorFunc;
-		instanceInfo.pNext = &debugMessengerCreateInfo;
+			debugMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;//StructureType.DebugUtilsMessengerCreateInfoExt;
+			debugMessengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+			debugMessengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+			debugMessengerCreateInfo.pNext = NULL;
+			debugMessengerCreateInfo.pUserData = NULL;
+			debugMessengerCreateInfo.pfnUserCallback = &VkLGFXErrorFunc;
+			instanceInfo.pNext = &debugMessengerCreateInfo;
+		}
 
 		free(layerProperties);
 	}
