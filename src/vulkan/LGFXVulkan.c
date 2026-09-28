@@ -1033,7 +1033,7 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 		uint32_t totalSupported = 0;
 		for (size_t i = 0; i < layerCount; i++)
 		{
-			printf("instance has layer %s\n", layerProperties[i].layerName);
+			//printf("instance has layer %s\n", layerProperties[i].layerName);
 			if (strcmp(validationLayerName, layerProperties[i].layerName) == 0)
 			{
 				totalSupported++;
