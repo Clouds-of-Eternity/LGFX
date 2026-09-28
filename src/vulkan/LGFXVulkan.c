@@ -1156,31 +1156,32 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	float priority = 0.0f;
 	VkLGFXGetQueueCreateInfos(&inputQueueProps, bestPhysicalDevice, queueCreateInfos, &finalQueueCreateInfoCount, &priority);
 
-	VkPhysicalDeviceVulkan12Features device12EnabledFeatures = {0};
-	device12EnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-	device12EnabledFeatures.descriptorIndexing = true;
-	device12EnabledFeatures.descriptorBindingUpdateUnusedWhilePending = true;
-	device12EnabledFeatures.descriptorBindingPartiallyBound = true;
-	device12EnabledFeatures.descriptorBindingVariableDescriptorCount = true;
-	device12EnabledFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
-	device12EnabledFeatures.descriptorBindingStorageImageUpdateAfterBind = true;
-	device12EnabledFeatures.descriptorBindingStorageBufferUpdateAfterBind = true;
-	device12EnabledFeatures.descriptorBindingUniformBufferUpdateAfterBind = true;
-
 	VkPhysicalDeviceSynchronization2Features sync2 = {0};
 	sync2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
-	sync2.pNext = &device12EnabledFeatures;
 	sync2.synchronization2 = VK_TRUE;
+
+	VkPhysicalDeviceVulkan12Features device12EnabledFeatures = {0};
+	device12EnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	device12EnabledFeatures.descriptorIndexing = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+	device12EnabledFeatures.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+	device12EnabledFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	device12EnabledFeatures.pNext = &sync2;
 
 	VkPhysicalDeviceVulkan11Features device11EnabledFeatures = {0};
 	device11EnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-	device11EnabledFeatures.shaderDrawParameters = true;
-	device11EnabledFeatures.pNext = &sync2;
+	device11EnabledFeatures.shaderDrawParameters = VK_TRUE;
+	device11EnabledFeatures.pNext = &device12EnabledFeatures;
 
 	VkPhysicalDeviceFeatures2 deviceEnabledFeatures = {0};
 	deviceEnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	//no easier way to do this... oh well
-	deviceEnabledFeatures.features.fillModeNonSolid = true;
+	deviceEnabledFeatures.features.fillModeNonSolid = VK_TRUE;
 	deviceEnabledFeatures.features.multiDrawIndirect = info->requiredFeatures.multiDrawIndirect;
 	deviceEnabledFeatures.features.depthClamp = info->requiredFeatures.depthClamp;
 	deviceEnabledFeatures.features.fillModeNonSolid = info->requiredFeatures.fillModeNonSolid;
