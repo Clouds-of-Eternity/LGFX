@@ -113,7 +113,8 @@ typedef enum
     LGFXFunctionOperationType_ComputeBufferRead = 8,
     LGFXFunctionOperationType_UniformBufferRead = 16,
     LGFXFunctionOperationType_ComputeTextureRead = 32,
-    LGFXFunctionOperationType_FragmentFunctionRead = 64
+    LGFXFunctionOperationType_FragmentFunctionRead = 64,
+    LGFXFunctionOperationType_TransferCopy = 128
 } LGFXFunctionOperationType;
 
 typedef enum
@@ -160,6 +161,7 @@ typedef enum
     LGFXFunctionType_Compute = 4,
     LGFXFunctionType_Tessellation = 8,
     LGFXFunctionType_Mesh = 16,
+    LGFXFunctionType_TransferCopy = 32,
     LGFXFunctionType_Unknown = 0xFFFFFFFF
 } LGFXFunctionType;
 

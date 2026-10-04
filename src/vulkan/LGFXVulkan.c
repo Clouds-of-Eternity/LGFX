@@ -695,6 +695,11 @@ void VkLGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType 
 		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 		memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
 	}
+	else if (funcType == LGFXFunctionType_TransferCopy)
+	{
+		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_CLEAR_BIT;
+		memoryBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+	}
 	else if (funcType == (LGFXFunctionType)(LGFXFunctionType_Vertex | LGFXFunctionType_Fragment) || funcType == LGFXFunctionType_Fragment || funcType == LGFXFunctionType_Vertex)
 	{
 		memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
@@ -740,6 +745,11 @@ void VkLGFXAwaitWriteFunction(LGFXCommandBuffer commandBuffer, LGFXFunctionType 
 	{
 		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 		memoryBarrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+	}
+	if ((opType & LGFXFunctionOperationType_TransferCopy) != 0)
+	{
+		memoryBarrier.dstStageMask |= VK_PIPELINE_STAGE_2_COPY_BIT;
+		memoryBarrier.dstAccessMask |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
 	}
 
 	VkDependencyInfo dependency = {0};
