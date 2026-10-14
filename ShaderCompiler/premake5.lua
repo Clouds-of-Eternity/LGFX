@@ -15,7 +15,6 @@ project "ShaderCompiler"
         "main.cpp"
     }
     libdirs "%{VULKAN_SDK}/lib"
-    libdirs "%{VULKAN_SDK}/Lib"
     links { "slang" }
     
     filter "system:macosx"
