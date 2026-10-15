@@ -1382,8 +1382,30 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 	VkLGFXSwapchainSupport details = VkLGFXQuerySwapchainSupportDetails((VkPhysicalDevice)device->physicalDevice, surfaceKHR);
 	VkSurfaceFormatKHR surfaceFormat = VkLGFXFindSurface(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, VK_FORMAT_B8G8R8A8_UNORM, &details);
 
+
 	LGFXSwapchain result = Allocate(LGFXSwapchainImpl, 1);
 	result->presentMode = info->presentationMode;
+	//non-vsync present modes:
+	//LGFXSwapchainPresentationMode_Mailbox
+	//LGFXSwapchainPresentationMode_Immediate
+	//vsync present modes:
+	//LGFXSwapchainPresentationMode_FIFO
+
+	bool fallbackPresentMode = true;
+	bool isVsync = info->presentationMode == LGFXSwapchainPresentationMode_Mailbox || info->presentationMode == LGFXSwapchainPresentationMode_Fifo;
+	for (u32 i = 0; i < details.supportedPresentModesCount; i++)
+	{
+		if (result->presentMode == (LGFXSwapchainPresentationMode)details.presentModes[i])
+		{
+			fallbackPresentMode = false;
+			break;
+		}
+	}
+	if (fallbackPresentMode)
+	{
+		result->presentMode = isVsync ? LGFXSwapchainPresentationMode_Fifo : LGFXSwapchainPresentationMode_Immediate;
+	}
+
 	result->swapchain = NULL;
 	result->currentImageIndex = 0;
 	result->currentFrameIndex = 0;
