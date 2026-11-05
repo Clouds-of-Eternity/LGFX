@@ -212,6 +212,7 @@ namespace AstralCanvas
         
         collections::DenseSet<KeyStateStatus> keyStatuses;
         collections::DenseSet<KeyStateStatus> mouseStatuses;
+        collections::DenseSet<KeyStateStatus> simulatedMouseStatuses;
 
         collections::List<u32> textInputCharacters;
 
@@ -234,6 +235,7 @@ namespace AstralCanvas
 
             keyStatuses = collections::DenseSet<KeyStateStatus>();
             mouseStatuses = collections::DenseSet<KeyStateStatus>();
+            simulatedMouseStatuses = collections::DenseSet<KeyStateStatus>();
         }
         inline InputState(IAllocator allocator)
         {
@@ -254,6 +256,7 @@ namespace AstralCanvas
 
             keyStatuses = collections::DenseSet<KeyStateStatus>(allocator);
             mouseStatuses = collections::DenseSet<KeyStateStatus>(allocator);
+            simulatedMouseStatuses = collections::DenseSet<KeyStateStatus>(allocator);
         }
         inline bool IsKeyDown(Keys key)
         {
@@ -282,11 +285,11 @@ namespace AstralCanvas
         }
         inline void SimulateMousePress(MouseButtons button)
         {
-            mouseStatuses.Insert((usize)button, {true, KeyState_Pressed});
+            simulatedMouseStatuses.Insert((usize)button, {true, KeyState_Pressed});
         }
         inline void SimulateMouseRelease(MouseButtons button)
         {
-            mouseStatuses.Insert((usize)button, {false, KeyState_Released});
+            simulatedMouseStatuses.Insert((usize)button, {false, KeyState_Released});
         }
         bool IsControllerConnected(usize index);
 
@@ -298,11 +301,11 @@ namespace AstralCanvas
         {
             textInputCharacters.Clear();
             scroll = Maths::Vec2(0.0f);
-            for (usize i = 0; i < keyStatuses.capacity; i++)
+            for (usize i = 0; i < keyStatuses.capacity; ++i)
             {
                 keyStatuses.ptr[i].perFrameState = KeyState_None;
             }
-            for (usize i = 0; i < mouseStatuses.capacity; i++)
+            for (usize i = 0; i < mouseStatuses.capacity; ++i)
             {
                 mouseStatuses.ptr[i].perFrameState = KeyState_None;
             }
@@ -310,6 +313,18 @@ namespace AstralCanvas
             {
                 oldControllerStates[i] = controllerStates[i];
                 controllerStates[i] = GetControllerState(i);
+            }
+        }
+
+        inline void LoadSimulatedInputStates()
+        {
+            for (usize i = 0; i < simulatedMouseStatuses.capacity; ++i) // load simulated mouse state
+            {
+                if (simulatedMouseStatuses.ptr[i].perFrameState != KeyState_None)
+                {
+                    mouseStatuses.Insert(i, simulatedMouseStatuses[i]);
+                    simulatedMouseStatuses.ptr[i] = {false, KeyState_None};
+                }
             }
         }
 
@@ -324,6 +339,10 @@ namespace AstralCanvas
             for (int i = 0; i < mouseStatuses.capacity; i++)
             {
                 mouseStatuses.ptr[i].status = false;
+            }
+            for (int i = 0; i < simulatedMouseStatuses.capacity; i++)
+            {
+                simulatedMouseStatuses.ptr[i].status = false;
             }
         }
     };

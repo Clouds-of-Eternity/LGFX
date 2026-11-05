@@ -212,6 +212,7 @@ namespace AstralCanvas
 					continue;
 				}
             	window->windowInputState.ResetPerFrameInputStates();
+            	window->windowInputState.LoadSimulatedInputStates();
 
 				//begin draw
 				if (LGFXNewFrame(device, &window->swapchain, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y))
