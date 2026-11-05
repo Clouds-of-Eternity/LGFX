@@ -37,7 +37,7 @@ namespace AstralCanvas
 		float timeScale;
 
 		Application();
-		Application(IAllocator allocator, text appName, text engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow);
+		Application(IAllocator allocator, text appName, text engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noGraphicsContext);
 		
 		bool AddWindow(text name, i32 width, i32 height, bool resizeable, bool fullscree, bool maximized, void *iconData, u32 iconWidth, u32 iconHeight, LGFXSwapchainPresentationMode presentMode, LGFXColor initialColor);
 		void Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc);

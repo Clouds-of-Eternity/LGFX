@@ -38,7 +38,7 @@ namespace AstralCanvas
 		fixedTimeStep = 0.0f;
 		timeScale = 1.0f;
 	}
-	Application::Application(IAllocator allocator, text appName, text engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noWindow)
+	Application::Application(IAllocator allocator, text appName, text engineName, u32 appVersion, u32 engineVersion, float framesPerSecond, bool noGraphicsContext)
 	{
 		this->framesPerSecond = framesPerSecond;
 		this->allocator = allocator;
@@ -52,7 +52,7 @@ namespace AstralCanvas
 		this->fixedUpdateTimer = 0.0f;
 		this->shouldShutdown = false;
 
-		if (!noWindow)
+		if (!noGraphicsContext)
 		{
 			#ifdef X11
 			glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_FALSE);
