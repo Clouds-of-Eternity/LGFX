@@ -241,6 +241,24 @@ namespace AstralCanvas
         }
         return states[controllerIndex].rightStickAxis;
     }
+    inline Maths::Vec2 Input_GetPrevLeftStickAxis(const u32 controllerIndex)
+    {
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.oldControllerStates;
+        if (!states[controllerIndex].connected)
+        {
+            return Maths::Vec2();
+        }
+        return states[controllerIndex].leftStickAxis;
+    }
+    inline Maths::Vec2 Input_GetPrevRightStickAxis(const u32 controllerIndex)
+    {
+        AstralCanvas::ControllerState *states = Input_GetWindow()->windowInputState.oldControllerStates;
+        if (!states[controllerIndex].connected)
+        {
+            return Maths::Vec2();
+        }
+        return states[controllerIndex].rightStickAxis;
+    }
 
     inline bool Input_ControllerIsL2Pressed(const u32 controllerIndex)
     {
