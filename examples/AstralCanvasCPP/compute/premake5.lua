@@ -1,7 +1,7 @@
 project "ComputeCPP"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++14"
+    cppdialect "C++17"
     staticruntime "Off"
     targetdir "bin/%{cfg.buildcfg}"
     includedirs {
