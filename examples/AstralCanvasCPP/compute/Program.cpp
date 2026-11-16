@@ -139,7 +139,7 @@ void Init()
         particles[i].position = Maths::Vec4(random.NextFloatRange(-40.0f, 40.0f), random.NextFloatRange(-22.5f, 22.5f), random.NextFloatRange(0.0f, 5.0f), 0.0f);
         particles[i].velocity = Maths::Vec4(random.NextFloatRange(-2.0f, 2.0f), random.NextFloatRange(-2.0f, 2.0f), 0.0f, random.NextFloat(1.0f));
     }
-    LGFXSetBufferDataOptimizedData(inputBuffer, NULL, (uint8_t *)particles, sizeof(Particle) * PARTICLES_COUNT);
+    LGFXSetBufferDataOptimizedData(inputBuffer, NULL, (uint8_t *)particles, 0, sizeof(Particle) * PARTICLES_COUNT);
 
     LGFXVertexElementFormat formats[2];
     formats[0] = LGFXVertexElementFormat_Vector4;
@@ -153,7 +153,7 @@ void Init()
     indexBuffer = LGFXCreateBuffer(device, &bufferCreateInfo);
 
     uint32_t indices[] = {0, 1, 2, 3, 0, 2};
-    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (uint8_t*)indices, 6 * sizeof(uint32_t));
+    LGFXSetBufferDataOptimizedData(indexBuffer, NULL, (uint8_t*)indices, 0, 6 * sizeof(uint32_t));
 
     //shader
     if (AstralCanvas::CreateShaderFromSFNFilePath(device, GetCAllocator(), "UpdateParticles.sfn", &computeShader) != 0)
@@ -217,6 +217,6 @@ int32_t main()
         "Astral.Canvas",
         0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Immediate);
+    AstralCanvas::applicationInstance.AddWindow("Compute", 1920, 1080, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Immediate, {0, 0, 0, 255});
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }

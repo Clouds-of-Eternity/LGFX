@@ -72,29 +72,6 @@
             "environment": [],
             "console": "externalTerminal"
         },
-        
-        {
-            "name": "Run Triangle Example (Windows VS Debugger)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/AstralCanvas/triangle/bin/Debug/Triangle.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/AstralCanvas/triangle/bin/Debug/",
-            "environment": [],
-            "console": "externalTerminal"
-        },
-        {
-            "name": "Run Compute Example (Windows VS Debugger)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/AstralCanvas/compute/bin/Debug/Compute.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/examples/AstralCanvas/compute/bin/Debug/",
-            "environment": [],
-            "console": "externalTerminal"
-        },
         {
             "name": "Run Tests (Windows VS Debugger)",
             "type": "cppvsdbg",

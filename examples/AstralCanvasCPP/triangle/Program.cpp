@@ -162,6 +162,6 @@ i32 main()
         "Astral.Canvas",
         0, 0, 0.0f, false);
 
-    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Fifo);
+    AstralCanvas::applicationInstance.AddWindow("Triangle", 640, 480, true, false, false, NULL, 0, 0, LGFXSwapchainPresentationMode_Fifo, {0, 0, 0, 255});
     AstralCanvas::applicationInstance.Run(&Update, &FixedUpdate, &Draw, &PostEndDraw, &Init, &Deinit);
 }
