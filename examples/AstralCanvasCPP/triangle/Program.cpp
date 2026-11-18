@@ -156,6 +156,7 @@ void FixedUpdate(float deltaTime)
 i32 main()
 {
     initializedSuccessfully = true;
+    LGFXUseConsoleLogger();
     AstralCanvas::applicationInstance = AstralCanvas::Application(
         GetCAllocator(),
         "Triangle", 

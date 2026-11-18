@@ -10,7 +10,7 @@
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",
                 "${workspaceFolder}/Astral.Core/Astral.Plane",
-                "C:/VulkanSDK/1.4.341.1/Include"
+                "C:/VulkanSDK/1.4.363.0/Include"
             ],
             "defines": [
                 "WINDOWS",
@@ -78,7 +78,7 @@
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",
                 "${workspaceFolder}/Astral.Core/Astral.Plane",
-                "${env:HOME}/VulkanSDK/1.4.328.1/MacOS/include"
+                "${env:HOME}/VulkanSDK/1.4.363.0/MacOS/include"
             ],
             "defines": [
                 "MACOS",

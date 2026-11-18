@@ -1,17 +1,25 @@
 #include "vulkan/LGFXVulkan.h"
-#include "LGFXImpl.h"
-#include "Logging.h"
-#include "memory.h"
+#include "LGFXMemory.h"
+#include "LGFXLogging.h"
 #include "lgfx/sync.h"
 #include <string.h>
-#include <math.h>
+#include <assert.h>
 #include <limits.h>
 #include "ArenaAllocator.h"
 
 #include "volk.h"
 #include "vulkan/vk_mem_alloc.h"
 
-#define ONE_OVER_255 0.00392156862f
+typedef struct VkLGFXQueueProperties
+{
+    void *allQueueInfos;
+    uint32_t allQueueInfosCount;
+    
+    int32_t generalPurposeQueueIndex;
+    int32_t dedicatedGraphicsQueueIndex;
+    int32_t dedicatedComputeQueueIndex;
+    int32_t dedicatedTransferQueueIndex;
+} VkLGFXQueueProperties;
 
 #ifdef WINDOWS
 int setenv(const char *name, const char *value, int overwrite)
@@ -498,7 +506,6 @@ void VkLGFXDisableUnsupportedEnvironmentVariables()
 		"VK_LAYER_Twitch_Overlay",
 		"VK_LAYER_OW_OVERLAY",
 		"VK_LAYER_OW_OBS_HOOK",
-		//"VK_LAYER_OBS_HOOK",
 		"VK_LAYER_bandicam_helper",
 		"VK_LAYER_fpsmon",
 		"VK_LAYER_playclaw",
@@ -510,7 +517,7 @@ void VkLGFXDisableUnsupportedEnvironmentVariables()
 		"DISABLE_TWITCH_VULKAN_OVERLAY",
 		"DISABLE_VULKAN_OW_OVERLAY_LAYER",
 		"DISABLE_VULKAN_OW_OBS_CAPTURE",
-		"DISABLE_VULKAN_OBS_CAPTURE",
+		//"DISABLE_VULKAN_OBS_CAPTURE",
 		"VK_LAYER_bandicam_helper_DEBUG_1",
 		"DISABLE_FPSMON_LAYER",
 		"DISABLE_PLAYCLAW_LAYER",
@@ -634,7 +641,7 @@ void VkLGFXAwaitFence(LGFXFence fence)
 	#if DEBUG
 	if (result != VK_SUCCESS)
 	{
-		printf("Failed to await fence, %i\n", result);
+		LGFX_ERROR("Failed to await fence, %i\n", result);
 	}
 	assert(result == VK_SUCCESS);
 	#endif
@@ -645,7 +652,7 @@ void VkLGFXResetFence(LGFXFence fence)
 	#if DEBUG
 	if (result != VK_SUCCESS)
 	{
-		printf("Failed to await fence, %i\n", result);
+		LGFX_ERROR("Failed to await fence, %i\n", result);
 	}
 	assert(result == VK_SUCCESS);
 	#endif
@@ -954,8 +961,7 @@ VkBool32 VkLGFXErrorFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)// || 
-		//(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0)
+	if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)
 	{
 		LGFX_ERROR("ERROR: %s\n", pCallbackData->pMessage);
 	}
@@ -966,8 +972,14 @@ VkBool32 VkLGFXErrorFunc(
 	return VK_FALSE;
 }
 
-LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
+LGFXInstance VkLGFXCreateInstance(const LGFXInstanceCreateInfo *info)
 {
+    VkResult volkInitResult = volkInitialize();
+	if (volkInitResult != VK_SUCCESS)
+	{
+		return NULL;
+	}
+
 	const char * validationLayerName = "VK_LAYER_KHRONOS_validation";
 	if (!info->allowProblematicEnvironmentVariables)
 	{
@@ -978,20 +990,17 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 	VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {0};
 
 	result->runtimeErrorChecking = info->runtimeErrorChecking;
-	result->backend = info->backend;
-
-	//load vulkan functions
-    VkResult volkInitResult = volkInitialize();
+	result->backend = LGFXBackendType_Vulkan;
 
 	VkApplicationInfo appInfo;
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = info->appName;
 	appInfo.pEngineName = info->engineName;
-	appInfo.apiVersion = LGFX_VULKAN_API_VERSION;
 	appInfo.engineVersion = info->engineVersion;
 	appInfo.applicationVersion = info->appVersion;
-	appInfo.pNext = NULL;
+	appInfo.apiVersion = VK_API_VERSION_1_3;
 
+	appInfo.pNext = NULL;
 
 	VkInstanceCreateInfo instanceInfo = {0};
 	instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1043,7 +1052,6 @@ LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info)
 		uint32_t totalSupported = 0;
 		for (size_t i = 0; i < layerCount; i++)
 		{
-			//printf("instance has layer %s\n", layerProperties[i].layerName);
 			if (strcmp(validationLayerName, layerProperties[i].layerName) == 0)
 			{
 				totalSupported++;
@@ -1123,8 +1131,6 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	extensionNames[extensionIndex++] = "VK_KHR_portability_subset";
 	#endif
 
-	//const char *extensionNames[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
 	vkEnumeratePhysicalDevices(vkInstance, &deviceCount, physDevices);
 
 	uint32_t topScore = 0;
@@ -1154,7 +1160,6 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 
 	VkQueueFamilyProperties *allQueueFamilyProperties = Allocate(VkQueueFamilyProperties, propertiesCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(bestPhysicalDevice, &propertiesCount, allQueueFamilyProperties);
-
 
 	//hopefully get the triumvirate of queues: Graphics, Transfer and Compute
 	//otherwise, the graphics queue (guaranteed to exist by this point) will serve as fallback
@@ -1194,7 +1199,6 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 
 	VkPhysicalDeviceFeatures2 deviceEnabledFeatures = {0};
 	deviceEnabledFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-	//no easier way to do this... oh well
 	deviceEnabledFeatures.features.fillModeNonSolid = VK_TRUE;
 	deviceEnabledFeatures.features.multiDrawIndirect = info->requiredFeatures.multiDrawIndirect;
 	deviceEnabledFeatures.features.depthClamp = info->requiredFeatures.depthClamp;
@@ -1219,12 +1223,11 @@ LGFXDevice VkLGFXCreateDevice(LGFXInstance instance, LGFXDeviceCreateInfo *info)
 	logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	logicalDeviceInfo.queueCreateInfoCount = finalQueueCreateInfoCount;
 	logicalDeviceInfo.pQueueCreateInfos = queueCreateInfos;
-	logicalDeviceInfo.enabledExtensionCount = extensionsCount; //require swapchain support only
+	logicalDeviceInfo.enabledExtensionCount = extensionsCount;
 	logicalDeviceInfo.ppEnabledExtensionNames = extensionNames;
-	logicalDeviceInfo.enabledLayerCount = 0; //these basically dont exist
+	logicalDeviceInfo.enabledLayerCount = 0;
 	logicalDeviceInfo.ppEnabledLayerNames = NULL;
 	logicalDeviceInfo.pNext = &deviceEnabledFeatures;
-	//logicalDeviceInfo.pEnabledFeatures = &deviceEnabledFeatures;
 
 	VkDevice logicalDevice;
 	VkResult vkResult = vkCreateDevice(bestPhysicalDevice, &logicalDeviceInfo, NULL, &logicalDevice);
@@ -1343,36 +1346,6 @@ LGFXSwapchain VkLGFXCreateSwapchain(LGFXDevice device, LGFXSwapchainCreateInfo *
 			LGFX_ERROR("Error creating surface, error code %u\n", createSurfaceResult);
 			return NULL;
 		}
-
-		/*#if defined(WINDOWS)
-	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {0};
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	surfaceCreateInfo.hwnd = info->nativeWindowHandle;
-	surfaceCreateInfo.hinstance = GetModuleHandle(NULL);
-
-	vkCreateWin32SurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
-#elif defined(X11)
-	VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-	surfaceCreateInfo.window = (Window)info->nativeWindowHandle;
-	surfaceCreateInfo.dpy = info->displayHandle;
-
-	vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
-	//PFN_vkCreateXlibSurfaceKHR((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
-#elif defined(WAYLAND)
-	VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-	surfaceCreateInfo.surface = (wl_surface*)info->nativeWindowHandle;
-	surfaceCreateInfo.display = (wl_display*)info->displayHandle;
-
-	#error TODO
-#elif defined(MACOS)
-	VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {0};
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-	surfaceCreateInfo.pView = info->displayHandle;
-	
-	vkCreateMacOSSurfaceMVK((VkInstance)device->instance->instance, &surfaceCreateInfo, NULL, &surfaceKHR);
-#endif*/
 	}
 	else
 	{
@@ -1543,9 +1516,9 @@ bool VkLGFXSwapchainSwapBuffers(LGFXSwapchain *swapchain, uint32_t currentBackbu
 			createInfo.createSurfaceFunc = currentSwapchain->createSurfaceFunc;
 
 			*swapchain = LGFXCreateSwapchain(currentSwapchain->device, &createInfo);
-			printf("Swapchain recreated successfully\n");
+			LGFX_INFO("Swapchain recreated successfully\n");
 			LGFXDestroySwapchain(currentSwapchain, false);
-			printf("Old swapchain disposed\n");
+			LGFX_INFO("Old swapchain disposed\n");
 
 			//resized
 			return true;
@@ -1589,7 +1562,6 @@ void VkLGFXSubmitFrame(LGFXDevice device, LGFXSwapchain swapchain)
 
 	if (presentResults == VK_ERROR_OUT_OF_DATE_KHR || presentResults == VK_SUBOPTIMAL_KHR)
 	{
-		//printf("End-of-frame invalidation detected, will attempt to recreate swapchain next frame\n");
 		swapchain->invalidated = true;
 	}
 	else if (presentResults != VK_SUCCESS)
@@ -1920,11 +1892,11 @@ LGFXMemoryBlock VkLGFXAllocMemoryForTexture(LGFXDevice device, LGFXTexture textu
 
     vmaBindImageMemory(vma, memoryAllocated.vkAllocation, (VkImage)texture->imageHandle);
 
-	char chars[100];
-	int32_t len = sprintf(chars, "Texture: %u, %u", texture->width, texture->height);
-	chars[len] = '\0';
+	// char chars[100];
+	// int32_t len = sprintf(chars, "Texture: %u, %u", texture->width, texture->height);
+	// chars[len] = '\0';
 
-	vmaSetAllocationName(vma, memoryAllocated.vkAllocation, chars);
+	// vmaSetAllocationName(vma, memoryAllocated.vkAllocation, chars);
 
 	LGFXMemoryBlock result = Allocate(LGFXMemoryBlockImpl, 1);
 	*result = memoryAllocated;
@@ -2096,7 +2068,6 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 		VkLGFXEndTemporaryCommandBuffer(device, transientCmdBuffer);
 		ExitLock(&device->graphicsQueue->commandPoolLock);
 	}
-    //AstralCanvasVk_EndTransientCommandBuffer(gpu, &gpu->DedicatedTransferQueue, transientCmdBuffer);
 }
 void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, uint32_t fromMip, LGFXPoint3 toOffset, uint32_t toMip, LGFXPoint3 copyAreaSize, bool autoTransition)
 {
@@ -2265,21 +2236,6 @@ void VkLGFXDestroyTexture(LGFXTexture texture)
 	free(texture);
 }
 
-// void VkLGFXTextureBlit(LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXFilterType filter)
-// {
-// 	VkImageBlit regions;
-// 	regions.dstSubresource.
-// 	vkCmdBlitImage(
-// 		(VkCommandBuffer)commandBuffer->cmdBuffer, 
-// 		(VkImage)from->imageHandle, 
-// 		LGFXTextureLayout2Vulkan(from->layout), 
-// 		(VkImage)to->imageHandle,
-// 		LGFXTextureLayout2Vulkan(to->layout),
-// 		1,
-// 		regions,
-// 		LGFXFilterType2Vulkan(filter))
-// }
-
 LGFXRenderTarget VkLGFXCreateRenderTarget(LGFXDevice device, LGFXRenderTargetCreateInfo *info)
 {
 	LGFXRenderTarget target = Allocate(LGFXRenderTargetImpl, 1);
@@ -2431,12 +2387,6 @@ bool VkLGFXBufferResize(LGFXBuffer buffer, size_t newSize)
 	{
 		return false;
 	}
-	// vkDestroyBuffer((VkDevice)buffer->device->logicalDevice, (VkBuffer)buffer->handle, NULL);
-
-	// vmaFreeMemory((VmaAllocator)buffer->device->memoryAllocator, buffer->bufferMemory->vkAllocation);
-
-	// free(buffer->bufferMemory);
-	// free(buffer);
 
     VkBufferCreateInfo createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -2836,10 +2786,10 @@ void VkLGFXBeginRenderProgram(LGFXRenderProgram program, LGFXCommandBuffer comma
 		{
 			if (attachment->format < LGFXTextureFormat_Depth16Unorm)
 			{
-				clearValues[i].color.float32[0] = clearColor.R * ONE_OVER_255;
-				clearValues[i].color.float32[1] = clearColor.G * ONE_OVER_255;
-				clearValues[i].color.float32[2] = clearColor.B * ONE_OVER_255;
-				clearValues[i].color.float32[3] = clearColor.A * ONE_OVER_255;
+				clearValues[i].color.float32[0] = clearColor.R / 255.0f;
+				clearValues[i].color.float32[1] = clearColor.G / 255.0f;
+				clearValues[i].color.float32[2] = clearColor.B / 255.0f;
+				clearValues[i].color.float32[3] = clearColor.A / 255.0f;
 			}
 			else
 			{
@@ -3287,35 +3237,15 @@ void VkLGFXUseFunctionVariables(LGFXCommandBuffer commandBuffer, LGFXFunctionVar
 	{
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
-	// for (uint32_t i = 0; i < variablesCount; i++)
-	// {
+
 	vkCmdBindDescriptorSets(
 		(VkCommandBuffer)commandBuffer->cmdBuffer, 
 		bindPoint, 
 		(VkPipelineLayout)forFunction->pipelineLayout, 
-		setIndex, 1, //descriptor set count
+		setIndex,
+		1, //descriptor set count
 		(VkDescriptorSet *)&batch,
 		0, NULL); //dynamic offsets count
-	//}
-	// VkDescriptorSet sets[32];
-	// for (uint32_t i = 0; i < variablesCount; i++)
-	// {
-	// 	sets[variables[i].metadata->binding] = (VkDescriptorSet)variables[i].descriptor;
-	// }
-
-	// VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	// if (variables[0].forFunction->type == LGFXFunctionType_Compute)
-	// {
-	// 	bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-	// }
-	
-	// vkCmdBindDescriptorSets(
-	// 	(VkCommandBuffer)commandBuffer->cmdBuffer, 
-	// 	bindPoint, 
-	// 	(VkPipelineLayout)variables[0].forFunction->pipelineLayout, 
-	// 	0, 1, //descriptor set count
-	// 	sets,
-	// 	0, NULL); //dynamic offsets count
 }
 
 LGFXShaderPipeline VkLGFXCreateShaderPipeline(LGFXDevice device, LGFXShaderPipelineCreateInfo *info)
@@ -3619,12 +3549,6 @@ void VkLGFXCommandBufferBegin(LGFXCommandBuffer buffer, bool resetAfterSubmissio
 void VkLGFXCommandBufferEndSwapchain(LGFXCommandBuffer buffer, LGFXSwapchain swapchain)
 {
 	VkLGFXCommandBufferEnd(buffer);
-
-	EnterLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
-
-	//vkQueueWaitIdle((VkQueue)buffer->queue->inDevice->graphicsQueue->queue);
-
-	ExitLock(&buffer->queue->inDevice->graphicsQueue->queueLock);
 
 	VkLGFXCommandBufferExecute(buffer, 
 		swapchain->frameDatas[swapchain->currentFrameIndex].fence,

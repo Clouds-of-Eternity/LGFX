@@ -2,20 +2,7 @@
 
 #include "LGFXImpl.h"
 
-#define LGFX_VULKAN_API_VERSION VK_API_VERSION_1_3
-
-typedef struct VkLGFXQueueProperties
-{
-    void *allQueueInfos;
-    uint32_t allQueueInfosCount;
-    
-    int32_t generalPurposeQueueIndex;
-    int32_t dedicatedGraphicsQueueIndex;
-    int32_t dedicatedComputeQueueIndex;
-    int32_t dedicatedTransferQueueIndex;
-} VkLGFXQueueProperties;
-
-LGFXInstance VkLGFXCreateInstance(LGFXInstanceCreateInfo *info);
+LGFXInstance VkLGFXCreateInstance(const LGFXInstanceCreateInfo *info);
 void VkLGFXDestroyInstance(LGFXInstance instance);
 
 LGFXFence VkLGFXCreateFence(LGFXDevice device, bool signalled);
@@ -54,7 +41,6 @@ void VkLGFXCopyTextureToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffe
 void VkLGFXCopyTextureToTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to, LGFXPoint3 fromOffset, uint32_t fromMip, LGFXPoint3 toOffset, uint32_t toMip, LGFXPoint3 copyAreaSize, bool autoTransition);
 void VkLGFXClearTexture(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXTexture texture, LGFXClearValues clearValues, uint32_t firstMipToTransition, uint32_t mipsToTransitionDepth, bool autoTransition);
 void VkLGFXDestroyTexture(LGFXTexture texture);
-// void VkLGFXTextureBlit(LGFXCommandBuffer commandBuffer, LGFXTexture from, LGFXTexture to);
 
 LGFXSamplerState VkLGFXCreateSamplerState(LGFXDevice device, LGFXSamplerStateCreateInfo *info);
 void VkLGFXDestroySamplerState(LGFXSamplerState state);

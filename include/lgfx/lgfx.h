@@ -89,23 +89,27 @@ typedef struct LGFXSamplerStateImpl *LGFXSamplerState;
 typedef struct LGFXFunctionVariableBatchImpl *LGFXFunctionVariableBatch;
 typedef struct LGFXFunctionVariableBatchTemplateImpl *LGFXFunctionVariableBatchTemplate;
 
-typedef enum
+typedef enum LGFXBackendType
 {
     LGFXBackendType_Vulkan,
-    LGFXBackendType_WebGPU
+    LGFXBackendType_WebGPU,
+
+    LGFXBackendType_MAX = 0x7FFFFFFF
 } LGFXBackendType;
 
-typedef enum
+typedef enum LGFXShaderResourceType
 {
     LGFXShaderResourceType_Uniform,
     LGFXShaderResourceType_Sampler,
     LGFXShaderResourceType_Texture,
     LGFXShaderResourceType_StructuredBuffer,
     LGFXShaderResourceType_InputAttachment,
-    LGFXShaderResourceType_StorageTexture
+    LGFXShaderResourceType_StorageTexture,
+
+    LGFXShaderResourceType_MAX = 0x7FFFFFFF
 } LGFXShaderResourceType;
 
-typedef enum
+typedef enum LGFXFunctionOperationType
 {
     LGFXFunctionOperationType_IndexBufferRead = 1,
     LGFXFunctionOperationType_VertexBufferRead = 2,
@@ -114,34 +118,42 @@ typedef enum
     LGFXFunctionOperationType_UniformBufferRead = 16,
     LGFXFunctionOperationType_ComputeTextureRead = 32,
     LGFXFunctionOperationType_FragmentFunctionRead = 64,
-    LGFXFunctionOperationType_TransferCopy = 128
+    LGFXFunctionOperationType_TransferCopy = 128,
+
+    LGFXFunctionOperationType_MAX = 0x7FFFFFFF
 } LGFXFunctionOperationType;
 
-typedef enum
+typedef enum LGFXFilterType
 {
     LGFXFilterType_Point,
     LGFXFilterType_Linear,
-    LGFXFilterType_Cubic
+    LGFXFilterType_Cubic,
+
+    LGFXFilterType_MAX = 0x7FFFFFFF
 } LGFXFilterType;
 
-typedef enum
+typedef enum LGFXSamplerRepeatMode
 {
     LGFXSamplerRepeatMode_Repeat,
     LGFXSamplerRepeatMode_ClampToEdgeColor,
-    LGFXSamplerRepeatMode_ClampToStaticColor
+    LGFXSamplerRepeatMode_ClampToStaticColor,
+
+    LGFXSamplerRepeatMode_MAX = 0x7FFFFFFF
 } LGFXSamplerRepeatMode;
 
-typedef enum
+typedef enum LGFXSamplerBorderColor
 {
     LGFXSamplerBorderColor_TransparentBlack,
     LGFXSamplerBorderColor_TransparentBlackInt,
     LGFXSamplerBorderColor_OpaqueBlack,
     LGFXSamplerBorderColor_OpaqueBlackInt,
     LGFXSamplerBorderColor_OpaqueWhite,
-    LGFXSamplerBorderColor_OpaqueWhiteInt
+    LGFXSamplerBorderColor_OpaqueWhiteInt,
+
+    LGFXSamplerBorderColor_MAX = 0x7FFFFFFF
 } LGFXSamplerBorderColor;
 
-typedef enum
+typedef enum LGFXComparisonMode
 {
     LGFXComparisonMode_Never,
     LGFXComparisonMode_Less,
@@ -150,10 +162,12 @@ typedef enum
     LGFXComparisonMode_Greater,
     LGFXComparisonMode_NotEqual,
     LGFXComparisonMode_GreaterEqual,
-    LGFXComparisonMode_Always
+    LGFXComparisonMode_Always,
+
+    LGFXComparisonMode_MAX = 0x7FFFFFFF
 } LGFXComparisonMode;
 
-typedef enum
+typedef enum LGFXFunctionType
 {
     LGFXFunctionType_Invalid = 0,
     LGFXFunctionType_Vertex = 1,
@@ -162,10 +176,11 @@ typedef enum
     LGFXFunctionType_Tessellation = 8,
     LGFXFunctionType_Mesh = 16,
     LGFXFunctionType_TransferCopy = 32,
+
     LGFXFunctionType_Unknown = 0xFFFFFFFF
 } LGFXFunctionType;
 
-typedef enum
+typedef enum LGFXVertexElementFormat
 {
     LGFXVertexElementFormat_Invalid,
     LGFXVertexElementFormat_Float,
@@ -180,10 +195,12 @@ typedef enum
     LGFXVertexElementFormat_UInt,
     LGFXVertexElementFormat_UInt2,
     LGFXVertexElementFormat_UInt3,
-    LGFXVertexElementFormat_UInt4
+    LGFXVertexElementFormat_UInt4,
+
+    LGFXVertexElementFormat_MAX = 0x7FFFFFFF
 } LGFXVertexElementFormat;
 
-typedef enum
+typedef enum LGFXBlend
 {
     LGFXBlend_Disable,
     LGFXBlend_One,
@@ -195,24 +212,30 @@ typedef enum
     LGFXBlend_DestinationColor,
     LGFXBlend_InverseDestinationColor,
     LGFXBlend_DestinationAlpha,
-    LGFXBlend_InverseDestinationAlpha
+    LGFXBlend_InverseDestinationAlpha,
+
+    LGFXBlend_MAX = 0x7FFFFFFF
 } LGFXBlend;
 
-typedef enum
+typedef enum LGFXShaderInputAccessFlags
 {
     LGFXShaderInputAccess_Vertex = 1,
     LGFXShaderInputAccess_Fragment = 2,
-    LGFXShaderInputAccess_Compute = 4
+    LGFXShaderInputAccess_Compute = 4,
+
+    LGFXShaderInputAccessFlags_MAX = 0x7FFFFFFF
 } LGFXShaderInputAccessFlags;
 
-typedef enum
+typedef enum LGFXSwapchainPresentationMode
 {
     LGFXSwapchainPresentationMode_Immediate = 0,
     LGFXSwapchainPresentationMode_Mailbox = 1,
-    LGFXSwapchainPresentationMode_Fifo = 2
+    LGFXSwapchainPresentationMode_Fifo = 2,
+
+    LGFXSwapchainPresentationMode_MAX = 0x7FFFFFFF
 } LGFXSwapchainPresentationMode;
 
-typedef enum
+typedef enum LGFXTextureLayout
 {
     LGFXTextureLayout_Undefined,
     LGFXTextureLayout_General,
@@ -226,10 +249,12 @@ typedef enum
     LGFXTextureLayout_PresentSource,
     LGFXTextureLayout_SharedPresentSrc,
     LGFXTextureLayout_FragmentDensityMap,
-    LGFXTextureLayout_FragmentShadingRateAttachmentOptimal
+    LGFXTextureLayout_FragmentShadingRateAttachmentOptimal,
+
+    LGFXTextureLayout_MAX = 0x7FFFFFFF
 } LGFXTextureLayout;
 
-typedef enum
+typedef enum LGFXTextureUsage
 {
     LGFXTextureUsage_TransferSource = 0x00000001,
     LGFXTextureUsage_TransferDest = 0x00000002,
@@ -241,9 +266,11 @@ typedef enum
     LGFXTextureUsage_InputAttachment = 0x00000080,
     LGFXTextureUsage_FragmentShadingRateAttachment = 0x00000100,
     LGFXTextureUsage_FragmentDensityMap = 0x00000200,
+
+    LGFXTextureUsage_MAX = 0x7FFFFFFF
 } LGFXTextureUsage;
 
-typedef enum
+typedef enum LGFXPrimitiveType
 {
     /// Renders the specified vertices as a sequence of isolated triangles. Each group of three vertices defines a separate triangle.
     LGFXPrimitiveType_TriangleList,
@@ -262,9 +289,11 @@ typedef enum
 
     /// Renders the vertices as a series of triangle primitives connected to a central origin vertex
     LGFXPrimitiveType_TriangleFan,
+
+    LGFXPrimitiveType_MAX = 0x7FFFFFFF,
 } LGFXPrimitiveType;
 
-typedef enum
+typedef enum LGFXBufferUsage
 {
     LGFXBufferUsage_TransferSource = 0x00000001,
     LGFXBufferUsage_TransferDest = 0x00000002,
@@ -275,30 +304,38 @@ typedef enum
     LGFXBufferUsage_IndexBuffer = 0x00000040,
     LGFXBufferUsage_VertexBuffer = 0x00000080,
     LGFXBufferUsage_IndirectDrawCallBuffer = 0x00000100,
+
+    LGFXBufferUsage_MAX = 0x7FFFFFFF
 } LGFXBufferUsage;
 
-typedef enum
+typedef enum LGFXCullMode
 {
     LGFXCullMode_None,
     LGFXCullMode_Front,
-    LGFXCullMode_Back
+    LGFXCullMode_Back,
+
+    LGFXCullMode_MAX = 0x7FFFFFFF
 } LGFXCullMode;
 
-typedef enum
+typedef enum LGFXRenderAttachmentOutput
 {
     LGFXRenderAttachmentOutput_ToRenderTarget,
     LGFXRenderAttachmentOutput_ToNextPass,
-    LGFXRenderAttachmentOutput_ToScreen
+    LGFXRenderAttachmentOutput_ToScreen,
+
+    LGFXRenderAttachmentOutput_MAX = 0x7FFFFFFF
 } LGFXRenderAttachmentOutput;
 
-typedef enum
+typedef enum LGFXMemoryUsage
 {
     LGFXMemoryUsage_CPU_TO_GPU,
     LGFXMemoryUsage_GPU_TO_CPU,
-    LGFXMemoryUsage_GPU_ONLY
+    LGFXMemoryUsage_GPU_ONLY,
+
+    LGFXMemoryUsage_MAX = 0x7FFFFFFF
 } LGFXMemoryUsage;
 
-typedef enum
+typedef enum LGFXTextureFormat
 {
     LGFXTextureFormat_Undefined,
     LGFXTextureFormat_R8Unorm,
@@ -396,7 +433,27 @@ typedef enum
     LGFXTextureFormat_Depth24PlusStencil8,
     LGFXTextureFormat_Depth32Float,
     LGFXTextureFormat_Depth32FloatStencil8,
+
+    LGFXTextureFormat_MAX = 0x7FFFFFFF
 } LGFXTextureFormat;
+
+typedef enum LGFXLogLevel
+{
+    LGFXLogLevel_Info,
+    LGFXLogLevel_Debug,
+    LGFXLogLevel_Warning,
+    LGFXLogLevel_Error,
+
+    LGFXLogLevel_MAX = 0x7FFFFFFF
+} LGFXLogLevel;
+
+typedef void (*LGFXLoggerFunction)(void *userData, LGFXLogLevel level, const char *message);
+
+typedef struct LGFXLoggerInfo
+{
+    void *userData;
+    LGFXLoggerFunction logCallback;
+} LGFXLoggerInfo;
 
 typedef struct LGFXInstanceCreateInfo
 {
@@ -427,6 +484,7 @@ typedef struct LGFXInstanceCreateInfo
     /// have been identified as causing crashes in many applications. Thus, it is recommended that this
     /// value stay as false.
     bool allowProblematicEnvironmentVariables;
+
 } LGFXInstanceCreateInfo;
 
 typedef int32_t (*LGFXCreateWindowSurfaceFunc)(LGFXDevice, void *, void *, void **);
@@ -756,7 +814,10 @@ typedef struct LGFXShaderPipelineCreateInfo
     const char *entryPoint2Name;
 } LGFXShaderPipelineCreateInfo;
 
-LGFX_EXPORT LGFXInstance LGFXCreateInstance(LGFXInstanceCreateInfo *info);
+LGFX_EXPORT void LGFXSetLogger(const LGFXLoggerInfo *loggerInfo);
+LGFX_EXPORT void LGFXUseConsoleLogger();
+
+LGFX_EXPORT LGFXInstance LGFXCreateInstance(const LGFXInstanceCreateInfo *info);
 LGFX_EXPORT void LGFXDestroyInstance(LGFXInstance instance);
 LGFX_EXPORT uint8_t LGFXGetPixelSize(LGFXTextureFormat format);
 
