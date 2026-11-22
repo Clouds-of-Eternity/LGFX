@@ -2316,7 +2316,7 @@ void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer
 	regions.dstOffset = setIntoBufferOffset;
 	vkCmdCopyBuffer((VkCommandBuffer)commandBuffer->cmdBuffer, (VkBuffer)from->handle, (VkBuffer)to->handle, 1, &regions);
 }
-void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
+void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
 	LGFXBufferCreateInfo stagingBufferInfo = {0};
 	stagingBufferInfo.bufferUsage = LGFXBufferUsage_TransferSource;
@@ -2342,7 +2342,7 @@ void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer comma
 
 	VkLGFXDestroyBuffer(stagingBuffer);
 }
-void VkLGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t bufferStartOffset, size_t dataLength)
+void VkLGFXSetBufferDataFast(LGFXBuffer buffer, const uint8_t *data, size_t bufferStartOffset, size_t dataLength)
 {
 	memcpy((uint8_t *)buffer->bufferMemory->vkAllocationInfo.pMappedData + bufferStartOffset, data, dataLength);
 }

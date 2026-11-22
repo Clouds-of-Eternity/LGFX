@@ -877,8 +877,8 @@ LGFX_EXPORT void LGFXDestroyRenderTarget(LGFXRenderTarget target);
 
 LGFX_EXPORT LGFXBuffer LGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
 LGFX_EXPORT void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to, size_t fromBufferOffset, size_t setIntoBufferOffset);
-LGFX_EXPORT void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
-LGFX_EXPORT void LGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
+LGFX_EXPORT void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
+LGFX_EXPORT void LGFXSetBufferDataFast(LGFXBuffer buffer, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
 LGFX_EXPORT void LGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t value);
 LGFX_EXPORT void LGFXDestroyBuffer(LGFXBuffer buffer);
 LGFX_EXPORT void *LGFXGetBufferData(LGFXBuffer buffer, size_t *bytesLength);

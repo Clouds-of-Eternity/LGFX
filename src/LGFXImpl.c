@@ -277,14 +277,14 @@ void LGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, 
         VkLGFXCopyBufferToBuffer(device, commandBuffer, from, to, fromBufferOffset, setIntoBufferOffset);
     }
 }
-void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
+void LGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {
         VkLGFXSetBufferDataOptimizedData(buffer, commandBufferToUse, data, setIntoBufferOffset, dataLength);
     }
 }
-void LGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
+void LGFXSetBufferDataFast(LGFXBuffer buffer, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength)
 {
     if (buffer->device->backend == LGFXBackendType_Vulkan)
     {

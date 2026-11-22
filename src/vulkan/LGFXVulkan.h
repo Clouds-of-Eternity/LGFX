@@ -50,8 +50,8 @@ void VkLGFXDestroyRenderTarget(LGFXRenderTarget target);
 
 LGFXBuffer VkLGFXCreateBuffer(LGFXDevice device, LGFXBufferCreateInfo *info);
 void VkLGFXCopyBufferToBuffer(LGFXDevice device, LGFXCommandBuffer commandBuffer, LGFXBuffer from, LGFXBuffer to, size_t fromBufferOffset, size_t setIntoBufferOffset);
-void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
-void VkLGFXSetBufferDataFast(LGFXBuffer buffer, uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
+void VkLGFXSetBufferDataOptimizedData(LGFXBuffer buffer, LGFXCommandBuffer commandBufferToUse, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
+void VkLGFXSetBufferDataFast(LGFXBuffer buffer, const uint8_t *data, size_t setIntoBufferOffset, size_t dataLength);
 void VkLGFXFillBuffer(LGFXCommandBuffer cmdBuffer, LGFXBuffer buffer, uint32_t value);
 void VkLGFXDestroyBuffer(LGFXBuffer buffer);
 void *VkLGFXReadBufferFromGPU(LGFXBuffer buffer, void *(*allocateFunction)(size_t));
