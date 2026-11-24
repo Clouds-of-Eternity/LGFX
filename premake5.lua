@@ -33,12 +33,10 @@ workspace "LGFX"
 
     filter "system:windows"
         defines { "WINDOWS" }
-        system "windows"
         architecture "x86_64"
 
     filter "system:linux"
         defines { "LINUX", "POSIX" }
-        system "linux"
         architecture "x86_64"
         filter "options:x11"
             defines {"X11", "GLFW_EXPOSE_NATIVE_X11"}
@@ -47,7 +45,6 @@ workspace "LGFX"
 
     filter "system:macosx"
         defines { "MACOS", "POSIX", "GLFW_EXPOSE_NATIVE_COCOA" }
-        system "macosx"
 
     include("dependencies/GLFW.lua")
 
