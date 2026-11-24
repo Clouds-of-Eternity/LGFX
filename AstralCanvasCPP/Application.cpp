@@ -174,7 +174,7 @@ namespace AstralCanvas
 				startTime = (float)glfwGetTime();
 				endTime = startTime;
 			}
-			if (endTime - startTime < 1.0 / framesPerSecond)
+			if (framesPerSecond > 0.0f && endTime - startTime < 1.0 / framesPerSecond)
 			{
 				endTime = (float)glfwGetTime();
 				continue;
