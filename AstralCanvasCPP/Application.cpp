@@ -104,11 +104,11 @@ namespace AstralCanvas
 		}
 		*result = Window(allocator, name, width, height, resizeable, maximized, fullscreen, iconData, iconWidth, iconHeight, presentMode, initialColor);
 		
-		if (framesPerSecond <= -1.0f)
-		{
-			framesPerSecond = (float)result->GetCurrentMonitorFramerate();
-			//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
-		}
+		// if (framesPerSecond <= -1.0f)
+		// {
+		// 	framesPerSecond = (float)result->GetCurrentMonitorFramerate();
+		// 	//glfwsetwindow((GLFWwindow *)result.handle, GLFW_REFRESH_RATE, );
+		// }
 
 		windows.Add(result);
 		glfwSetWindowUserPointer((GLFWwindow*)result->handle, result);
@@ -122,7 +122,6 @@ namespace AstralCanvas
 	}
 	void Application::Run(ApplicationUpdateFunction updateFunc, ApplicationUpdateFunction fixedUpdateFunc, ApplicationDrawFunction drawFunc, ApplicationUpdateFunction postEndDrawFunc, ApplicationVoidFunction initFunc, ApplicationVoidFunction deinitFunc)
 	{
-		fixedUpdateTimer = 0.0f;
 		AstralCanvas::globalTemplateStore = AstralCanvas::BatchTemplateStore(GetCAllocator(), AstralCanvas::applicationInstance.device);
 		currentWindow = windows.count > 0 ? windows.ptr[0] : NULL;
 		
@@ -136,6 +135,7 @@ namespace AstralCanvas
 		{
 			initFunc();
 		}
+		fixedUpdateTimer = 0.0f;
 		startTime = (float)glfwGetTime();
 		endTime = startTime;
 
@@ -145,7 +145,6 @@ namespace AstralCanvas
 			float deltaTime = endTime - startTime;
 
 			glfwPollEvents();
-			fixedUpdateTimer += deltaTime;
 
 			bool runUpdate = true;
 			bool minimized = windows.count > 0;
@@ -172,9 +171,16 @@ namespace AstralCanvas
 			if (minimized)
 			{
 				glfwWaitEvents();
+				startTime = (float)glfwGetTime();
+				endTime = startTime;
+			}
+			if (endTime - startTime < 1.0 / framesPerSecond)
+			{
 				endTime = (float)glfwGetTime();
+				continue;
 			}
 
+			fixedUpdateTimer += deltaTime;
 			//fixed update
 			if (fixedUpdateTimer > fixedTimeStep * 4.0f) //cap to avoid death spiral
 			{
@@ -195,7 +201,7 @@ namespace AstralCanvas
 				Window *window = windows[i];
 				Maths::Point2 resolution = window->resolution;
 				Maths::Point2 frameSize = window->frameBufferSize;
-				
+
 				if (resolution.X == 0 || resolution.Y == 0 || frameSize.X == 0 || frameSize.Y == 0)
 				{
 					windowsActive++;
@@ -206,13 +212,13 @@ namespace AstralCanvas
 				{
 					updateFunc(deltaTime);
 				}
-				
+
 				if (window->GetShouldClose())
 				{
 					continue;
 				}
-            	window->windowInputState.ResetPerFrameInputStates();
-            	window->windowInputState.LoadSimulatedInputStates();
+				window->windowInputState.ResetPerFrameInputStates();
+				window->windowInputState.LoadSimulatedInputStates();
 
 				//begin draw
 				if (LGFXNewFrame(device, &window->swapchain, (u32)window->frameBufferSize.X, (u32)window->frameBufferSize.Y))
