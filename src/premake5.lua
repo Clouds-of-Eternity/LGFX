@@ -10,6 +10,7 @@ project "LGFX"
         "../include",
         "../dependencies/volk",
         "../Astral.Core/Astral.Core",
+        "../Astral.Core/Astral.Base",
         "%{VULKAN_SDK}/include",
         "./",
     }

@@ -11,6 +11,7 @@ project "ComputeCPP"
         "../../../dependencies/glfw/include"
     }
     links {"LGFX", "AstralCanvasCPP", "GLFW"}
+    defines "FORCE_NO_INTRINSICS"
 
     files {
         "Program.cpp"

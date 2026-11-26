@@ -9,6 +9,7 @@
                 "${workspaceFolder}/dependencies/glfw/include",
                 "${workspaceFolder}/dependencies/volk",
                 "${workspaceFolder}/Astral.Core/Astral.Core",
+                "${workspaceFolder}/Astral.Core/Astral.Base",
                 "${workspaceFolder}/Astral.Core/Astral.Plane",
                 "C:/VulkanSDK/1.4.363.0/Include"
             ],

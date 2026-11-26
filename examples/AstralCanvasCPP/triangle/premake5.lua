@@ -10,6 +10,7 @@ project "TriangleCPP"
         "../../../Astral.Core/Astral.Plane",
         "../../../dependencies/glfw/include"
     }
+    defines "FORCE_NO_INTRINSICS"
     links {"LGFX", "AstralCanvasCPP", "GLFW"}
 
     files {
